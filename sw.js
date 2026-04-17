@@ -1,4 +1,4 @@
-const CACHE_NAME = "kana-quiz-v11";
+const CACHE_NAME = "kana-quiz-v12";
 const ASSETS = [
   "/quiztest/",
   "/quiztest/index.html",
@@ -32,15 +32,17 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((cached) => {
+    caches.match(event.request).then((cached) => {
       if (cached) {
         return cached;
       }
 
       return fetch(event.request)
         .then((networkResponse) => {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          if (networkResponse && networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
           return networkResponse;
         })
         .catch(() => caches.match("/quiztest/index.html"));
