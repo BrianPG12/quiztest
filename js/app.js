@@ -61,8 +61,27 @@ function getPreferredRomajiList() {
     return filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 30);
   }
 
-  const due = filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 16);
-  const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 14);
+  // Adaptive weighting: emphasize mistakes early, shift to SRS as data accumulates
+  const totalAttempts = Object.values(state.srsByRomaji)
+    .reduce((sum, entry) => sum + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
+  
+  let mistakesCount, dueCount;
+  if (totalAttempts < 100) {
+    // Early stage: 80% mistakes, 20% due
+    mistakesCount = 24;
+    dueCount = 6;
+  } else if (totalAttempts < 300) {
+    // Mid stage: 60% mistakes, 40% due
+    mistakesCount = 18;
+    dueCount = 12;
+  } else {
+    // Advanced: 40% mistakes, 60% due
+    mistakesCount = 12;
+    dueCount = 18;
+  }
+
+  const due = filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, dueCount);
+  const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, mistakesCount);
   return [...new Set([...mistakes, ...due])];
 }
 
@@ -96,13 +115,14 @@ function updateSrsOnAttempt(romaji, wasCorrect) {
   const now = Date.now();
   if (wasCorrect) {
     const previous = Number(current.intervalHours || 0);
-    const nextInterval = previous <= 0 ? 4 : Math.min(previous * 2.2, 24 * 30);
+    // Aggressive intervals for daily practice: 1.5h start, 2.5x multiplier, 14-day cap
+    const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
     current.intervalHours = nextInterval;
     current.dueAt = now + nextInterval * 60 * 60 * 1000;
     removeRecentMistake(romaji);
   } else {
-    current.intervalHours = 1;
-    current.dueAt = now + 60 * 60 * 1000;
+    current.intervalHours = 0.5;
+    current.dueAt = now + 30 * 60 * 1000; // 30 minutes for quick retry on mistakes
     upsertRecentMistake(romaji);
   }
 
@@ -146,7 +166,15 @@ function playCurrentAudio() {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ja-JP";
-  utterance.rate = 0.9;
+  utterance.rate = 0.85;          // Slightly slower for clarity
+  utterance.pitch = 1.0;          // Normal pitch
+  utterance.volume = 1.0;         // Full volume (0-1)
+  // Attempt to use the first available Japanese voice
+  const voices = window.speechSynthesis.getVoices();
+  const japaneseVoice = voices.find(v => v.lang.startsWith('ja-'));
+  if (japaneseVoice) {
+    utterance.voice = japaneseVoice;
+  }
   window.speechSynthesis.speak(utterance);
 }
 
