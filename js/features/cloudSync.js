@@ -8,7 +8,40 @@ import {
   signOut,
   sendPasswordResetEmail
 } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+
+// Use Firestore REST API directly to avoid watch stream SDK bugs.
+// Auth SDK is unaffected; only Firestore reads/writes go through REST.
+const { projectId } = syncConfig.firebase;
+const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+async function firestoreGet(path, idToken) {
+  const res = await fetch(`${FIRESTORE_BASE}/${path}`, {
+    headers: { Authorization: `Bearer ${idToken}` }
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Firestore GET failed: ${res.status}`);
+  const body = await res.json();
+  // Data is stored as a single JSON blob in the "payload" stringValue field
+  const raw = body.fields?.payload?.stringValue;
+  return raw ? JSON.parse(raw) : null;
+}
+
+async function firestoreSet(path, data, idToken) {
+  const body = {
+    fields: {
+      payload: { stringValue: JSON.stringify(data) }
+    }
+  };
+  const res = await fetch(`${FIRESTORE_BASE}/${path}?updateMask.fieldPaths=payload`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`Firestore PATCH failed: ${res.status}`);
+}
 
 export async function setupCloudSync({
   elements,
@@ -57,23 +90,27 @@ export async function setupCloudSync({
 
   const app = initializeApp(syncConfig.firebase);
   const auth = getAuth(app);
-  const db = getFirestore(app);
 
   let currentUser = null;
   let uploadTimer = null;
 
+  async function getIdToken() {
+    if (!currentUser) throw new Error("Not logged in.");
+    return currentUser.getIdToken();
+  }
+
   async function pullOrPushOnLogin(user) {
-    const stateRef = doc(db, "quizStates", user.uid);
-    const remoteSnap = await getDoc(stateRef);
+    const idToken = await user.getIdToken();
+    const path = `quizStates/${user.uid}`;
+    const remotePayload = await firestoreGet(path, idToken);
     const localPayload = getLocalPayload();
 
-    if (!remoteSnap.exists()) {
-      await setDoc(stateRef, localPayload);
+    if (!remotePayload) {
+      await firestoreSet(path, localPayload, idToken);
       setStatus(`Connected: ${user.email || user.uid}. Uploaded local progress.`);
       return;
     }
 
-    const remotePayload = remoteSnap.data();
     const remoteSavedAt = Number(remotePayload.savedAt || 0);
     const localSavedAt = Number(localPayload.savedAt || 0);
 
@@ -82,7 +119,7 @@ export async function setupCloudSync({
       onLocalStateApplied();
       setStatus(`Connected: ${user.email || user.uid}. Downloaded newer cloud progress.`);
     } else {
-      await setDoc(stateRef, localPayload);
+      await firestoreSet(path, localPayload, idToken);
       setStatus(`Connected: ${user.email || user.uid}. Cloud synced.`);
     }
   }
@@ -92,15 +129,13 @@ export async function setupCloudSync({
       setStatus("Log in first to pull cloud data.");
       return;
     }
-
-    const stateRef = doc(db, "quizStates", currentUser.uid);
-    const remoteSnap = await getDoc(stateRef);
-    if (!remoteSnap.exists()) {
+    const idToken = await getIdToken();
+    const remotePayload = await firestoreGet(`quizStates/${currentUser.uid}`, idToken);
+    if (!remotePayload) {
       setStatus("No cloud data found yet.");
       return;
     }
-
-    applyRemotePayload(remoteSnap.data());
+    applyRemotePayload(remotePayload);
     onLocalStateApplied();
     setStatus("Pulled cloud progress to this device.");
   }
@@ -110,10 +145,9 @@ export async function setupCloudSync({
       setStatus("Log in first to sync.");
       return;
     }
-
-    const stateRef = doc(db, "quizStates", currentUser.uid);
+    const idToken = await getIdToken();
     const payload = getLocalPayload();
-    await setDoc(stateRef, payload);
+    await firestoreSet(`quizStates/${currentUser.uid}`, payload, idToken);
     const syncMeta = {
       ...payload,
       cloudSyncedAt: Date.now(),
