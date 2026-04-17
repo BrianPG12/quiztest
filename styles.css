@@ -324,10 +324,27 @@ button:disabled {
   font-weight: 700;
   letter-spacing: 0.01em;
   padding: 10px 12px;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, opacity 120ms ease;
 }
 
 .quick-answer-btn:active {
   transform: scale(0.98);
+}
+
+.quick-answer-btn:disabled {
+  opacity: 0.9;
+}
+
+.quick-answer-btn.is-correct {
+  background: var(--success-lt);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.quick-answer-btn.is-wrong {
+  background: var(--error-lt);
+  border-color: var(--error-border);
+  color: var(--error);
 }
 
 #answerInput {

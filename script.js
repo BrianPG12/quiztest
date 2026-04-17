@@ -12216,13 +12216,14 @@
         showResult2(elements, validation.reason, false);
         return { accepted: false, correct: false };
       }
-      const correct = userRomaji === state.currentQuestion.romaji;
+      const correctAnswer = state.currentQuestion.romaji;
+      const correct = userRomaji === correctAnswer;
       if (correct) {
         state.typingRightCount += 1;
         showResult2(elements, "Correct!", true);
       } else {
         state.typingWrongCount += 1;
-        showTypingMistake2(elements, userRomaji, state.currentQuestion.romaji);
+        showTypingMistake2(elements, userRomaji, correctAnswer);
       }
       updateBacklog2({
         backlog: state.backlog,
@@ -12238,7 +12239,7 @@
       refreshProgressViewFn();
       queueManager.updateQueueMeta();
       persistStateFn();
-      return { accepted: true, correct };
+      return { accepted: true, correct, correctAnswer };
     }
     function processDrawingResult(wasCorrect, saveDrawingFn) {
       if (!state.currentQuestion) {
@@ -12397,6 +12398,19 @@
         score -= getLevenshteinDistance(correctStr, candidateStr);
         return score;
       }
+      function shuffleArray(values) {
+        const arr = [...values];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j2 = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j2]] = [arr[j2], arr[i]];
+        }
+        return arr;
+      }
+      function pickRandomDistinct(source, count, excluded = /* @__PURE__ */ new Set()) {
+        const filtered = source.filter((item) => !excluded.has(item));
+        const shuffled = shuffleArray(filtered);
+        return shuffled.slice(0, count);
+      }
       function renderQuickAnswerOptions() {
         if (!elements.quickAnswerOptions) {
           return;
@@ -12408,9 +12422,18 @@
         }
         const correct = state.currentQuestion.romaji;
         const allRomaji = kanaData.map((item) => item.romaji).filter((romaji) => romaji !== correct);
-        const rankedCandidates = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score).map((item) => item.romaji);
-        const distractors = rankedCandidates.slice(0, 3);
-        const options = [correct, ...distractors].filter((value, index, arr) => arr.indexOf(value) === index).sort(() => Math.random() - 0.5);
+        const ranked = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score);
+        let similarPool = ranked.filter((item) => item.score >= 3).map((item) => item.romaji);
+        if (similarPool.length < 6) {
+          similarPool = ranked.slice(0, 12).map((item) => item.romaji);
+        }
+        const distractorSet = /* @__PURE__ */ new Set();
+        pickRandomDistinct(similarPool, 2).forEach((romaji) => distractorSet.add(romaji));
+        pickRandomDistinct(allRomaji, 1, distractorSet).forEach((romaji) => distractorSet.add(romaji));
+        if (distractorSet.size < 3) {
+          pickRandomDistinct(allRomaji, 3 - distractorSet.size, distractorSet).forEach((romaji) => distractorSet.add(romaji));
+        }
+        const options = shuffleArray([correct, ...distractorSet].slice(0, 4));
         elements.quickAnswerOptions.innerHTML = options.map((romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`).join("");
         elements.quickAnswerOptions.classList.remove("hidden");
       }
@@ -12620,10 +12643,11 @@
         const userAnswer = sanitizeRomaji(rawAnswer);
         const outcome = answeringManager.processTypingAnswer(userAnswer);
         if (!outcome || !outcome.accepted) {
-          return;
+          return null;
         }
         setAnswerInputValue("");
         scheduleNextTypingQuestion(outcome.correct ? 850 : 2200);
+        return outcome;
       }
       function revealDrawingAnswer() {
         if (!state.currentQuestion) {
@@ -12782,12 +12806,28 @@
         if (elements.quickAnswerOptions) {
           elements.quickAnswerOptions.addEventListener("click", (event) => {
             const button = event.target.closest(".quick-answer-btn");
-            if (!button) {
+            if (!button || button.disabled) {
               return;
             }
             const answer = button.dataset.answer || "";
             setAnswerInputValue(answer);
-            checkTypingAnswer(answer);
+            const outcome = checkTypingAnswer(answer);
+            if (!outcome || !outcome.accepted) {
+              return;
+            }
+            const optionButtons = Array.from(elements.quickAnswerOptions.querySelectorAll(".quick-answer-btn"));
+            optionButtons.forEach((optBtn) => {
+              optBtn.disabled = true;
+            });
+            if (outcome.correct) {
+              button.classList.add("is-correct");
+              return;
+            }
+            button.classList.add("is-wrong");
+            const correctButton = optionButtons.find((optBtn) => optBtn.dataset.answer === outcome.correctAnswer);
+            if (correctButton) {
+              correctButton.classList.add("is-correct");
+            }
           });
         }
         drawingFeature.bindCanvasEvents();

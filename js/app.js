@@ -143,6 +143,21 @@ function scoreDistractorSimilarity(correct, candidate) {
   return score;
 }
 
+function shuffleArray(values) {
+  const arr = [...values];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function pickRandomDistinct(source, count, excluded = new Set()) {
+  const filtered = source.filter((item) => !excluded.has(item));
+  const shuffled = shuffleArray(filtered);
+  return shuffled.slice(0, count);
+}
+
 function renderQuickAnswerOptions() {
   if (!elements.quickAnswerOptions) {
     return;
@@ -156,16 +171,28 @@ function renderQuickAnswerOptions() {
 
   const correct = state.currentQuestion.romaji;
   const allRomaji = kanaData.map((item) => item.romaji).filter((romaji) => romaji !== correct);
-  const rankedCandidates = allRomaji
+  const ranked = allRomaji
     .map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) }))
-    .sort((a, b) => b.score - a.score)
-    .map((item) => item.romaji);
+    .sort((a, b) => b.score - a.score);
 
-  const distractors = rankedCandidates.slice(0, 3);
+  let similarPool = ranked.filter((item) => item.score >= 3).map((item) => item.romaji);
+  if (similarPool.length < 6) {
+    similarPool = ranked.slice(0, 12).map((item) => item.romaji);
+  }
 
-  const options = [correct, ...distractors]
-    .filter((value, index, arr) => arr.indexOf(value) === index)
-    .sort(() => Math.random() - 0.5);
+  const distractorSet = new Set();
+
+  // Keep most choices close to the target so they feel like genuine confusions.
+  pickRandomDistinct(similarPool, 2).forEach((romaji) => distractorSet.add(romaji));
+
+  // Keep one option more random to avoid being too predictable.
+  pickRandomDistinct(allRomaji, 1, distractorSet).forEach((romaji) => distractorSet.add(romaji));
+
+  if (distractorSet.size < 3) {
+    pickRandomDistinct(allRomaji, 3 - distractorSet.size, distractorSet).forEach((romaji) => distractorSet.add(romaji));
+  }
+
+  const options = shuffleArray([correct, ...distractorSet].slice(0, 4));
 
   elements.quickAnswerOptions.innerHTML = options
     .map((romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`)
@@ -416,10 +443,11 @@ function checkTypingAnswer(forcedAnswer = null) {
   const userAnswer = sanitizeRomaji(rawAnswer);
   const outcome = answeringManager.processTypingAnswer(userAnswer);
   if (!outcome || !outcome.accepted) {
-    return;
+    return null;
   }
   setAnswerInputValue("");
   scheduleNextTypingQuestion(outcome.correct ? 850 : 2200);
+  return outcome;
 }
 
 function revealDrawingAnswer() {
@@ -598,13 +626,32 @@ function bindEvents() {
   if (elements.quickAnswerOptions) {
     elements.quickAnswerOptions.addEventListener("click", (event) => {
       const button = event.target.closest(".quick-answer-btn");
-      if (!button) {
+      if (!button || button.disabled) {
         return;
       }
 
       const answer = button.dataset.answer || "";
       setAnswerInputValue(answer);
-      checkTypingAnswer(answer);
+      const outcome = checkTypingAnswer(answer);
+      if (!outcome || !outcome.accepted) {
+        return;
+      }
+
+      const optionButtons = Array.from(elements.quickAnswerOptions.querySelectorAll(".quick-answer-btn"));
+      optionButtons.forEach((optBtn) => {
+        optBtn.disabled = true;
+      });
+
+      if (outcome.correct) {
+        button.classList.add("is-correct");
+        return;
+      }
+
+      button.classList.add("is-wrong");
+      const correctButton = optionButtons.find((optBtn) => optBtn.dataset.answer === outcome.correctAnswer);
+      if (correctButton) {
+        correctButton.classList.add("is-correct");
+      }
     });
   }
 

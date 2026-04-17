@@ -30,13 +30,14 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
       return { accepted: false, correct: false };
     }
 
-    const correct = userRomaji === state.currentQuestion.romaji;
+    const correctAnswer = state.currentQuestion.romaji;
+    const correct = userRomaji === correctAnswer;
     if (correct) {
       state.typingRightCount += 1;
       showResult(elements, "Correct!", true);
     } else {
       state.typingWrongCount += 1;
-      showTypingMistake(elements, userRomaji, state.currentQuestion.romaji);
+      showTypingMistake(elements, userRomaji, correctAnswer);
     }
 
     // Update all tracking systems
@@ -55,7 +56,7 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
     refreshProgressViewFn();
     queueManager.updateQueueMeta();
     persistStateFn();
-    return { accepted: true, correct };
+    return { accepted: true, correct, correctAnswer };
   }
 
   /**
