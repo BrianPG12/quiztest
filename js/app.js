@@ -136,6 +136,44 @@ function ensureTodayEntry() {
   }
 }
 
+function setupAnswerInputGuards() {
+  const input = elements.answerInput;
+  let unlocked = false;
+
+  function looksLikeCredential(value) {
+    if (!value) {
+      return false;
+    }
+    if (value.length > 24) {
+      return true;
+    }
+    return /@|\s|https?:\/\//i.test(value) || /[^a-z-]/i.test(value);
+  }
+
+  function unlockInput() {
+    if (unlocked) {
+      return;
+    }
+    unlocked = true;
+    input.removeAttribute("readonly");
+    if (looksLikeCredential(input.value)) {
+      input.value = "";
+    }
+  }
+
+  input.addEventListener("focus", unlockInput, { once: true });
+  input.addEventListener("pointerdown", unlockInput, { once: true });
+  input.addEventListener("touchstart", unlockInput, { once: true });
+  input.addEventListener("keydown", unlockInput, { once: true });
+
+  // Some password managers inject slightly after first paint.
+  setTimeout(() => {
+    if (looksLikeCredential(input.value)) {
+      input.value = "";
+    }
+  }, 200);
+}
+
 function scheduleNextTypingQuestion() {
   if (state.nextQuestionTimer) {
     clearTimeout(state.nextQuestionTimer);
@@ -457,6 +495,7 @@ function init() {
   });
 
   bindEvents();
+  setupAnswerInputGuards();
   setupPwaInstall();
   elements.practiceStrategySelect.value = state.practiceStrategy;
   elements.drawGuideToggle.checked = state.drawGuideEnabled;

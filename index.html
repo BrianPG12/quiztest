@@ -9,9 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=13" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 </head>
 <body>
+  <form autocomplete="on" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
+    <input type="text" name="username" autocomplete="username" tabindex="-1" />
+    <input type="password" name="password" autocomplete="current-password" tabindex="-1" />
+  </form>
+
   <main class="app-shell">
     <header class="hero">
       <h1>Kana Quiz Trainer</h1>
@@ -86,7 +91,7 @@
       <div id="typingArea" class="answer-block">
         <label for="answerInput">Type romaji</label>
         <div class="input-row">
-          <input id="answerInput" type="search" name="kana-practice-input"  autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="latin" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="e.g. ka" />
+          <input id="answerInput" type="text" name="kana_practice_value" autocomplete="off" readonly autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="latin" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="e.g. ka" />
           <button id="checkBtn" class="btn-primary">Check</button>
         </div>
       </div>
@@ -224,7 +229,7 @@
       // Load only the pre-built bundle in every environment.
       // This avoids browser differences with module graphs and cache behavior.
       var bundle = document.createElement("script");
-      bundle.src = "script.js?v=13";
+      bundle.src = "script.js?v=14";
       document.body.appendChild(bundle);
     })();
   </script>
