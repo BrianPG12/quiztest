@@ -22070,15 +22070,23 @@ This typically indicates that your device does not have a healthy Internet conne
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "ja-JP";
-        utterance.rate = 0.85;
-        utterance.pitch = 1;
+        utterance.rate = 0.75;
+        utterance.pitch = 1.2;
         utterance.volume = 1;
-        const voices = window.speechSynthesis.getVoices();
-        const japaneseVoice = voices.find((v2) => v2.lang.startsWith("ja-"));
-        if (japaneseVoice) {
-          utterance.voice = japaneseVoice;
+        const speak = () => {
+          const voices = window.speechSynthesis.getVoices();
+          const japaneseVoice = voices.find((v2) => v2.lang && v2.lang.startsWith("ja-"));
+          if (japaneseVoice) {
+            utterance.voice = japaneseVoice;
+          }
+          window.speechSynthesis.speak(utterance);
+        };
+        if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.onvoiceschanged = speak;
+          setTimeout(speak, 100);
+        } else {
+          speak();
         }
-        window.speechSynthesis.speak(utterance);
       }
       function refreshAudioButton() {
         elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
@@ -22383,7 +22391,10 @@ This typically indicates that your device does not have a healthy Internet conne
           newQuestion();
         });
         elements.scriptSelect.addEventListener("change", newQuestion);
-        elements.kanaSetSelect.addEventListener("change", newQuestion);
+        elements.kanaSetSelect.addEventListener("change", () => {
+          updateQueueMeta();
+          newQuestion();
+        });
         elements.practiceStrategySelect.addEventListener("change", () => {
           state.practiceStrategy = elements.practiceStrategySelect.value;
           updateQueueMeta();

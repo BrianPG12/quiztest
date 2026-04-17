@@ -166,16 +166,26 @@ function playCurrentAudio() {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ja-JP";
-  utterance.rate = 0.85;          // Slightly slower for clarity
-  utterance.pitch = 1.0;          // Normal pitch
-  utterance.volume = 1.0;         // Full volume (0-1)
-  // Attempt to use the first available Japanese voice
-  const voices = window.speechSynthesis.getVoices();
-  const japaneseVoice = voices.find(v => v.lang.startsWith('ja-'));
-  if (japaneseVoice) {
-    utterance.voice = japaneseVoice;
+  utterance.rate = 0.75;          // Slower for clarity
+  utterance.pitch = 1.2;          // Slightly higher pitch
+  utterance.volume = 1.0;         // Full volume
+  
+  // Wait for voices to load if empty, then speak
+  const speak = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const japaneseVoice = voices.find(v => v.lang && v.lang.startsWith('ja-'));
+    if (japaneseVoice) {
+      utterance.voice = japaneseVoice;
+    }
+    window.speechSynthesis.speak(utterance);
+  };
+
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.onvoiceschanged = speak;
+    setTimeout(speak, 100); // Fallback if voices don't load
+  } else {
+    speak();
   }
-  window.speechSynthesis.speak(utterance);
 }
 
 function refreshAudioButton() {
@@ -532,7 +542,10 @@ function bindEvents() {
     newQuestion();
   });
   elements.scriptSelect.addEventListener("change", newQuestion);
-  elements.kanaSetSelect.addEventListener("change", newQuestion);
+  elements.kanaSetSelect.addEventListener("change", () => {
+    updateQueueMeta();
+    newQuestion();
+  });
   elements.practiceStrategySelect.addEventListener("change", () => {
     state.practiceStrategy = elements.practiceStrategySelect.value;
     updateQueueMeta();
