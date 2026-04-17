@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
   <main class="app-shell">
@@ -201,17 +201,17 @@
     (function bootstrapScripts() {
       if (location.protocol === "file:") {
         const fallback = document.createElement("script");
-        fallback.src = "script.js";
+        fallback.src = "script.js?v=3";
         document.body.appendChild(fallback);
         return;
       }
 
       const main = document.createElement("script");
       main.type = "module";
-      main.src = "js/app.js";
+      main.src = "js/app.js?v=3";
       main.onerror = function () {
         const fallback = document.createElement("script");
-        fallback.src = "script.js";
+        fallback.src = "script.js?v=3";
         document.body.appendChild(fallback);
       };
       document.body.appendChild(main);
