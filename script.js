@@ -12209,12 +12209,12 @@
     function processTypingAnswer(userRomaji) {
       if (!state.currentQuestion) {
         showResult2(elements, "Create a question first.", false);
-        return;
+        return { accepted: false, correct: false };
       }
       const validation = validateTypingAnswer(userRomaji);
       if (!validation.correct) {
         showResult2(elements, validation.reason, false);
-        return;
+        return { accepted: false, correct: false };
       }
       const correct = userRomaji === state.currentQuestion.romaji;
       if (correct) {
@@ -12238,6 +12238,7 @@
       refreshProgressViewFn();
       queueManager.updateQueueMeta();
       persistStateFn();
+      return { accepted: true, correct };
     }
     function processDrawingResult(wasCorrect, saveDrawingFn) {
       if (!state.currentQuestion) {
@@ -12343,6 +12344,59 @@
       function shouldAutoFocusAnswer() {
         return !isCoarsePointer;
       }
+      function getLastVowel(romaji) {
+        const match = String(romaji).match(/[aiueo](?!.*[aiueo])/);
+        return match ? match[0] : "";
+      }
+      function getStem(romaji) {
+        return String(romaji).replace(/[aiueo]$/, "");
+      }
+      function getLevenshteinDistance(a, b2) {
+        const s = String(a);
+        const t = String(b2);
+        const rows = s.length + 1;
+        const cols = t.length + 1;
+        const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+        for (let i = 0; i < rows; i++) {
+          dp[i][0] = i;
+        }
+        for (let j2 = 0; j2 < cols; j2++) {
+          dp[0][j2] = j2;
+        }
+        for (let i = 1; i < rows; i++) {
+          for (let j2 = 1; j2 < cols; j2++) {
+            const cost = s[i - 1] === t[j2 - 1] ? 0 : 1;
+            dp[i][j2] = Math.min(
+              dp[i - 1][j2] + 1,
+              dp[i][j2 - 1] + 1,
+              dp[i - 1][j2 - 1] + cost
+            );
+          }
+        }
+        return dp[s.length][t.length];
+      }
+      function scoreDistractorSimilarity(correct, candidate) {
+        let score = 0;
+        const correctStr = String(correct);
+        const candidateStr = String(candidate);
+        if (candidateStr[0] === correctStr[0]) {
+          score += 4;
+        }
+        if (candidateStr.slice(0, 2) === correctStr.slice(0, 2)) {
+          score += 3;
+        }
+        if (getLastVowel(candidateStr) === getLastVowel(correctStr)) {
+          score += 2;
+        }
+        if (getStem(candidateStr) === getStem(correctStr)) {
+          score += 3;
+        }
+        if (candidateStr.includes("y") && correctStr.includes("y") || candidateStr.includes("sh") && correctStr.includes("sh")) {
+          score += 1;
+        }
+        score -= getLevenshteinDistance(correctStr, candidateStr);
+        return score;
+      }
       function renderQuickAnswerOptions() {
         if (!elements.quickAnswerOptions) {
           return;
@@ -12354,23 +12408,8 @@
         }
         const correct = state.currentQuestion.romaji;
         const allRomaji = kanaData.map((item) => item.romaji).filter((romaji) => romaji !== correct);
-        const similar = allRomaji.filter((romaji) => romaji[0] === correct[0]);
-        const distractorPool = similar.length >= 3 ? similar : allRomaji;
-        const distractors = [];
-        while (distractors.length < 3 && distractorPool.length > 0) {
-          const index = Math.floor(Math.random() * distractorPool.length);
-          const [picked] = distractorPool.splice(index, 1);
-          if (picked && !distractors.includes(picked)) {
-            distractors.push(picked);
-          }
-        }
-        while (distractors.length < 3 && allRomaji.length > 0) {
-          const index = Math.floor(Math.random() * allRomaji.length);
-          const picked = allRomaji[index];
-          if (picked && !distractors.includes(picked)) {
-            distractors.push(picked);
-          }
-        }
+        const rankedCandidates = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score).map((item) => item.romaji);
+        const distractors = rankedCandidates.slice(0, 3);
         const options = [correct, ...distractors].filter((value, index, arr) => arr.indexOf(value) === index).sort(() => Math.random() - 0.5);
         elements.quickAnswerOptions.innerHTML = options.map((romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`).join("");
         elements.quickAnswerOptions.classList.remove("hidden");
@@ -12471,14 +12510,14 @@
           clearCredentialLikeValue();
         }, 200);
       }
-      function scheduleNextTypingQuestion() {
+      function scheduleNextTypingQuestion(delayMs = 700) {
         if (state.nextQuestionTimer) {
           clearTimeout(state.nextQuestionTimer);
         }
         state.nextQuestionTimer = setTimeout(() => {
           state.nextQuestionTimer = null;
           newQuestion();
-        }, 700);
+        }, delayMs);
       }
       function switchModeUI() {
         const mode = elements.modeSelect.value;
@@ -12579,9 +12618,12 @@
       function checkTypingAnswer(forcedAnswer = null) {
         const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : getAnswerInputValue();
         const userAnswer = sanitizeRomaji(rawAnswer);
-        answeringManager.processTypingAnswer(userAnswer);
+        const outcome = answeringManager.processTypingAnswer(userAnswer);
+        if (!outcome || !outcome.accepted) {
+          return;
+        }
         setAnswerInputValue("");
-        scheduleNextTypingQuestion();
+        scheduleNextTypingQuestion(outcome.correct ? 850 : 2200);
       }
       function revealDrawingAnswer() {
         if (!state.currentQuestion) {

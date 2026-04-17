@@ -21,13 +21,13 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
   function processTypingAnswer(userRomaji) {
     if (!state.currentQuestion) {
       showResult(elements, "Create a question first.", false);
-      return;
+      return { accepted: false, correct: false };
     }
 
     const validation = validateTypingAnswer(userRomaji);
     if (!validation.correct) {
       showResult(elements, validation.reason, false);
-      return;
+      return { accepted: false, correct: false };
     }
 
     const correct = userRomaji === state.currentQuestion.romaji;
@@ -55,6 +55,7 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
     refreshProgressViewFn();
     queueManager.updateQueueMeta();
     persistStateFn();
+    return { accepted: true, correct };
   }
 
   /**

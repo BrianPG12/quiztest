@@ -81,6 +81,68 @@ function shouldAutoFocusAnswer() {
   return !isCoarsePointer;
 }
 
+function getLastVowel(romaji) {
+  const match = String(romaji).match(/[aiueo](?!.*[aiueo])/);
+  return match ? match[0] : "";
+}
+
+function getStem(romaji) {
+  return String(romaji).replace(/[aiueo]$/, "");
+}
+
+function getLevenshteinDistance(a, b) {
+  const s = String(a);
+  const t = String(b);
+  const rows = s.length + 1;
+  const cols = t.length + 1;
+  const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+  for (let i = 0; i < rows; i++) {
+    dp[i][0] = i;
+  }
+  for (let j = 0; j < cols; j++) {
+    dp[0][j] = j;
+  }
+
+  for (let i = 1; i < rows; i++) {
+    for (let j = 1; j < cols; j++) {
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return dp[s.length][t.length];
+}
+
+function scoreDistractorSimilarity(correct, candidate) {
+  let score = 0;
+  const correctStr = String(correct);
+  const candidateStr = String(candidate);
+
+  if (candidateStr[0] === correctStr[0]) {
+    score += 4;
+  }
+  if (candidateStr.slice(0, 2) === correctStr.slice(0, 2)) {
+    score += 3;
+  }
+  if (getLastVowel(candidateStr) === getLastVowel(correctStr)) {
+    score += 2;
+  }
+  if (getStem(candidateStr) === getStem(correctStr)) {
+    score += 3;
+  }
+  if ((candidateStr.includes("y") && correctStr.includes("y")) || (candidateStr.includes("sh") && correctStr.includes("sh"))) {
+    score += 1;
+  }
+
+  score -= getLevenshteinDistance(correctStr, candidateStr);
+  return score;
+}
+
 function renderQuickAnswerOptions() {
   if (!elements.quickAnswerOptions) {
     return;
@@ -94,25 +156,12 @@ function renderQuickAnswerOptions() {
 
   const correct = state.currentQuestion.romaji;
   const allRomaji = kanaData.map((item) => item.romaji).filter((romaji) => romaji !== correct);
-  const similar = allRomaji.filter((romaji) => romaji[0] === correct[0]);
-  const distractorPool = similar.length >= 3 ? similar : allRomaji;
-  const distractors = [];
+  const rankedCandidates = allRomaji
+    .map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) }))
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.romaji);
 
-  while (distractors.length < 3 && distractorPool.length > 0) {
-    const index = Math.floor(Math.random() * distractorPool.length);
-    const [picked] = distractorPool.splice(index, 1);
-    if (picked && !distractors.includes(picked)) {
-      distractors.push(picked);
-    }
-  }
-
-  while (distractors.length < 3 && allRomaji.length > 0) {
-    const index = Math.floor(Math.random() * allRomaji.length);
-    const picked = allRomaji[index];
-    if (picked && !distractors.includes(picked)) {
-      distractors.push(picked);
-    }
-  }
+  const distractors = rankedCandidates.slice(0, 3);
 
   const options = [correct, ...distractors]
     .filter((value, index, arr) => arr.indexOf(value) === index)
@@ -239,7 +288,7 @@ function setupAnswerInputGuards() {
   }, 200);
 }
 
-function scheduleNextTypingQuestion() {
+function scheduleNextTypingQuestion(delayMs = 700) {
   if (state.nextQuestionTimer) {
     clearTimeout(state.nextQuestionTimer);
   }
@@ -247,7 +296,7 @@ function scheduleNextTypingQuestion() {
   state.nextQuestionTimer = setTimeout(() => {
     state.nextQuestionTimer = null;
     newQuestion();
-  }, 700);
+  }, delayMs);
 }
 
 function switchModeUI() {
@@ -365,9 +414,12 @@ function newQuestion() {
 function checkTypingAnswer(forcedAnswer = null) {
   const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : getAnswerInputValue();
   const userAnswer = sanitizeRomaji(rawAnswer);
-  answeringManager.processTypingAnswer(userAnswer);
+  const outcome = answeringManager.processTypingAnswer(userAnswer);
+  if (!outcome || !outcome.accepted) {
+    return;
+  }
   setAnswerInputValue("");
-  scheduleNextTypingQuestion();
+  scheduleNextTypingQuestion(outcome.correct ? 850 : 2200);
 }
 
 function revealDrawingAnswer() {
