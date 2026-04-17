@@ -9,10 +9,14 @@ export function trimDailyStatsToLimit(dailyStats, limit) {
   });
 }
 
-export function saveProgress({ storageKey, state, dailyHistoryLimit }) {
+export function buildProgressPayload({ state, dailyHistoryLimit }) {
   trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
 
-  const payload = {
+  const savedAt = Date.now();
+  state.lastSavedAt = savedAt;
+
+  return {
+    savedAt,
     typingRightCount: state.typingRightCount,
     typingWrongCount: state.typingWrongCount,
     drawingRightCount: state.drawingRightCount,
@@ -21,34 +25,29 @@ export function saveProgress({ storageKey, state, dailyHistoryLimit }) {
     drawingsByKana: state.drawingsByKana,
     dailyStats: state.dailyStats
   };
-
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(payload));
-  } catch {
-    // Ignore storage quota or blocked storage errors.
-  }
 }
 
-export function loadProgress({ storageKey, state, kanaData, maxDrawingsPerKana, dailyHistoryLimit }) {
-  let parsed = null;
-  try {
-    parsed = JSON.parse(localStorage.getItem(storageKey) || "null");
-  } catch {
-    parsed = null;
-  }
-
-  if (!parsed || typeof parsed !== "object") {
+export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerKana, dailyHistoryLimit }) {
+  if (!payload || typeof payload !== "object") {
     return;
   }
 
-  state.typingRightCount = Number(parsed.typingRightCount || 0);
-  state.typingWrongCount = Number(parsed.typingWrongCount || 0);
-  state.drawingRightCount = Number(parsed.drawingRightCount || 0);
-  state.drawingWrongCount = Number(parsed.drawingWrongCount || 0);
+  state.lastSavedAt = Number(payload.savedAt || 0);
+  state.typingRightCount = Number(payload.typingRightCount || 0);
+  state.typingWrongCount = Number(payload.typingWrongCount || 0);
+  state.drawingRightCount = Number(payload.drawingRightCount || 0);
+  state.drawingWrongCount = Number(payload.drawingWrongCount || 0);
 
-  if (parsed.backlog && typeof parsed.backlog === "object") {
+  Object.keys(state.drawingsByKana).forEach((kanaChar) => {
+    delete state.drawingsByKana[kanaChar];
+  });
+  Object.keys(state.dailyStats).forEach((dateKey) => {
+    delete state.dailyStats[dateKey];
+  });
+
+  if (payload.backlog && typeof payload.backlog === "object") {
     kanaData.forEach((item) => {
-      const saved = parsed.backlog[item.romaji];
+      const saved = payload.backlog[item.romaji];
       if (!saved || typeof saved !== "object") {
         return;
       }
@@ -75,9 +74,9 @@ export function loadProgress({ storageKey, state, kanaData, maxDrawingsPerKana, 
     });
   }
 
-  if (parsed.drawingsByKana && typeof parsed.drawingsByKana === "object") {
-    Object.keys(parsed.drawingsByKana).forEach((kanaChar) => {
-      const savedList = parsed.drawingsByKana[kanaChar];
+  if (payload.drawingsByKana && typeof payload.drawingsByKana === "object") {
+    Object.keys(payload.drawingsByKana).forEach((kanaChar) => {
+      const savedList = payload.drawingsByKana[kanaChar];
       if (Array.isArray(savedList)) {
         state.drawingsByKana[kanaChar] = savedList
           .filter((value) => typeof value === "string")
@@ -86,13 +85,13 @@ export function loadProgress({ storageKey, state, kanaData, maxDrawingsPerKana, 
     });
   }
 
-  if (parsed.dailyStats && typeof parsed.dailyStats === "object") {
-    Object.keys(parsed.dailyStats).forEach((dateKey) => {
+  if (payload.dailyStats && typeof payload.dailyStats === "object") {
+    Object.keys(payload.dailyStats).forEach((dateKey) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
         return;
       }
 
-      const saved = parsed.dailyStats[dateKey];
+      const saved = payload.dailyStats[dateKey];
       if (!saved || typeof saved !== "object") {
         return;
       }
@@ -107,4 +106,35 @@ export function loadProgress({ storageKey, state, kanaData, maxDrawingsPerKana, 
   }
 
   trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+}
+
+export function saveProgress({ storageKey, state, dailyHistoryLimit }) {
+  const payload = buildProgressPayload({ state, dailyHistoryLimit });
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(payload));
+  } catch {
+    // Ignore storage quota or blocked storage errors.
+  }
+  return payload;
+}
+
+export function loadProgress({ storageKey, state, kanaData, maxDrawingsPerKana, dailyHistoryLimit }) {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(localStorage.getItem(storageKey) || "null");
+  } catch {
+    parsed = null;
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return;
+  }
+
+  applyProgressPayload({
+    payload: parsed,
+    state,
+    kanaData,
+    maxDrawingsPerKana,
+    dailyHistoryLimit
+  });
 }

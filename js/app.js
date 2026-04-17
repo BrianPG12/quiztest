@@ -13,6 +13,7 @@ import { updateStats, resetResult, showResult, setActiveProgressTab } from "./co
 import { getKanaCategory, renderBacklog, updateBacklog, getQuestionWeight } from "./features/backlog.js";
 import { pickTypingQuestion, pickWritingQuestion, getScriptContextForTyping } from "./features/quiz.js";
 import { saveProgress, loadProgress } from "./features/storage.js";
+import { buildProgressPayload, applyProgressPayload } from "./features/storage.js";
 import {
   addDailyAttempt,
   renderDailyProgress,
@@ -20,6 +21,7 @@ import {
   redrawProgressGraph
 } from "./features/progress.js";
 import { createDrawingFeature } from "./features/drawing.js";
+import { setupCloudSync } from "./features/cloudSync.js";
 
 const elements = getElements();
 const state = createState(kanaData);
@@ -28,6 +30,7 @@ const drawingFeature = createDrawingFeature({
   state,
   maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA
 });
+let cloudSync = { queueUpload() {}, async syncNow() {} };
 
 const getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
 
@@ -44,6 +47,21 @@ function persistState() {
   saveProgress({
     storageKey: STORAGE_KEY,
     state,
+    dailyHistoryLimit: DAILY_HISTORY_LIMIT
+  });
+  cloudSync.queueUpload();
+}
+
+function getLocalPayload() {
+  return buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+}
+
+function applyRemotePayload(payload) {
+  applyProgressPayload({
+    payload,
+    state,
+    kanaData,
+    maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
     dailyHistoryLimit: DAILY_HISTORY_LIMIT
   });
 }
@@ -288,6 +306,7 @@ function resetAllData() {
   });
 
   state.progressUiDayMarker = getTodayKey();
+  state.lastSavedAt = 0;
   localStorage.removeItem(STORAGE_KEY);
 
   updateStats(elements, state);
@@ -363,6 +382,26 @@ function init() {
   });
 
   ensureTodayEntry();
+  setupCloudSync({
+    elements,
+    state,
+    getLocalPayload,
+    applyRemotePayload,
+    onLocalStateApplied() {
+      updateStats(elements, state);
+      renderBacklogView();
+      refreshProgressView();
+      saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+    },
+    onLocalStateSaved(payload) {
+      state.lastSavedAt = Number(payload.savedAt || state.lastSavedAt || 0);
+    }
+  }).then((syncApi) => {
+    cloudSync = syncApi;
+  }).catch((error) => {
+    elements.syncStatus.textContent = `Cloud sync unavailable: ${error.message}`;
+  });
+
   bindEvents();
   switchModeUI();
   drawingFeature.clearAllCanvases();

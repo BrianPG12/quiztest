@@ -1,4 +1,33 @@
 (() => {
+  var __create = Object.create;
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getProtoOf = Object.getPrototypeOf;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+  }) : x)(function(x) {
+    if (typeof require !== "undefined") return require.apply(this, arguments);
+    throw Error('Dynamic require of "' + x + '" is not supported');
+  });
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+    // If the importer is in node compatibility mode or this is not an ESM
+    // file that has been converted to a CommonJS file using a Babel-
+    // compatible transform (i.e. "__esModule" has not been set), then set
+    // "default" to the CommonJS "module.exports" for node compatibility.
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+    mod
+  ));
+
   // js/data/kanaData.js
   var kanaData = [
     { romaji: "a", hiragana: "\u3042", katakana: "\u30A2" },
@@ -202,6 +231,15 @@
       compareDayBSelect: document.getElementById("compareDayBSelect"),
       compareSummary: document.getElementById("compareSummary"),
       dailyHistoryTable: document.getElementById("dailyHistoryTable"),
+      syncEmail: document.getElementById("syncEmail"),
+      syncPassword: document.getElementById("syncPassword"),
+      signUpBtn: document.getElementById("signUpBtn"),
+      loginBtn: document.getElementById("loginBtn"),
+      logoutBtn: document.getElementById("logoutBtn"),
+      syncNowBtn: document.getElementById("syncNowBtn"),
+      forcePullBtn: document.getElementById("forcePullBtn"),
+      forcePushBtn: document.getElementById("forcePushBtn"),
+      syncStatus: document.getElementById("syncStatus"),
       dailyProgressGraph: document.getElementById("dailyProgressGraph"),
       drawingGalleryDialog: document.getElementById("drawingGalleryDialog"),
       galleryTitle: document.getElementById("galleryTitle"),
@@ -283,6 +321,7 @@
       drawingWrongCount: 0,
       drawingsByKana: {},
       dailyStats: {},
+      lastSavedAt: 0,
       progressUiDayMarker: getTodayKey(),
       backlog: createBacklog(kanaData2)
     };
@@ -544,9 +583,12 @@
       delete dailyStats[dateKey];
     });
   }
-  function saveProgress({ storageKey, state: state2, dailyHistoryLimit }) {
+  function buildProgressPayload({ state: state2, dailyHistoryLimit }) {
     trimDailyStatsToLimit(state2.dailyStats, dailyHistoryLimit);
-    const payload = {
+    const savedAt = Date.now();
+    state2.lastSavedAt = savedAt;
+    return {
+      savedAt,
       typingRightCount: state2.typingRightCount,
       typingWrongCount: state2.typingWrongCount,
       drawingRightCount: state2.drawingRightCount,
@@ -555,28 +597,25 @@
       drawingsByKana: state2.drawingsByKana,
       dailyStats: state2.dailyStats
     };
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch (e) {
-    }
   }
-  function loadProgress({ storageKey, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
-    let parsed = null;
-    try {
-      parsed = JSON.parse(localStorage.getItem(storageKey) || "null");
-    } catch (e) {
-      parsed = null;
-    }
-    if (!parsed || typeof parsed !== "object") {
+  function applyProgressPayload({ payload, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
+    if (!payload || typeof payload !== "object") {
       return;
     }
-    state2.typingRightCount = Number(parsed.typingRightCount || 0);
-    state2.typingWrongCount = Number(parsed.typingWrongCount || 0);
-    state2.drawingRightCount = Number(parsed.drawingRightCount || 0);
-    state2.drawingWrongCount = Number(parsed.drawingWrongCount || 0);
-    if (parsed.backlog && typeof parsed.backlog === "object") {
+    state2.lastSavedAt = Number(payload.savedAt || 0);
+    state2.typingRightCount = Number(payload.typingRightCount || 0);
+    state2.typingWrongCount = Number(payload.typingWrongCount || 0);
+    state2.drawingRightCount = Number(payload.drawingRightCount || 0);
+    state2.drawingWrongCount = Number(payload.drawingWrongCount || 0);
+    Object.keys(state2.drawingsByKana).forEach((kanaChar) => {
+      delete state2.drawingsByKana[kanaChar];
+    });
+    Object.keys(state2.dailyStats).forEach((dateKey) => {
+      delete state2.dailyStats[dateKey];
+    });
+    if (payload.backlog && typeof payload.backlog === "object") {
       kanaData2.forEach((item) => {
-        const saved = parsed.backlog[item.romaji];
+        const saved = payload.backlog[item.romaji];
         if (!saved || typeof saved !== "object") {
           return;
         }
@@ -601,20 +640,20 @@
         target.katakanaWrong = Number(saved.katakanaWrong || 0);
       });
     }
-    if (parsed.drawingsByKana && typeof parsed.drawingsByKana === "object") {
-      Object.keys(parsed.drawingsByKana).forEach((kanaChar) => {
-        const savedList = parsed.drawingsByKana[kanaChar];
+    if (payload.drawingsByKana && typeof payload.drawingsByKana === "object") {
+      Object.keys(payload.drawingsByKana).forEach((kanaChar) => {
+        const savedList = payload.drawingsByKana[kanaChar];
         if (Array.isArray(savedList)) {
           state2.drawingsByKana[kanaChar] = savedList.filter((value) => typeof value === "string").slice(0, maxDrawingsPerKana);
         }
       });
     }
-    if (parsed.dailyStats && typeof parsed.dailyStats === "object") {
-      Object.keys(parsed.dailyStats).forEach((dateKey) => {
+    if (payload.dailyStats && typeof payload.dailyStats === "object") {
+      Object.keys(payload.dailyStats).forEach((dateKey) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
           return;
         }
-        const saved = parsed.dailyStats[dateKey];
+        const saved = payload.dailyStats[dateKey];
         if (!saved || typeof saved !== "object") {
           return;
         }
@@ -627,6 +666,32 @@
       });
     }
     trimDailyStatsToLimit(state2.dailyStats, dailyHistoryLimit);
+  }
+  function saveProgress({ storageKey, state: state2, dailyHistoryLimit }) {
+    const payload = buildProgressPayload({ state: state2, dailyHistoryLimit });
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (e) {
+    }
+    return payload;
+  }
+  function loadProgress({ storageKey, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
+    let parsed = null;
+    try {
+      parsed = JSON.parse(localStorage.getItem(storageKey) || "null");
+    } catch (e) {
+      parsed = null;
+    }
+    if (!parsed || typeof parsed !== "object") {
+      return;
+    }
+    applyProgressPayload({
+      payload: parsed,
+      state: state2,
+      kanaData: kanaData2,
+      maxDrawingsPerKana,
+      dailyHistoryLimit
+    });
   }
 
   // js/features/progress.js
@@ -1009,6 +1074,209 @@
     };
   }
 
+  // js/config/syncConfig.js
+  var syncConfig = {
+    enabled: false,
+    firebase: {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    }
+  };
+
+  // js/features/cloudSync.js
+  async function setupCloudSync({
+    elements: elements2,
+    state: state2,
+    getLocalPayload: getLocalPayload2,
+    applyRemotePayload: applyRemotePayload2,
+    onLocalStateApplied,
+    onLocalStateSaved
+  }) {
+    function setStatus(text) {
+      elements2.syncStatus.textContent = text;
+    }
+    if (!syncConfig.enabled) {
+      setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
+      disableAuthButtons(true);
+      return createNoopSync();
+    }
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+    const {
+      getAuth,
+      onAuthStateChanged,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut
+    } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
+    const app = initializeApp(syncConfig.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let currentUser = null;
+    let uploadTimer = null;
+    function disableAuthButtons(disabled) {
+      elements2.signUpBtn.disabled = disabled;
+      elements2.loginBtn.disabled = disabled;
+      elements2.logoutBtn.disabled = disabled;
+      elements2.syncNowBtn.disabled = disabled;
+      elements2.forcePullBtn.disabled = disabled;
+      elements2.forcePushBtn.disabled = disabled;
+    }
+    async function pullOrPushOnLogin(user) {
+      const stateRef = doc(db, "quizStates", user.uid);
+      const remoteSnap = await getDoc(stateRef);
+      const localPayload = getLocalPayload2();
+      if (!remoteSnap.exists()) {
+        await setDoc(stateRef, localPayload);
+        setStatus(`Connected: ${user.email || user.uid}. Uploaded local progress.`);
+        return;
+      }
+      const remotePayload = remoteSnap.data();
+      const remoteSavedAt = Number(remotePayload.savedAt || 0);
+      const localSavedAt = Number(localPayload.savedAt || 0);
+      if (remoteSavedAt > localSavedAt) {
+        applyRemotePayload2(remotePayload);
+        onLocalStateApplied();
+        setStatus(`Connected: ${user.email || user.uid}. Downloaded newer cloud progress.`);
+      } else {
+        await setDoc(stateRef, localPayload);
+        setStatus(`Connected: ${user.email || user.uid}. Cloud synced.`);
+      }
+    }
+    async function pullNow() {
+      if (!currentUser) {
+        setStatus("Log in first to pull cloud data.");
+        return;
+      }
+      const stateRef = doc(db, "quizStates", currentUser.uid);
+      const remoteSnap = await getDoc(stateRef);
+      if (!remoteSnap.exists()) {
+        setStatus("No cloud data found yet.");
+        return;
+      }
+      applyRemotePayload2(remoteSnap.data());
+      onLocalStateApplied();
+      setStatus("Pulled cloud progress to this device.");
+    }
+    async function uploadNow() {
+      if (!currentUser) {
+        setStatus("Log in first to sync.");
+        return;
+      }
+      const stateRef = doc(db, "quizStates", currentUser.uid);
+      const payload = getLocalPayload2();
+      await setDoc(stateRef, payload);
+      onLocalStateSaved(payload);
+      setStatus(`Synced at ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}.`);
+    }
+    function queueUpload() {
+      if (!currentUser) {
+        return;
+      }
+      if (uploadTimer) {
+        clearTimeout(uploadTimer);
+      }
+      uploadTimer = setTimeout(() => {
+        uploadTimer = null;
+        uploadNow().catch((error) => {
+          setStatus(`Sync error: ${error.message}`);
+        });
+      }, 600);
+    }
+    disableAuthButtons(false);
+    setStatus("Cloud sync ready. Log in to link data across devices.");
+    elements2.signUpBtn.addEventListener("click", async () => {
+      try {
+        const email = elements2.syncEmail.value.trim();
+        const password = elements2.syncPassword.value;
+        if (!email || !password) {
+          setStatus("Enter email and password first.");
+          return;
+        }
+        await createUserWithEmailAndPassword(auth, email, password);
+        setStatus("Account created.");
+      } catch (error) {
+        setStatus(`Sign up error: ${error.message}`);
+      }
+    });
+    elements2.loginBtn.addEventListener("click", async () => {
+      try {
+        const email = elements2.syncEmail.value.trim();
+        const password = elements2.syncPassword.value;
+        if (!email || !password) {
+          setStatus("Enter email and password first.");
+          return;
+        }
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        setStatus(`Login error: ${error.message}`);
+      }
+    });
+    elements2.logoutBtn.addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+        setStatus("Logged out.");
+      } catch (error) {
+        setStatus(`Logout error: ${error.message}`);
+      }
+    });
+    elements2.syncNowBtn.addEventListener("click", () => {
+      uploadNow().catch((error) => {
+        setStatus(`Sync error: ${error.message}`);
+      });
+    });
+    elements2.forcePullBtn.addEventListener("click", () => {
+      pullNow().catch((error) => {
+        setStatus(`Pull error: ${error.message}`);
+      });
+    });
+    elements2.forcePushBtn.addEventListener("click", () => {
+      uploadNow().catch((error) => {
+        setStatus(`Push error: ${error.message}`);
+      });
+    });
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user;
+      if (!user) {
+        setStatus("Cloud sync ready. Log in to link data across devices.");
+        return;
+      }
+      try {
+        await pullOrPushOnLogin(user);
+      } catch (error) {
+        setStatus(`Cloud sync error: ${error.message}`);
+      }
+    });
+    return {
+      queueUpload,
+      async syncNow() {
+        await uploadNow();
+      },
+      async forcePull() {
+        await pullNow();
+      },
+      async forcePush() {
+        await uploadNow();
+      }
+    };
+  }
+  function createNoopSync() {
+    return {
+      queueUpload() {
+      },
+      async syncNow() {
+      },
+      async forcePull() {
+      },
+      async forcePush() {
+      }
+    };
+  }
+
   // js/app.js
   var elements = getElements();
   var state = createState(kanaData);
@@ -1017,6 +1285,9 @@
     state,
     maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA
   });
+  var cloudSync = { queueUpload() {
+  }, async syncNow() {
+  } };
   var getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
   function renderBacklogView() {
     renderBacklog({
@@ -1030,6 +1301,19 @@
     saveProgress({
       storageKey: STORAGE_KEY,
       state,
+      dailyHistoryLimit: DAILY_HISTORY_LIMIT
+    });
+    cloudSync.queueUpload();
+  }
+  function getLocalPayload() {
+    return buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+  }
+  function applyRemotePayload(payload) {
+    applyProgressPayload({
+      payload,
+      state,
+      kanaData,
+      maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
       dailyHistoryLimit: DAILY_HISTORY_LIMIT
     });
   }
@@ -1238,6 +1522,7 @@
       delete state.dailyStats[dateKey];
     });
     state.progressUiDayMarker = getTodayKey();
+    state.lastSavedAt = 0;
     localStorage.removeItem(STORAGE_KEY);
     updateStats(elements, state);
     renderBacklogView();
@@ -1302,6 +1587,25 @@
       dailyHistoryLimit: DAILY_HISTORY_LIMIT
     });
     ensureTodayEntry();
+    setupCloudSync({
+      elements,
+      state,
+      getLocalPayload,
+      applyRemotePayload,
+      onLocalStateApplied() {
+        updateStats(elements, state);
+        renderBacklogView();
+        refreshProgressView();
+        saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+      },
+      onLocalStateSaved(payload) {
+        state.lastSavedAt = Number(payload.savedAt || state.lastSavedAt || 0);
+      }
+    }).then((syncApi) => {
+      cloudSync = syncApi;
+    }).catch((error) => {
+      elements.syncStatus.textContent = `Cloud sync unavailable: ${error.message}`;
+    });
     bindEvents();
     switchModeUI();
     drawingFeature.clearAllCanvases();

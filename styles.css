@@ -25,11 +25,11 @@ body {
     linear-gradient(120deg, var(--bg-1), var(--bg-2));
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 18px;
 }
 
 .app-shell {
-  width: min(900px, 100%);
+  width: min(980px, 100%);
   display: grid;
   gap: 16px;
 }
@@ -47,6 +47,7 @@ body {
 
 .hero p {
   margin: 8px 0 0;
+  font-size: 0.98rem;
 }
 
 .card {
@@ -57,7 +58,7 @@ body {
 }
 
 .controls {
-  padding: 14px;
+  padding: 16px;
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -133,7 +134,7 @@ button:disabled {
 }
 
 .quiz {
-  padding: 18px;
+  padding: 20px;
   display: grid;
   gap: 14px;
   animation: fade-slide 500ms ease-out;
@@ -170,6 +171,7 @@ button:disabled {
 .input-row {
   display: flex;
   gap: 10px;
+  align-items: stretch;
 }
 
 #answerInput {
@@ -230,6 +232,7 @@ button:disabled {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  font-size: 0.95rem;
 }
 
 .backlog {
@@ -289,6 +292,42 @@ button:disabled {
   border: 1px solid #e3d7c6;
   border-radius: 8px;
   display: block;
+}
+
+.sync-card {
+  margin-top: 12px;
+  border: 1px solid #d1c3b0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+
+.sync-card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.sync-card p {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.sync-controls {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.sync-status {
+  margin-top: 8px;
+  font-size: 0.84rem;
+  color: #5e5446;
+}
+
+#forcePullBtn,
+#forcePushBtn {
+  background: #6f5d4f;
 }
 
 .day-compare-controls {
@@ -352,6 +391,44 @@ button:disabled {
   text-align: left;
   padding: 8px;
   white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 10px;
+  }
+
+  .card {
+    border-radius: 14px;
+  }
+
+  .controls,
+  .quiz,
+  .backlog {
+    padding: 12px;
+  }
+
+  .input-row {
+    flex-direction: column;
+  }
+
+  .input-row button {
+    width: 100%;
+  }
+
+  .canvas-actions button {
+    flex: 1 1 calc(50% - 10px);
+  }
+
+  .sync-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-history-table th,
+  .daily-history-table td {
+    white-space: normal;
+    font-size: 0.82rem;
+  }
 }
 
 .daily-history-table th {

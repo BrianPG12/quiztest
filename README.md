@@ -78,3 +78,23 @@ To validate progress math and daily rollover logic:
 
 - Drawing mode is self-check only (the app reveals answers, then you mark yourself right/wrong).
 - The kana list currently includes basic gojuon plus voiced/semi-voiced sounds.
+
+## Cross-Device Login Sync (Phone + PC)
+
+The app includes optional cloud sync with email/password login using Firebase.
+
+1. Create a Firebase project.
+2. Enable Authentication -> Email/Password provider.
+3. Create a Firestore database.
+4. In `js/config/syncConfig.js`:
+   - Set `enabled: true`
+   - Paste your Firebase web config values.
+5. Deploy or run the app.
+6. Open the `Progress by Day` tab, sign up/log in, and your progress will sync across devices.
+
+Behavior:
+
+- On login, newer state wins (cloud vs local by timestamp).
+- Sync also runs automatically after local progress changes.
+- `Force Pull Cloud` replaces local state with cloud state.
+- `Force Push Local` overwrites cloud state with current local state.

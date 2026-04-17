@@ -12,8 +12,8 @@
 <body>
   <main class="app-shell">
     <header class="hero">
-      <h1>Quiz </h1>
-      <p>PracticeHiragana and Katakana.</p>
+      <h1>Kana Quiz Trainer</h1>
+      <p>Practice Hiragana and Katakana with typing and drawing drills.</p>
     </header>
 
     <section class="controls card">
@@ -74,7 +74,7 @@
 
       <div id="drawingArea" class="answer-block hidden">
         <p class="draw-instructions">
-          Dmark yourself right or wrong.
+          Draw the character, reveal the answer, then mark yourself right or wrong.
         </p>
         <div class="draw-grid">
           <div class="draw-pane">
@@ -149,6 +149,21 @@
       </div>
         <div id="progressPanel" class="hidden" role="tabpanel">
           <p>Compare two days to see how your typing and drawing accuracy is changing.</p>
+            <div class="sync-card">
+              <h3>Cloud Sync</h3>
+              <p>Login to sync the same progress across phone and PC.</p>
+              <div class="sync-controls">
+                <input id="syncEmail" type="email" placeholder="Email" autocomplete="email" />
+                <input id="syncPassword" type="password" placeholder="Password" autocomplete="current-password" />
+                <button id="signUpBtn" class="btn-secondary" type="button">Sign Up</button>
+                <button id="loginBtn" class="btn-primary" type="button">Log In</button>
+                <button id="logoutBtn" class="btn-secondary" type="button">Log Out</button>
+                <button id="syncNowBtn" class="btn-secondary" type="button">Sync Now</button>
+                <button id="forcePullBtn" class="btn-secondary" type="button">Force Pull Cloud</button>
+                <button id="forcePushBtn" class="btn-secondary" type="button">Force Push Local</button>
+              </div>
+              <div id="syncStatus" class="sync-status">Cloud sync not connected.</div>
+            </div>
             <div class="progress-graph-wrap">
               <div class="graph-head">Accuracy Trend (recent days)</div>
               <canvas id="dailyProgressGraph" class="progress-graph" width="860" height="260" aria-label="Daily progress graph"></canvas>

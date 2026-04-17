@@ -39,6 +39,7 @@ export function createState(kanaData) {
     drawingWrongCount: 0,
     drawingsByKana: {},
     dailyStats: {},
+    lastSavedAt: 0,
     progressUiDayMarker: getTodayKey(),
     backlog: createBacklog(kanaData)
   };

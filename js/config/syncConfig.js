@@ -1,0 +1,11 @@
+export const syncConfig = {
+  enabled: false,
+  firebase: {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  }
+};
