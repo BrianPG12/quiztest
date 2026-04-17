@@ -4,30 +4,31 @@
    ========================================================= */
 
 :root {
-  --bg:           #ede8e0;
-  --ink:          #1c1917;
-  --ink-muted:    #6b6560;
+  --bg:           #f0f2f5;
+  --ink:          #111827;
+  --ink-muted:    #6b7280;
   --surface:      #ffffff;
-  --surface-2:    #faf8f5;
-  --border:       #d8d0c6;
-  --border-focus: #c95730;
+  --surface-2:    #f9fafb;
+  --border:       #e5e7eb;
+  --border-focus: #4f46e5;
 
-  --primary:      #c95730;
-  --primary-dk:   #a84325;
-  --success:      #166534;
+  --primary:      #4f46e5;
+  --primary-dk:   #3730a3;
+  --primary-lt:   #eef2ff;
+  --success:      #16a34a;
   --success-lt:   #f0fdf4;
-  --success-border: rgba(22, 101, 52, 0.28);
-  --error:        #991b1b;
-  --error-lt:     #fff1f2;
-  --error-border: rgba(153, 27, 27, 0.28);
-  --blue:         #1e4d8c;
-  --blue-dk:      #163d70;
-  --brown:        #7a513a;
-  --brown-dk:     #5e3f2b;
+  --success-border: rgba(22, 163, 74, 0.30);
+  --error:        #dc2626;
+  --error-lt:     #fef2f2;
+  --error-border: rgba(220, 38, 38, 0.30);
+  --blue:         #0284c7;
+  --blue-dk:      #0369a1;
+  --brown:        #7c5c3e;
+  --brown-dk:     #5e432c;
 
-  --shadow-card:     0 1px 4px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.05);
-  --shadow-elevated: 0 4px 20px rgba(0,0,0,0.12), 0 12px 40px rgba(0,0,0,0.07);
-  --shadow-btn:      0 2px 8px rgba(0,0,0,0.18);
+  --shadow-card:     0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-elevated: 0 8px 24px rgba(0,0,0,0.12), 0 16px 48px rgba(0,0,0,0.08);
+  --shadow-btn:      0 2px 8px rgba(79, 70, 229, 0.30);
 
   --r-sm:   8px;
   --r-md:   14px;
@@ -47,8 +48,8 @@ body {
   line-height: 1.5;
   color: var(--ink);
   background:
-    radial-gradient(ellipse 90% 50% at 5% 0%,  rgba(201, 87, 48, 0.15) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 60% at 95% 100%, rgba(37, 111, 93, 0.13) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 45% at 10% 0%,  rgba(99, 102, 241, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 55% at 90% 100%, rgba(16, 185, 129, 0.07) 0%, transparent 60%),
     var(--bg);
   display: grid;
   place-items: start center;
@@ -111,7 +112,7 @@ select:focus,
 input:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(201, 87, 48, 0.18);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
 }
 
 label {
@@ -170,12 +171,12 @@ button:disabled {
 }
 
 .btn-secondary {
-  background: #6b7280;
+  background: #374151;
   color: #fff;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
+  background: #1f2937;
 }
 
 .btn-success {
@@ -231,8 +232,8 @@ button:disabled {
 
 /* Question prompt */
 .prompt-wrap {
-  background: var(--surface-2);
-  border: 2px solid var(--border);
+  background: var(--primary-lt);
+  border: 2px solid rgba(79, 70, 229, 0.20);
   border-radius: var(--r-md);
   padding: 20px 24px;
   text-align: center;
@@ -244,7 +245,7 @@ button:disabled {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(201, 87, 48, 0.05) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, transparent 65%);
   pointer-events: none;
 }
 
@@ -299,7 +300,7 @@ button:disabled {
 
 #answerInput:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(201, 87, 48, 0.18);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
 }
 
 #checkBtn {
@@ -472,7 +473,7 @@ button:disabled {
 .tab-btn.active {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(201, 87, 48, 0.30);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.30);
 }
 
 /* Header action buttons */
