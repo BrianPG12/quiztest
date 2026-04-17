@@ -349,11 +349,6 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
 }
 
-#answerInput:empty::before {
-  content: attr(data-placeholder);
-  color: #8b8f99;
-}
-
 #checkBtn {
   font-size: 1rem;
   padding: 12px 26px;
