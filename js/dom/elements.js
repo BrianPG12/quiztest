@@ -1,0 +1,46 @@
+export function getElements() {
+  const canvasHiragana = document.getElementById("drawCanvasHiragana");
+  const canvasKatakana = document.getElementById("drawCanvasKatakana");
+
+  return {
+    scriptSelect: document.getElementById("scriptSelect"),
+    modeSelect: document.getElementById("modeSelect"),
+    writingScriptGroup: document.getElementById("writingScriptGroup"),
+    writingScriptSelect: document.getElementById("writingScriptSelect"),
+    kanaSetSelect: document.getElementById("kanaSetSelect"),
+    newQuestionBtn: document.getElementById("newQuestionBtn"),
+    promptElement: document.getElementById("prompt"),
+    typingArea: document.getElementById("typingArea"),
+    drawingArea: document.getElementById("drawingArea"),
+    answerInput: document.getElementById("answerInput"),
+    checkBtn: document.getElementById("checkBtn"),
+    revealBtn: document.getElementById("revealBtn"),
+    clearCanvasBtn: document.getElementById("clearCanvasBtn"),
+    markRightBtn: document.getElementById("markRightBtn"),
+    markWrongBtn: document.getElementById("markWrongBtn"),
+    resultElement: document.getElementById("result"),
+    typingRightCountElement: document.getElementById("typingRightCount"),
+    typingWrongCountElement: document.getElementById("typingWrongCount"),
+    drawingRightCountElement: document.getElementById("drawingRightCount"),
+    drawingWrongCountElement: document.getElementById("drawingWrongCount"),
+    backlogTabBtn: document.getElementById("backlogTabBtn"),
+    dailyProgressTabBtn: document.getElementById("dailyProgressTabBtn"),
+    resetAllDataBtn: document.getElementById("resetAllDataBtn"),
+    backlogPanel: document.getElementById("backlogPanel"),
+    progressPanel: document.getElementById("progressPanel"),
+    compareDayASelect: document.getElementById("compareDayASelect"),
+    compareDayBSelect: document.getElementById("compareDayBSelect"),
+    compareSummary: document.getElementById("compareSummary"),
+    dailyHistoryTable: document.getElementById("dailyHistoryTable"),
+    dailyProgressGraph: document.getElementById("dailyProgressGraph"),
+    drawingGalleryDialog: document.getElementById("drawingGalleryDialog"),
+    galleryTitle: document.getElementById("galleryTitle"),
+    galleryBody: document.getElementById("galleryBody"),
+    closeGalleryBtn: document.getElementById("closeGalleryBtn"),
+    canvasHiragana,
+    canvasKatakana,
+    ctxHiragana: canvasHiragana.getContext("2d"),
+    ctxKatakana: canvasKatakana.getContext("2d"),
+    dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d")
+  };
+}

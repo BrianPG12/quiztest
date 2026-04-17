@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kana Quiz Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <h1>Quiz </h1>
+      <p>PracticeHiragana and Katakana.</p>
+    </header>
+
+    <section class="controls card">
+      <div class="control-group">
+        <label for="scriptSelect">Script</label>
+        <select id="scriptSelect">
+          <option value="hiragana">Hiragana</option>
+          <option value="katakana">Katakana</option>
+          <option value="mixed">Mixed</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="modeSelect">Mode</label>
+        <select id="modeSelect">
+          <option value="kanaToRomaji">Kana → Romaji (type)</option>
+          <option value="romajiToKana">Romaji → Kana (draw)</option>
+          <option value="mixedPractice">Mixed (type + draw)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="kanaSetSelect">Kana Set</label>
+        <select id="kanaSetSelect">
+          <option value="all">All</option>
+          <option value="normal">Normal</option>
+          <option value="dakuten">Dakuten / Handakuten</option>
+          <option value="yoon">Yoon</option>
+        </select>
+      </div>
+
+      <div id="writingScriptGroup" class="control-group hidden">
+        <label for="writingScriptSelect">Writing Script</label>
+        <select id="writingScriptSelect">
+          <option value="both">Both</option>
+          <option value="mixed">Mixed</option>
+          <option value="hiragana">Hiragana only</option>
+          <option value="katakana">Katakana only</option>
+        </select>
+      </div>
+
+      <button id="newQuestionBtn" class="btn-primary">New Question</button>
+    </section>
+
+    <section class="quiz card">
+      <div class="prompt-wrap">
+        <div class="prompt-label">Prompt</div>
+        <div id="prompt" class="prompt">Press "New Question" to begin</div>
+      </div>
+
+      <div id="typingArea" class="answer-block">
+        <label for="answerInput">Type romaji</label>
+        <div class="input-row">
+          <input id="answerInput" type="text" autocomplete="off" placeholder="e.g. ka" />
+          <button id="checkBtn" class="btn-secondary">Check</button>
+        </div>
+      </div>
+
+      <div id="drawingArea" class="answer-block hidden">
+        <p class="draw-instructions">
+          Dmark yourself right or wrong.
+        </p>
+        <div class="draw-grid">
+          <div class="draw-pane">
+            <h3>Hiragana</h3>
+            <canvas id="drawCanvasHiragana" class="draw-canvas" width="360" height="220" aria-label="Hiragana drawing pad"></canvas>
+          </div>
+          <div class="draw-pane">
+            <h3>Katakana</h3>
+            <canvas id="drawCanvasKatakana" class="draw-canvas" width="360" height="220" aria-label="Katakana drawing pad"></canvas>
+          </div>
+        </div>
+        <div class="canvas-actions">
+          <button id="clearCanvasBtn" class="btn-secondary">Clear</button>
+          <button id="revealBtn" class="btn-secondary">Reveal Answer</button>
+          <button id="markRightBtn" class="btn-success" disabled>I Got It Right</button>
+          <button id="markWrongBtn" class="btn-danger" disabled>I Got It Wrong</button>
+        </div>
+      </div>
+
+      <div id="result" class="result" aria-live="polite"></div>
+
+      <div class="stats">
+        <span>Typing: <strong id="typingRightCount">0</strong> right / <strong id="typingWrongCount">0</strong> wrong</span>
+        <span>Drawing: <strong id="drawingRightCount">0</strong> right / <strong id="drawingWrongCount">0</strong> wrong</span>
+      </div>
+    </section>
+
+    <section class="backlog card">
+      <div class="backlog-header">
+        <h2>Progress</h2>
+        <div class="tab-buttons" role="tablist" aria-label="Progress Views">
+          <button id="backlogTabBtn" class="btn-secondary tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="backlogPanel">Backlog</button>
+          <button id="dailyProgressTabBtn" class="btn-secondary tab-btn" type="button" role="tab" aria-selected="false" aria-controls="progressPanel">Progress by Day</button>
+        </div>
+        <button id="resetAllDataBtn" class="btn-danger" type="button">Reset All Data</button>
+      </div>
+      <div id="backlogPanel" role="tabpanel">
+        <p>Green = typing right &gt; typing wrong, drawing right &gt; drawing wrong, and typing+drawing correct &gt; 3 &nbsp;|&nbsp; Red = otherwise after attempts &nbsp;|&nbsp; Grey = not yet seen.</p>
+        <div class="backlog-category">
+          <h3 class="category-title">Normal</h3>
+          <div class="kana-section">
+            <div class="section-label">Hiragana</div>
+            <div class="kana-grid" id="normalHiraganaGrid"></div>
+          </div>
+          <div class="kana-section">
+            <div class="section-label">Katakana</div>
+            <div class="kana-grid" id="normalKatakanaGrid"></div>
+          </div>
+        </div>
+        <div class="backlog-category">
+          <h3 class="category-title">Dakuten / Handakuten</h3>
+          <div class="kana-section">
+            <div class="section-label">Hiragana</div>
+            <div class="kana-grid" id="dakutenHiraganaGrid"></div>
+          </div>
+          <div class="kana-section">
+            <div class="section-label">Katakana</div>
+            <div class="kana-grid" id="dakutenKatakanaGrid"></div>
+          </div>
+        </div>
+        <div class="backlog-category">
+          <h3 class="category-title">Yoon</h3>
+          <div class="kana-section">
+            <div class="section-label">Hiragana</div>
+            <div class="kana-grid" id="yoonHiraganaGrid"></div>
+          </div>
+          <div class="kana-section">
+            <div class="section-label">Katakana</div>
+            <div class="kana-grid" id="yoonKatakanaGrid"></div>
+          </div>
+        </div>
+      </div>
+        <div id="progressPanel" class="hidden" role="tabpanel">
+          <p>Compare two days to see how your typing and drawing accuracy is changing.</p>
+            <div class="progress-graph-wrap">
+              <div class="graph-head">Accuracy Trend (recent days)</div>
+              <canvas id="dailyProgressGraph" class="progress-graph" width="860" height="260" aria-label="Daily progress graph"></canvas>
+            </div>
+          <div class="day-compare-controls">
+            <div class="control-group">
+              <label for="compareDayASelect">Day A</label>
+              <select id="compareDayASelect"></select>
+            </div>
+            <div class="control-group">
+              <label for="compareDayBSelect">Day B</label>
+              <select id="compareDayBSelect"></select>
+            </div>
+          </div>
+          <div id="compareSummary" class="compare-summary"></div>
+          <div id="dailyHistoryTable" class="daily-history-table"></div>
+        </div>
+    </section>
+  </main>
+
+  <dialog id="drawingGalleryDialog" class="gallery-dialog">
+    <div class="gallery-head">
+      <h3 id="galleryTitle">Saved Drawings</h3>
+      <button id="closeGalleryBtn" class="btn-secondary" type="button">Close</button>
+    </div>
+    <div id="galleryBody" class="gallery-body"></div>
+  </dialog>
+
+  <script>
+    (function bootstrapScripts() {
+      if (location.protocol === "file:") {
+        const fallback = document.createElement("script");
+        fallback.src = "script.js";
+        document.body.appendChild(fallback);
+        return;
+      }
+
+      const main = document.createElement("script");
+      main.type = "module";
+      main.src = "js/app.js";
+      main.onerror = function () {
+        const fallback = document.createElement("script");
+        fallback.src = "script.js";
+        document.body.appendChild(fallback);
+      };
+      document.body.appendChild(main);
+    })();
+  </script>
+</body>
+</html>
