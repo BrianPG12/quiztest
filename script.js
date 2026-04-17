@@ -529,13 +529,17 @@
     preferredRomajiList = null
   }) {
     const basePool = kanaSet === "all" ? kanaData2 : kanaData2.filter((item) => getKanaCategoryFn(item.romaji) === kanaSet);
-    let pool = basePool;
+    const safeBasePool = basePool.length > 0 ? basePool : kanaData2;
+    let pool = safeBasePool;
     if (Array.isArray(preferredRomajiList) && preferredRomajiList.length > 0) {
       const preferredSet = new Set(preferredRomajiList);
-      const targeted = basePool.filter((item) => preferredSet.has(item.romaji));
+      const targeted = safeBasePool.filter((item) => preferredSet.has(item.romaji));
       if (targeted.length > 0) {
         pool = targeted;
       }
+    }
+    if (pool.length === 0) {
+      throw new Error("No kana available for the current settings.");
     }
     const weights = pool.map((item) => getQuestionWeightFn(backlog, item));
     const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
@@ -14154,10 +14158,7 @@
     const r = n.docs.get(t._key), i = new __PRIVATE_ExpUserDataWriter(e);
     return new DocumentSnapshot(e, i, t._key, r, new SnapshotMetadata(n.hasPendingWrites, n.fromCache), t.converter);
   }
-  function memoryLocalCache(e) {
-    return new __PRIVATE_MemoryLocalCacheImpl(e);
-  }
-  var S, User, b, D, C, FirestoreError, __PRIVATE_Deferred, __PRIVATE_OAuthToken, __PRIVATE_EmptyAuthCredentialsProvider, __PRIVATE_EmulatorAuthCredentialsProvider, __PRIVATE_FirebaseAuthCredentialsProvider, __PRIVATE_FirstPartyToken, __PRIVATE_FirstPartyAuthCredentialsProvider, AppCheckToken, __PRIVATE_FirebaseAppCheckTokenProvider, __PRIVATE_AutoId, Timestamp, SnapshotVersion, BasePath, ResourcePath, v, FieldPath$1, DocumentKey, FieldIndex, IndexOffset, F, PersistenceTransaction, PersistencePromise, __PRIVATE_ListenSequence, J, Y, Z, X, ee, ne, SortedMap, SortedMapIterator, LLRBNode, SortedSet, SortedSetIterator, FieldMask, __PRIVATE_Base64DecodeError, ByteString, re, DatabaseInfo, DatabaseId, ie, ObjectValue, MutableDocument, Bound, OrderBy, Filter, FieldFilter, CompositeFilter, __PRIVATE_KeyFieldFilter, __PRIVATE_KeyFieldInFilter, __PRIVATE_KeyFieldNotInFilter, __PRIVATE_ArrayContainsFilter, __PRIVATE_InFilter, __PRIVATE_NotInFilter, __PRIVATE_ArrayContainsAnyFilter, __PRIVATE_TargetImpl, __PRIVATE_QueryImpl, ObjectMap, oe, _e, ae, ue, ce, TransformOperation, __PRIVATE_ServerTimestampTransform, __PRIVATE_ArrayUnionTransformOperation, __PRIVATE_ArrayRemoveTransformOperation, __PRIVATE_NumericIncrementTransformOperation, MutationResult, Precondition, Mutation, __PRIVATE_SetMutation, __PRIVATE_PatchMutation, __PRIVATE_DeleteMutation, __PRIVATE_VerifyMutation, MutationBatch, MutationBatchResult, Overlay, ExistenceFilter, le, he, Pe, Ie, BloomFilter, __PRIVATE_BloomFilterError, RemoteEvent, TargetChange, __PRIVATE_DocumentWatchChange, __PRIVATE_ExistenceFilterChange, __PRIVATE_WatchTargetChange, __PRIVATE_TargetState, __PRIVATE_WatchChangeAggregator, Te, Ee, de, JsonProtoSerializer, TargetData, __PRIVATE_LocalSerializer, __PRIVATE_FirestoreIndexValueWriter, __PRIVATE_MemoryIndexManager, __PRIVATE_MemoryCollectionParentIndex, Ae, LruParams, __PRIVATE_TargetIdGenerator, RemoteDocumentChangeBuffer, OverlayedDocument, LocalDocumentsView, __PRIVATE_MemoryBundleCache, __PRIVATE_MemoryDocumentOverlayCache, __PRIVATE_MemoryGlobalsCache, __PRIVATE_ReferenceSet, __PRIVATE_DocReference, __PRIVATE_MemoryMutationQueue, __PRIVATE_MemoryRemoteDocumentCacheImpl, __PRIVATE_MemoryRemoteDocumentChangeBuffer, __PRIVATE_MemoryTargetCache, __PRIVATE_MemoryPersistence, __PRIVATE_MemoryTransaction, __PRIVATE_MemoryEagerDelegate, __PRIVATE_LocalViewChanges, QueryContext, __PRIVATE_QueryEngine, __PRIVATE_LocalStoreImpl, __PRIVATE_LocalClientState, __PRIVATE_MemorySharedClientState, __PRIVATE_NoopConnectivityMonitor, __PRIVATE_BrowserConnectivityMonitor, me, fe, __PRIVATE_StreamBridge, ge, __PRIVATE_WebChannelConnection, __PRIVATE_ExponentialBackoff, __PRIVATE_PersistentStream, __PRIVATE_PersistentListenStream, __PRIVATE_PersistentWriteStream, __PRIVATE_DatastoreImpl, __PRIVATE_OnlineStateTracker, __PRIVATE_RemoteStoreImpl, DelayedOperation, DocumentSet, __PRIVATE_DocumentChangeSet, ViewSnapshot, __PRIVATE_QueryListenersInfo, __PRIVATE_EventManagerImpl, pe, ye, __PRIVATE_QueryListener, __PRIVATE_AddedLimboDocument, __PRIVATE_RemovedLimboDocument, __PRIVATE_View, __PRIVATE_QueryView, LimboResolution, __PRIVATE_SyncEngineImpl, MemoryOfflineComponentProvider, OnlineComponentProvider, __PRIVATE_AsyncObserver, FirestoreClient, we, FirestoreSettingsImpl, Firestore$1, Query, DocumentReference, CollectionReference, __PRIVATE_AsyncQueueImpl, Firestore, Bytes, FieldPath, FieldValue, GeoPoint, be, ParsedSetData, __PRIVATE_ParseContextImpl, __PRIVATE_UserDataReader, De, DocumentSnapshot$1, QueryDocumentSnapshot$1, AbstractUserDataWriter, SnapshotMetadata, DocumentSnapshot, QueryDocumentSnapshot, __PRIVATE_ExpUserDataWriter, __PRIVATE_MemoryLocalCacheImpl;
+  var S, User, b, D, C, FirestoreError, __PRIVATE_Deferred, __PRIVATE_OAuthToken, __PRIVATE_EmptyAuthCredentialsProvider, __PRIVATE_EmulatorAuthCredentialsProvider, __PRIVATE_FirebaseAuthCredentialsProvider, __PRIVATE_FirstPartyToken, __PRIVATE_FirstPartyAuthCredentialsProvider, AppCheckToken, __PRIVATE_FirebaseAppCheckTokenProvider, __PRIVATE_AutoId, Timestamp, SnapshotVersion, BasePath, ResourcePath, v, FieldPath$1, DocumentKey, FieldIndex, IndexOffset, F, PersistenceTransaction, PersistencePromise, __PRIVATE_ListenSequence, J, Y, Z, X, ee, ne, SortedMap, SortedMapIterator, LLRBNode, SortedSet, SortedSetIterator, FieldMask, __PRIVATE_Base64DecodeError, ByteString, re, DatabaseInfo, DatabaseId, ie, ObjectValue, MutableDocument, Bound, OrderBy, Filter, FieldFilter, CompositeFilter, __PRIVATE_KeyFieldFilter, __PRIVATE_KeyFieldInFilter, __PRIVATE_KeyFieldNotInFilter, __PRIVATE_ArrayContainsFilter, __PRIVATE_InFilter, __PRIVATE_NotInFilter, __PRIVATE_ArrayContainsAnyFilter, __PRIVATE_TargetImpl, __PRIVATE_QueryImpl, ObjectMap, oe, _e, ae, ue, ce, TransformOperation, __PRIVATE_ServerTimestampTransform, __PRIVATE_ArrayUnionTransformOperation, __PRIVATE_ArrayRemoveTransformOperation, __PRIVATE_NumericIncrementTransformOperation, MutationResult, Precondition, Mutation, __PRIVATE_SetMutation, __PRIVATE_PatchMutation, __PRIVATE_DeleteMutation, __PRIVATE_VerifyMutation, MutationBatch, MutationBatchResult, Overlay, ExistenceFilter, le, he, Pe, Ie, BloomFilter, __PRIVATE_BloomFilterError, RemoteEvent, TargetChange, __PRIVATE_DocumentWatchChange, __PRIVATE_ExistenceFilterChange, __PRIVATE_WatchTargetChange, __PRIVATE_TargetState, __PRIVATE_WatchChangeAggregator, Te, Ee, de, JsonProtoSerializer, TargetData, __PRIVATE_LocalSerializer, __PRIVATE_FirestoreIndexValueWriter, __PRIVATE_MemoryIndexManager, __PRIVATE_MemoryCollectionParentIndex, Ae, LruParams, __PRIVATE_TargetIdGenerator, RemoteDocumentChangeBuffer, OverlayedDocument, LocalDocumentsView, __PRIVATE_MemoryBundleCache, __PRIVATE_MemoryDocumentOverlayCache, __PRIVATE_MemoryGlobalsCache, __PRIVATE_ReferenceSet, __PRIVATE_DocReference, __PRIVATE_MemoryMutationQueue, __PRIVATE_MemoryRemoteDocumentCacheImpl, __PRIVATE_MemoryRemoteDocumentChangeBuffer, __PRIVATE_MemoryTargetCache, __PRIVATE_MemoryPersistence, __PRIVATE_MemoryTransaction, __PRIVATE_MemoryEagerDelegate, __PRIVATE_LocalViewChanges, QueryContext, __PRIVATE_QueryEngine, __PRIVATE_LocalStoreImpl, __PRIVATE_LocalClientState, __PRIVATE_MemorySharedClientState, __PRIVATE_NoopConnectivityMonitor, __PRIVATE_BrowserConnectivityMonitor, me, fe, __PRIVATE_StreamBridge, ge, __PRIVATE_WebChannelConnection, __PRIVATE_ExponentialBackoff, __PRIVATE_PersistentStream, __PRIVATE_PersistentListenStream, __PRIVATE_PersistentWriteStream, __PRIVATE_DatastoreImpl, __PRIVATE_OnlineStateTracker, __PRIVATE_RemoteStoreImpl, DelayedOperation, DocumentSet, __PRIVATE_DocumentChangeSet, ViewSnapshot, __PRIVATE_QueryListenersInfo, __PRIVATE_EventManagerImpl, pe, ye, __PRIVATE_QueryListener, __PRIVATE_AddedLimboDocument, __PRIVATE_RemovedLimboDocument, __PRIVATE_View, __PRIVATE_QueryView, LimboResolution, __PRIVATE_SyncEngineImpl, MemoryOfflineComponentProvider, OnlineComponentProvider, __PRIVATE_AsyncObserver, FirestoreClient, we, FirestoreSettingsImpl, Firestore$1, Query, DocumentReference, CollectionReference, __PRIVATE_AsyncQueueImpl, Firestore, Bytes, FieldPath, FieldValue, GeoPoint, be, ParsedSetData, __PRIVATE_ParseContextImpl, __PRIVATE_UserDataReader, De, DocumentSnapshot$1, QueryDocumentSnapshot$1, AbstractUserDataWriter, SnapshotMetadata, DocumentSnapshot, QueryDocumentSnapshot, __PRIVATE_ExpUserDataWriter;
   var init_index_esm20175 = __esm({
     "node_modules/@firebase/firestore/dist/index.esm2017.js"() {
       init_index_esm20174();
@@ -20371,16 +20372,6 @@ This typically indicates that your device does not have a healthy Internet conne
           );
         }
       };
-      __PRIVATE_MemoryLocalCacheImpl = class {
-        constructor(e) {
-          this.kind = "memory", this._onlineComponentProvider = new OnlineComponentProvider(), (null == e ? void 0 : e.garbageCollector) ? this._offlineComponentProvider = e.garbageCollector._offlineComponentProvider : this._offlineComponentProvider = new MemoryOfflineComponentProvider();
-        }
-        toJSON() {
-          return {
-            kind: this.kind
-          };
-        }
-      };
       !(function __PRIVATE_registerFirestore(e, t = true) {
         !(function __PRIVATE_setSDKVersion(e2) {
           b = e2;
@@ -20449,9 +20440,7 @@ This typically indicates that your device does not have a healthy Internet conne
     let db;
     try {
       db = initializeFirestore(app, {
-        localCache: memoryLocalCache(),
-        experimentalForceLongPolling: true,
-        useFetchStreams: false
+        experimentalForceLongPolling: true
       });
     } catch (e) {
       db = getFirestore(app);
@@ -21035,46 +21024,52 @@ This typically indicates that your device does not have a healthy Internet conne
           clearTimeout(state.nextQuestionTimer);
           state.nextQuestionTimer = null;
         }
-        const preferredRomajiList = queueManager.getPreferredRomajiList();
-        const mode = elements.modeSelect.value;
-        if (mode === "kanaToRomaji") {
-          state.currentQuestion = pickTypingQuestion({
-            kanaData,
-            scriptMode: elements.scriptSelect.value,
-            kanaSet: elements.kanaSetSelect.value,
-            getKanaCategoryFn,
-            getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog,
-            preferredRomajiList
-          });
-        } else if (mode === "romajiToKana") {
-          state.currentQuestion = pickWritingQuestion({
-            kanaData,
-            writingMode: elements.writingScriptSelect.value,
-            kanaSet: elements.kanaSetSelect.value,
-            getKanaCategoryFn,
-            getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog,
-            preferredRomajiList
-          });
-        } else {
-          state.currentQuestion = Math.random() > 0.5 ? pickTypingQuestion({
-            kanaData,
-            scriptMode: elements.scriptSelect.value,
-            kanaSet: elements.kanaSetSelect.value,
-            getKanaCategoryFn,
-            getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog,
-            preferredRomajiList
-          }) : pickWritingQuestion({
-            kanaData,
-            writingMode: elements.writingScriptSelect.value,
-            kanaSet: elements.kanaSetSelect.value,
-            getKanaCategoryFn,
-            getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog,
-            preferredRomajiList
-          });
+        try {
+          const preferredRomajiList = queueManager.getPreferredRomajiList();
+          const mode = elements.modeSelect.value;
+          if (mode === "kanaToRomaji") {
+            state.currentQuestion = pickTypingQuestion({
+              kanaData,
+              scriptMode: elements.scriptSelect.value,
+              kanaSet: elements.kanaSetSelect.value,
+              getKanaCategoryFn,
+              getQuestionWeightFn: getQuestionWeight,
+              backlog: state.backlog,
+              preferredRomajiList
+            });
+          } else if (mode === "romajiToKana") {
+            state.currentQuestion = pickWritingQuestion({
+              kanaData,
+              writingMode: elements.writingScriptSelect.value,
+              kanaSet: elements.kanaSetSelect.value,
+              getKanaCategoryFn,
+              getQuestionWeightFn: getQuestionWeight,
+              backlog: state.backlog,
+              preferredRomajiList
+            });
+          } else {
+            state.currentQuestion = Math.random() > 0.5 ? pickTypingQuestion({
+              kanaData,
+              scriptMode: elements.scriptSelect.value,
+              kanaSet: elements.kanaSetSelect.value,
+              getKanaCategoryFn,
+              getQuestionWeightFn: getQuestionWeight,
+              backlog: state.backlog,
+              preferredRomajiList
+            }) : pickWritingQuestion({
+              kanaData,
+              writingMode: elements.writingScriptSelect.value,
+              kanaSet: elements.kanaSetSelect.value,
+              getKanaCategoryFn,
+              getQuestionWeightFn: getQuestionWeight,
+              backlog: state.backlog,
+              preferredRomajiList
+            });
+          }
+        } catch (error) {
+          state.currentQuestion = null;
+          showResult(elements, `Question error: ${error.message}`, false);
+          return;
         }
         switchModeUI();
         resetResult(elements);

@@ -8,7 +8,7 @@ import {
   signOut,
   sendPasswordResetEmail
 } from "firebase/auth";
-import { initializeFirestore, getFirestore, memoryLocalCache, doc, getDoc, setDoc } from "firebase/firestore";
+import { initializeFirestore, getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
 export async function setupCloudSync({
   elements,
@@ -60,9 +60,7 @@ export async function setupCloudSync({
   let db;
   try {
     db = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-      experimentalForceLongPolling: true,
-      useFetchStreams: false
+      experimentalForceLongPolling: true
     });
   } catch {
     // If Firestore was already initialized elsewhere, reuse the existing instance.

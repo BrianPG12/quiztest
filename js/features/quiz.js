@@ -10,13 +10,20 @@ export function pickQuestion({
     ? kanaData
     : kanaData.filter((item) => getKanaCategoryFn(item.romaji) === kanaSet);
 
-  let pool = basePool;
+  // Fallback to full list if a filtered set is empty due stale selector values.
+  const safeBasePool = basePool.length > 0 ? basePool : kanaData;
+
+  let pool = safeBasePool;
   if (Array.isArray(preferredRomajiList) && preferredRomajiList.length > 0) {
     const preferredSet = new Set(preferredRomajiList);
-    const targeted = basePool.filter((item) => preferredSet.has(item.romaji));
+    const targeted = safeBasePool.filter((item) => preferredSet.has(item.romaji));
     if (targeted.length > 0) {
       pool = targeted;
     }
+  }
+
+  if (pool.length === 0) {
+    throw new Error("No kana available for the current settings.");
   }
 
   const weights = pool.map((item) => getQuestionWeightFn(backlog, item));

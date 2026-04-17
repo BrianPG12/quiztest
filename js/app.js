@@ -182,31 +182,11 @@ function newQuestion() {
     state.nextQuestionTimer = null;
   }
 
-  const preferredRomajiList = queueManager.getPreferredRomajiList();
-  const mode = elements.modeSelect.value;
-  if (mode === "kanaToRomaji") {
-    state.currentQuestion = pickTypingQuestion({
-      kanaData,
-      scriptMode: elements.scriptSelect.value,
-      kanaSet: elements.kanaSetSelect.value,
-      getKanaCategoryFn,
-      getQuestionWeightFn: getQuestionWeight,
-      backlog: state.backlog,
-      preferredRomajiList
-    });
-  } else if (mode === "romajiToKana") {
-    state.currentQuestion = pickWritingQuestion({
-      kanaData,
-      writingMode: elements.writingScriptSelect.value,
-      kanaSet: elements.kanaSetSelect.value,
-      getKanaCategoryFn,
-      getQuestionWeightFn: getQuestionWeight,
-      backlog: state.backlog,
-      preferredRomajiList
-    });
-  } else {
-    state.currentQuestion = Math.random() > 0.5
-      ? pickTypingQuestion({
+  try {
+    const preferredRomajiList = queueManager.getPreferredRomajiList();
+    const mode = elements.modeSelect.value;
+    if (mode === "kanaToRomaji") {
+      state.currentQuestion = pickTypingQuestion({
         kanaData,
         scriptMode: elements.scriptSelect.value,
         kanaSet: elements.kanaSetSelect.value,
@@ -214,8 +194,9 @@ function newQuestion() {
         getQuestionWeightFn: getQuestionWeight,
         backlog: state.backlog,
         preferredRomajiList
-      })
-      : pickWritingQuestion({
+      });
+    } else if (mode === "romajiToKana") {
+      state.currentQuestion = pickWritingQuestion({
         kanaData,
         writingMode: elements.writingScriptSelect.value,
         kanaSet: elements.kanaSetSelect.value,
@@ -224,6 +205,31 @@ function newQuestion() {
         backlog: state.backlog,
         preferredRomajiList
       });
+    } else {
+      state.currentQuestion = Math.random() > 0.5
+        ? pickTypingQuestion({
+          kanaData,
+          scriptMode: elements.scriptSelect.value,
+          kanaSet: elements.kanaSetSelect.value,
+          getKanaCategoryFn,
+          getQuestionWeightFn: getQuestionWeight,
+          backlog: state.backlog,
+          preferredRomajiList
+        })
+        : pickWritingQuestion({
+          kanaData,
+          writingMode: elements.writingScriptSelect.value,
+          kanaSet: elements.kanaSetSelect.value,
+          getKanaCategoryFn,
+          getQuestionWeightFn: getQuestionWeight,
+          backlog: state.backlog,
+          preferredRomajiList
+        });
+    }
+  } catch (error) {
+    state.currentQuestion = null;
+    showResult(elements, `Question error: ${error.message}`, false);
+    return;
   }
 
   switchModeUI();
