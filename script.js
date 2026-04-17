@@ -12642,6 +12642,7 @@
         });
         elements.answerInput.addEventListener("keydown", (event) => {
           if (event.key === "Enter") {
+            event.preventDefault();
             checkTypingAnswer();
           }
         });
