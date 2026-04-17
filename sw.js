@@ -1,4 +1,4 @@
-const CACHE_NAME = "kana-quiz-v12";
+const CACHE_NAME = "kana-quiz-v13";
 const ASSETS = [
   "/quiztest/",
   "/quiztest/index.html",
@@ -28,6 +28,21 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+  const isSameOrigin = requestUrl.origin === self.location.origin;
+  if (!isSameOrigin) {
+    return;
+  }
+
+  const isAppAsset =
+    requestUrl.pathname.startsWith("/quiztest/") ||
+    requestUrl.pathname === "/quiztest" ||
+    requestUrl.pathname === "/";
+
+  if (!isAppAsset) {
     return;
   }
 

@@ -4179,6 +4179,9 @@
       throw error;
     });
   }
+  function setPersistence(auth, persistence) {
+    return getModularInstance(auth).setPersistence(persistence);
+  }
   function onIdTokenChanged(auth, nextOrObserver, error, completed) {
     return getModularInstance(auth).onIdTokenChanged(nextOrObserver, error, completed);
   }
@@ -11813,6 +11816,11 @@
     const app = getApps().length ? getApp() : initializeApp(syncConfig.firebase);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (e) {
+      await setPersistence(auth, inMemoryPersistence);
+    }
     let currentUser = null;
     let uploadTimer = null;
     async function pullOrPushOnLogin(user) {

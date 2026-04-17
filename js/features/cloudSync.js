@@ -3,6 +3,9 @@ import { initializeApp, getApp, getApps } from "firebase/app";
 import {
   getAuth,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -58,6 +61,12 @@ export async function setupCloudSync({
   const app = getApps().length ? getApp() : initializeApp(syncConfig.firebase);
   const auth = getAuth(app);
   const db = getFirestore(app);
+
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch {
+    await setPersistence(auth, inMemoryPersistence);
+  }
 
   let currentUser = null;
   let uploadTimer = null;
