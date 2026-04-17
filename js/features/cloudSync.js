@@ -1,5 +1,5 @@
 import { syncConfig } from "../config/syncConfig.js";
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp, getApps } from "firebase/app";
 import {
   getAuth,
   onAuthStateChanged,
@@ -8,7 +8,7 @@ import {
   signOut,
   sendPasswordResetEmail
 } from "firebase/auth";
-import { initializeFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { initializeFirestore, getFirestore, memoryLocalCache, doc, getDoc, setDoc } from "firebase/firestore";
 
 export async function setupCloudSync({
   elements,
@@ -55,12 +55,19 @@ export async function setupCloudSync({
     return createNoopSync();
   }
 
-  const app = initializeApp(syncConfig.firebase);
+  const app = getApps().length ? getApp() : initializeApp(syncConfig.firebase);
   const auth = getAuth(app);
-  const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-    useFetchStreams: false
-  });
+  let db;
+  try {
+    db = initializeFirestore(app, {
+      localCache: memoryLocalCache(),
+      experimentalForceLongPolling: true,
+      useFetchStreams: false
+    });
+  } catch {
+    // If Firestore was already initialized elsewhere, reuse the existing instance.
+    db = getFirestore(app);
+  }
 
   let currentUser = null;
   let uploadTimer = null;

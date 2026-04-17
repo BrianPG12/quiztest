@@ -1300,6 +1300,41 @@
     }
     throw new Error("Unable to locate global object.");
   }
+  function createMockUserToken(token, projectId) {
+    if (token.uid) {
+      throw new Error('The "uid" field is no longer supported by mockUserToken. Please use "sub" instead for Firebase Auth User ID.');
+    }
+    const header = {
+      alg: "none",
+      type: "JWT"
+    };
+    const project = projectId || "demo-project";
+    const iat = token.iat || 0;
+    const sub = token.sub || token.user_id;
+    if (!sub) {
+      throw new Error("mockUserToken must contain 'sub' or 'user_id' field!");
+    }
+    const payload = Object.assign({
+      // Set all required fields to decent defaults
+      iss: `https://securetoken.google.com/${project}`,
+      aud: project,
+      iat,
+      exp: iat + 3600,
+      auth_time: iat,
+      sub,
+      user_id: sub,
+      firebase: {
+        sign_in_provider: "custom",
+        identities: {}
+      }
+    }, token);
+    const signature = "";
+    return [
+      base64urlEncodeWithoutPadding(JSON.stringify(header)),
+      base64urlEncodeWithoutPadding(JSON.stringify(payload)),
+      signature
+    ].join(".");
+  }
   function getUA() {
     if (typeof navigator !== "undefined" && typeof navigator["userAgent"] === "string") {
       return navigator["userAgent"];
@@ -1472,7 +1507,7 @@
       return service;
     }
   }
-  var stringToByteArray$1, byteArrayToString, base64, DecodeBase64StringError, base64Encode, base64urlEncodeWithoutPadding, base64Decode, getDefaultsFromGlobal, getDefaultsFromEnvVariable, getDefaultsFromCookie, getDefaults, getDefaultEmulatorHost, getDefaultAppConfig, getExperimentalSetting, Deferred, ERROR_NAME, FirebaseError, ErrorFactory, PATTERN, ObserverProxy, MAX_VALUE_MILLIS;
+  var stringToByteArray$1, byteArrayToString, base64, DecodeBase64StringError, base64Encode, base64urlEncodeWithoutPadding, base64Decode, getDefaultsFromGlobal, getDefaultsFromEnvVariable, getDefaultsFromCookie, getDefaults, getDefaultEmulatorHost, getDefaultEmulatorHostnameAndPort, getDefaultAppConfig, getExperimentalSetting, Deferred, ERROR_NAME, FirebaseError, ErrorFactory, PATTERN, ObserverProxy, MAX_VALUE_MILLIS;
   var init_index_esm2017 = __esm({
     "node_modules/@firebase/util/dist/index.esm2017.js"() {
       stringToByteArray$1 = function(str) {
@@ -1757,6 +1792,22 @@
       getDefaultEmulatorHost = (productName) => {
         var _a, _b;
         return (_b = (_a = getDefaults()) === null || _a === void 0 ? void 0 : _a.emulatorHosts) === null || _b === void 0 ? void 0 : _b[productName];
+      };
+      getDefaultEmulatorHostnameAndPort = (productName) => {
+        const host = getDefaultEmulatorHost(productName);
+        if (!host) {
+          return void 0;
+        }
+        const separatorIndex = host.lastIndexOf(":");
+        if (separatorIndex <= 0 || separatorIndex + 1 === host.length) {
+          throw new Error(`Invalid host ${host} with no separate hostname and port!`);
+        }
+        const port = parseInt(host.substring(separatorIndex + 1), 10);
+        if (host[0] === "[") {
+          return [host.substring(1, separatorIndex - 1), port];
+        } else {
+          return [host.substring(0, separatorIndex), port];
+        }
       };
       getDefaultAppConfig = () => {
         var _a;
@@ -2675,6 +2726,9 @@
       throw ERROR_FACTORY.create("no-app", { appName: name4 });
     }
     return app;
+  }
+  function getApps() {
+    return Array.from(_apps.values());
   }
   function registerVersion(libraryKeyOrName, version4, variant) {
     var _a;
@@ -13802,6 +13856,24 @@
     }
     return e;
   }
+  function connectFirestoreEmulator(e, t, n, r = {}) {
+    var i;
+    const s = (e = __PRIVATE_cast(e, Firestore$1))._getSettings(), o = `${t}:${n}`;
+    if ("firestore.googleapis.com" !== s.host && s.host !== o && __PRIVATE_logWarn("Host has been set in both settings() and connectFirestoreEmulator(), emulator host will be used."), e._setSettings(Object.assign(Object.assign({}, s), {
+      host: o,
+      ssl: false
+    })), r.mockUserToken) {
+      let t2, n2;
+      if ("string" == typeof r.mockUserToken) t2 = r.mockUserToken, n2 = User.MOCK_USER;
+      else {
+        t2 = createMockUserToken(r.mockUserToken, null === (i = e._app) || void 0 === i ? void 0 : i.options.projectId);
+        const s2 = r.mockUserToken.sub || r.mockUserToken.user_id;
+        if (!s2) throw new FirestoreError(C.INVALID_ARGUMENT, "mockUserToken must contain 'sub' or 'user_id' field!");
+        n2 = new User(s2);
+      }
+      e._authCredentials = new __PRIVATE_EmulatorAuthCredentialsProvider(new __PRIVATE_OAuthToken(t2, n2));
+    }
+  }
   function doc(e, t, ...n) {
     if (e = getModularInstance(e), // We allow omission of 'pathString' but explicitly prohibit passing in both
     // 'undefined' and 'null'.
@@ -13836,6 +13908,16 @@
       options: t,
       instanceIdentifier: n
     });
+  }
+  function getFirestore(t, n) {
+    const r = "object" == typeof t ? t : getApp(), i = "string" == typeof t ? t : n || "(default)", s = _getProvider(r, "firestore").getImmediate({
+      identifier: i
+    });
+    if (!s._initialized) {
+      const e = getDefaultEmulatorHostnameAndPort("firestore");
+      e && connectFirestoreEmulator(s, ...e);
+    }
+    return s;
   }
   function ensureFirestoreConfigured(e) {
     return e._firestoreClient || __PRIVATE_configureFirestore(e), e._firestoreClient.verifyNotTerminated(), e._firestoreClient;
@@ -14072,7 +14154,10 @@
     const r = n.docs.get(t._key), i = new __PRIVATE_ExpUserDataWriter(e);
     return new DocumentSnapshot(e, i, t._key, r, new SnapshotMetadata(n.hasPendingWrites, n.fromCache), t.converter);
   }
-  var S, User, b, D, C, FirestoreError, __PRIVATE_Deferred, __PRIVATE_OAuthToken, __PRIVATE_EmptyAuthCredentialsProvider, __PRIVATE_FirebaseAuthCredentialsProvider, __PRIVATE_FirstPartyToken, __PRIVATE_FirstPartyAuthCredentialsProvider, AppCheckToken, __PRIVATE_FirebaseAppCheckTokenProvider, __PRIVATE_AutoId, Timestamp, SnapshotVersion, BasePath, ResourcePath, v, FieldPath$1, DocumentKey, FieldIndex, IndexOffset, F, PersistenceTransaction, PersistencePromise, __PRIVATE_ListenSequence, J, Y, Z, X, ee, ne, SortedMap, SortedMapIterator, LLRBNode, SortedSet, SortedSetIterator, FieldMask, __PRIVATE_Base64DecodeError, ByteString, re, DatabaseInfo, DatabaseId, ie, ObjectValue, MutableDocument, Bound, OrderBy, Filter, FieldFilter, CompositeFilter, __PRIVATE_KeyFieldFilter, __PRIVATE_KeyFieldInFilter, __PRIVATE_KeyFieldNotInFilter, __PRIVATE_ArrayContainsFilter, __PRIVATE_InFilter, __PRIVATE_NotInFilter, __PRIVATE_ArrayContainsAnyFilter, __PRIVATE_TargetImpl, __PRIVATE_QueryImpl, ObjectMap, oe, _e, ae, ue, ce, TransformOperation, __PRIVATE_ServerTimestampTransform, __PRIVATE_ArrayUnionTransformOperation, __PRIVATE_ArrayRemoveTransformOperation, __PRIVATE_NumericIncrementTransformOperation, MutationResult, Precondition, Mutation, __PRIVATE_SetMutation, __PRIVATE_PatchMutation, __PRIVATE_DeleteMutation, __PRIVATE_VerifyMutation, MutationBatch, MutationBatchResult, Overlay, ExistenceFilter, le, he, Pe, Ie, BloomFilter, __PRIVATE_BloomFilterError, RemoteEvent, TargetChange, __PRIVATE_DocumentWatchChange, __PRIVATE_ExistenceFilterChange, __PRIVATE_WatchTargetChange, __PRIVATE_TargetState, __PRIVATE_WatchChangeAggregator, Te, Ee, de, JsonProtoSerializer, TargetData, __PRIVATE_LocalSerializer, __PRIVATE_FirestoreIndexValueWriter, __PRIVATE_MemoryIndexManager, __PRIVATE_MemoryCollectionParentIndex, Ae, LruParams, __PRIVATE_TargetIdGenerator, RemoteDocumentChangeBuffer, OverlayedDocument, LocalDocumentsView, __PRIVATE_MemoryBundleCache, __PRIVATE_MemoryDocumentOverlayCache, __PRIVATE_MemoryGlobalsCache, __PRIVATE_ReferenceSet, __PRIVATE_DocReference, __PRIVATE_MemoryMutationQueue, __PRIVATE_MemoryRemoteDocumentCacheImpl, __PRIVATE_MemoryRemoteDocumentChangeBuffer, __PRIVATE_MemoryTargetCache, __PRIVATE_MemoryPersistence, __PRIVATE_MemoryTransaction, __PRIVATE_MemoryEagerDelegate, __PRIVATE_LocalViewChanges, QueryContext, __PRIVATE_QueryEngine, __PRIVATE_LocalStoreImpl, __PRIVATE_LocalClientState, __PRIVATE_MemorySharedClientState, __PRIVATE_NoopConnectivityMonitor, __PRIVATE_BrowserConnectivityMonitor, me, fe, __PRIVATE_StreamBridge, ge, __PRIVATE_WebChannelConnection, __PRIVATE_ExponentialBackoff, __PRIVATE_PersistentStream, __PRIVATE_PersistentListenStream, __PRIVATE_PersistentWriteStream, __PRIVATE_DatastoreImpl, __PRIVATE_OnlineStateTracker, __PRIVATE_RemoteStoreImpl, DelayedOperation, DocumentSet, __PRIVATE_DocumentChangeSet, ViewSnapshot, __PRIVATE_QueryListenersInfo, __PRIVATE_EventManagerImpl, pe, ye, __PRIVATE_QueryListener, __PRIVATE_AddedLimboDocument, __PRIVATE_RemovedLimboDocument, __PRIVATE_View, __PRIVATE_QueryView, LimboResolution, __PRIVATE_SyncEngineImpl, MemoryOfflineComponentProvider, OnlineComponentProvider, __PRIVATE_AsyncObserver, FirestoreClient, we, FirestoreSettingsImpl, Firestore$1, Query, DocumentReference, CollectionReference, __PRIVATE_AsyncQueueImpl, Firestore, Bytes, FieldPath, FieldValue, GeoPoint, be, ParsedSetData, __PRIVATE_ParseContextImpl, __PRIVATE_UserDataReader, De, DocumentSnapshot$1, QueryDocumentSnapshot$1, AbstractUserDataWriter, SnapshotMetadata, DocumentSnapshot, QueryDocumentSnapshot, __PRIVATE_ExpUserDataWriter;
+  function memoryLocalCache(e) {
+    return new __PRIVATE_MemoryLocalCacheImpl(e);
+  }
+  var S, User, b, D, C, FirestoreError, __PRIVATE_Deferred, __PRIVATE_OAuthToken, __PRIVATE_EmptyAuthCredentialsProvider, __PRIVATE_EmulatorAuthCredentialsProvider, __PRIVATE_FirebaseAuthCredentialsProvider, __PRIVATE_FirstPartyToken, __PRIVATE_FirstPartyAuthCredentialsProvider, AppCheckToken, __PRIVATE_FirebaseAppCheckTokenProvider, __PRIVATE_AutoId, Timestamp, SnapshotVersion, BasePath, ResourcePath, v, FieldPath$1, DocumentKey, FieldIndex, IndexOffset, F, PersistenceTransaction, PersistencePromise, __PRIVATE_ListenSequence, J, Y, Z, X, ee, ne, SortedMap, SortedMapIterator, LLRBNode, SortedSet, SortedSetIterator, FieldMask, __PRIVATE_Base64DecodeError, ByteString, re, DatabaseInfo, DatabaseId, ie, ObjectValue, MutableDocument, Bound, OrderBy, Filter, FieldFilter, CompositeFilter, __PRIVATE_KeyFieldFilter, __PRIVATE_KeyFieldInFilter, __PRIVATE_KeyFieldNotInFilter, __PRIVATE_ArrayContainsFilter, __PRIVATE_InFilter, __PRIVATE_NotInFilter, __PRIVATE_ArrayContainsAnyFilter, __PRIVATE_TargetImpl, __PRIVATE_QueryImpl, ObjectMap, oe, _e, ae, ue, ce, TransformOperation, __PRIVATE_ServerTimestampTransform, __PRIVATE_ArrayUnionTransformOperation, __PRIVATE_ArrayRemoveTransformOperation, __PRIVATE_NumericIncrementTransformOperation, MutationResult, Precondition, Mutation, __PRIVATE_SetMutation, __PRIVATE_PatchMutation, __PRIVATE_DeleteMutation, __PRIVATE_VerifyMutation, MutationBatch, MutationBatchResult, Overlay, ExistenceFilter, le, he, Pe, Ie, BloomFilter, __PRIVATE_BloomFilterError, RemoteEvent, TargetChange, __PRIVATE_DocumentWatchChange, __PRIVATE_ExistenceFilterChange, __PRIVATE_WatchTargetChange, __PRIVATE_TargetState, __PRIVATE_WatchChangeAggregator, Te, Ee, de, JsonProtoSerializer, TargetData, __PRIVATE_LocalSerializer, __PRIVATE_FirestoreIndexValueWriter, __PRIVATE_MemoryIndexManager, __PRIVATE_MemoryCollectionParentIndex, Ae, LruParams, __PRIVATE_TargetIdGenerator, RemoteDocumentChangeBuffer, OverlayedDocument, LocalDocumentsView, __PRIVATE_MemoryBundleCache, __PRIVATE_MemoryDocumentOverlayCache, __PRIVATE_MemoryGlobalsCache, __PRIVATE_ReferenceSet, __PRIVATE_DocReference, __PRIVATE_MemoryMutationQueue, __PRIVATE_MemoryRemoteDocumentCacheImpl, __PRIVATE_MemoryRemoteDocumentChangeBuffer, __PRIVATE_MemoryTargetCache, __PRIVATE_MemoryPersistence, __PRIVATE_MemoryTransaction, __PRIVATE_MemoryEagerDelegate, __PRIVATE_LocalViewChanges, QueryContext, __PRIVATE_QueryEngine, __PRIVATE_LocalStoreImpl, __PRIVATE_LocalClientState, __PRIVATE_MemorySharedClientState, __PRIVATE_NoopConnectivityMonitor, __PRIVATE_BrowserConnectivityMonitor, me, fe, __PRIVATE_StreamBridge, ge, __PRIVATE_WebChannelConnection, __PRIVATE_ExponentialBackoff, __PRIVATE_PersistentStream, __PRIVATE_PersistentListenStream, __PRIVATE_PersistentWriteStream, __PRIVATE_DatastoreImpl, __PRIVATE_OnlineStateTracker, __PRIVATE_RemoteStoreImpl, DelayedOperation, DocumentSet, __PRIVATE_DocumentChangeSet, ViewSnapshot, __PRIVATE_QueryListenersInfo, __PRIVATE_EventManagerImpl, pe, ye, __PRIVATE_QueryListener, __PRIVATE_AddedLimboDocument, __PRIVATE_RemovedLimboDocument, __PRIVATE_View, __PRIVATE_QueryView, LimboResolution, __PRIVATE_SyncEngineImpl, MemoryOfflineComponentProvider, OnlineComponentProvider, __PRIVATE_AsyncObserver, FirestoreClient, we, FirestoreSettingsImpl, Firestore$1, Query, DocumentReference, CollectionReference, __PRIVATE_AsyncQueueImpl, Firestore, Bytes, FieldPath, FieldValue, GeoPoint, be, ParsedSetData, __PRIVATE_ParseContextImpl, __PRIVATE_UserDataReader, De, DocumentSnapshot$1, QueryDocumentSnapshot$1, AbstractUserDataWriter, SnapshotMetadata, DocumentSnapshot, QueryDocumentSnapshot, __PRIVATE_ExpUserDataWriter, __PRIVATE_MemoryLocalCacheImpl;
   var init_index_esm20175 = __esm({
     "node_modules/@firebase/firestore/dist/index.esm2017.js"() {
       init_index_esm20174();
@@ -14248,6 +14333,28 @@
           e.enqueueRetryable((() => t(User.UNAUTHENTICATED)));
         }
         shutdown() {
+        }
+      };
+      __PRIVATE_EmulatorAuthCredentialsProvider = class {
+        constructor(e) {
+          this.token = e, /**
+           * Stores the listener registered with setChangeListener()
+           * This isn't actually necessary since the UID never changes, but we use this
+           * to verify the listen contract is adhered to in tests.
+           */
+          this.changeListener = null;
+        }
+        getToken() {
+          return Promise.resolve(this.token);
+        }
+        invalidateToken() {
+        }
+        start(e, t) {
+          this.changeListener = t, // Fire with initial user.
+          e.enqueueRetryable((() => t(this.token.user)));
+        }
+        shutdown() {
+          this.changeListener = null;
         }
       };
       __PRIVATE_FirebaseAuthCredentialsProvider = class {
@@ -20264,6 +20371,16 @@ This typically indicates that your device does not have a healthy Internet conne
           );
         }
       };
+      __PRIVATE_MemoryLocalCacheImpl = class {
+        constructor(e) {
+          this.kind = "memory", this._onlineComponentProvider = new OnlineComponentProvider(), (null == e ? void 0 : e.garbageCollector) ? this._offlineComponentProvider = e.garbageCollector._offlineComponentProvider : this._offlineComponentProvider = new MemoryOfflineComponentProvider();
+        }
+        toJSON() {
+          return {
+            kind: this.kind
+          };
+        }
+      };
       !(function __PRIVATE_registerFirestore(e, t = true) {
         !(function __PRIVATE_setSDKVersion(e2) {
           b = e2;
@@ -20327,12 +20444,18 @@ This typically indicates that your device does not have a healthy Internet conne
       disableAuthButtons(true);
       return createNoopSync();
     }
-    const app = initializeApp(syncConfig.firebase);
+    const app = getApps().length ? getApp() : initializeApp(syncConfig.firebase);
     const auth = getAuth(app);
-    const db = initializeFirestore(app, {
-      experimentalForceLongPolling: true,
-      useFetchStreams: false
-    });
+    let db;
+    try {
+      db = initializeFirestore(app, {
+        localCache: memoryLocalCache(),
+        experimentalForceLongPolling: true,
+        useFetchStreams: false
+      });
+    } catch (e) {
+      db = getFirestore(app);
+    }
     let currentUser = null;
     let uploadTimer = null;
     async function pullOrPushOnLogin(user) {
@@ -20581,7 +20704,7 @@ This typically indicates that your device does not have a healthy Internet conne
       }
       return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
     }
-    function getPreferredRomajiList2() {
+    function getPreferredRomajiList() {
       if (state.practiceStrategy === "mistakeReview") {
         return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
       }
@@ -20611,7 +20734,7 @@ This typically indicates that your device does not have a healthy Internet conne
       elements.queueMeta.textContent = strategy;
     }
     return {
-      getPreferredRomajiList: getPreferredRomajiList2,
+      getPreferredRomajiList,
       updateQueueMeta,
       filterRomajiForCurrentKanaSet
     };
@@ -20912,7 +21035,7 @@ This typically indicates that your device does not have a healthy Internet conne
           clearTimeout(state.nextQuestionTimer);
           state.nextQuestionTimer = null;
         }
-        const preferredRomajiList = getPreferredRomajiList();
+        const preferredRomajiList = queueManager.getPreferredRomajiList();
         const mode = elements.modeSelect.value;
         if (mode === "kanaToRomaji") {
           state.currentQuestion = pickTypingQuestion({

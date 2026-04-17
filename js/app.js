@@ -56,7 +56,7 @@ const answeringManager = createAnsweringManager(
 let cloudSync = { queueUpload() {}, async syncNow() {} };
 let deferredInstallPrompt = null;
 
-function setupPwaInstall() {
+function    setupPwaInstall() {
   if (!("serviceWorker" in navigator)) {
     return;
   }
@@ -182,7 +182,7 @@ function newQuestion() {
     state.nextQuestionTimer = null;
   }
 
-  const preferredRomajiList = getPreferredRomajiList();
+  const preferredRomajiList = queueManager.getPreferredRomajiList();
   const mode = elements.modeSelect.value;
   if (mode === "kanaToRomaji") {
     state.currentQuestion = pickTypingQuestion({
