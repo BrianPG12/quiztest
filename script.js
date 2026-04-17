@@ -987,6 +987,7 @@
     function startDraw(event) {
       drawing = true;
       activeCanvas = event.currentTarget;
+      activeCanvas.setPointerCapture(event.pointerId);
       const ctx = activeCanvas === elements2.canvasHiragana ? elements2.ctxHiragana : elements2.ctxKatakana;
       const point = getCanvasPoint(activeCanvas, event);
       ctx.beginPath();

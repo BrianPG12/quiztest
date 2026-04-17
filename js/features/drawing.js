@@ -40,6 +40,7 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
   function startDraw(event) {
     drawing = true;
     activeCanvas = event.currentTarget;
+    activeCanvas.setPointerCapture(event.pointerId);
     const ctx = activeCanvas === elements.canvasHiragana ? elements.ctxHiragana : elements.ctxKatakana;
     const point = getCanvasPoint(activeCanvas, event);
     ctx.beginPath();

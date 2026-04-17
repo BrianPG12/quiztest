@@ -12,8 +12,7 @@ import { sanitizeRomaji, getTodayKey } from "./core/utils.js";
 import { updateStats, resetResult, showResult, setActiveProgressTab } from "./core/ui.js";
 import { getKanaCategory, renderBacklog, updateBacklog, getQuestionWeight } from "./features/backlog.js";
 import { pickTypingQuestion, pickWritingQuestion, getScriptContextForTyping } from "./features/quiz.js";
-import { saveProgress, loadProgress } from "./features/storage.js";
-import { buildProgressPayload, applyProgressPayload } from "./features/storage.js";
+import { saveProgress, loadProgress, buildProgressPayload, applyProgressPayload } from "./features/storage.js";
 import {
   addDailyAttempt,
   renderDailyProgress,
