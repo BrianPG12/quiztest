@@ -3,7 +3,7 @@
  * Handles answer checking, result display, and state updates
  */
 
-export function createAnsweringManager(state, elements, srsManager, queueManager, showResult, updateStats, updateBacklog, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
+export function createAnsweringManager(state, elements, srsManager, queueManager, showResult, showTypingMistake, updateStats, updateBacklog, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
   /**
    * Validate and process typing answer
    * Returns: { correct: boolean, answer: string }
@@ -36,7 +36,7 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
       showResult(elements, "Correct!", true);
     } else {
       state.typingWrongCount += 1;
-      showResult(elements, `Not quite. Correct answer: ${state.currentQuestion.romaji}`, false);
+      showTypingMistake(elements, userRomaji, state.currentQuestion.romaji);
     }
 
     // Update all tracking systems

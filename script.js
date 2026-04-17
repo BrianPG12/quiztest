@@ -369,6 +369,28 @@
     elements.resultElement.classList.toggle("ok", isCorrect);
     elements.resultElement.classList.toggle("bad", !isCorrect);
   }
+  function escapeHtml(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function showTypingMistake(elements, userAnswer, correctAnswer) {
+    const user = userAnswer ? userAnswer : "(blank)";
+    const correct = correctAnswer || "-";
+    elements.resultElement.innerHTML = `
+    <div class="result-title">Not quite</div>
+    <div class="result-compare">
+      <div class="result-row">
+        <span class="result-row-label">You typed</span>
+        <span class="result-row-value">${escapeHtml(user)}</span>
+      </div>
+      <div class="result-row">
+        <span class="result-row-label">Correct</span>
+        <span class="result-row-value">${escapeHtml(correct)}</span>
+      </div>
+    </div>
+  `;
+    elements.resultElement.classList.remove("ok");
+    elements.resultElement.classList.add("bad");
+  }
   function setActiveProgressTab(elements, tabName) {
     const showBacklog = tabName === "backlog";
     elements.backlogPanel.classList.toggle("hidden", !showBacklog);
@@ -12176,7 +12198,7 @@
   });
 
   // js/features/answering.js
-  function createAnsweringManager(state, elements, srsManager, queueManager, showResult2, updateStats2, updateBacklog2, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
+  function createAnsweringManager(state, elements, srsManager, queueManager, showResult2, showTypingMistake2, updateStats2, updateBacklog2, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
     function validateTypingAnswer(romaji) {
       if (!romaji) {
         return { correct: false, answer: "", reason: "Type a romaji answer" };
@@ -12199,7 +12221,7 @@
         showResult2(elements, "Correct!", true);
       } else {
         state.typingWrongCount += 1;
-        showResult2(elements, `Not quite. Correct answer: ${state.currentQuestion.romaji}`, false);
+        showTypingMistake2(elements, userRomaji, state.currentQuestion.romaji);
       }
       updateBacklog2({
         backlog: state.backlog,
@@ -12288,6 +12310,7 @@
         srsManager,
         queueManager,
         showResult,
+        showTypingMistake,
         updateStats,
         updateBacklog,
         addDailyAttempt,
@@ -12299,6 +12322,22 @@
       }, async syncNow() {
       } };
       var deferredInstallPrompt = null;
+      function getAnswerInputValue() {
+        if ("value" in elements.answerInput) {
+          return elements.answerInput.value;
+        }
+        return elements.answerInput.textContent || "";
+      }
+      function setAnswerInputValue(value) {
+        if ("value" in elements.answerInput) {
+          elements.answerInput.value = value;
+          return;
+        }
+        elements.answerInput.textContent = value;
+      }
+      function focusAnswerInput() {
+        elements.answerInput.focus();
+      }
       function setupPwaInstall() {
         if (!("serviceWorker" in navigator)) {
           return;
@@ -12368,7 +12407,6 @@
       }
       function setupAnswerInputGuards() {
         const input = elements.answerInput;
-        let unlocked = false;
         function looksLikeCredential(value) {
           if (!value) {
             return false;
@@ -12378,24 +12416,22 @@
           }
           return /@|\s|https?:\/\//i.test(value) || /[^a-z-]/i.test(value);
         }
-        function unlockInput() {
-          if (unlocked) {
-            return;
-          }
-          unlocked = true;
-          input.removeAttribute("readonly");
-          if (looksLikeCredential(input.value)) {
-            input.value = "";
+        function clearCredentialLikeValue() {
+          const currentValue = "value" in input ? input.value : input.textContent || "";
+          if (looksLikeCredential(currentValue)) {
+            if ("value" in input) {
+              input.value = "";
+            } else {
+              input.textContent = "";
+            }
           }
         }
-        input.addEventListener("focus", unlockInput, { once: true });
-        input.addEventListener("pointerdown", unlockInput, { once: true });
-        input.addEventListener("touchstart", unlockInput, { once: true });
-        input.addEventListener("keydown", unlockInput, { once: true });
+        input.addEventListener("focus", clearCredentialLikeValue);
+        input.addEventListener("pointerdown", clearCredentialLikeValue);
+        input.addEventListener("touchstart", clearCredentialLikeValue);
+        input.addEventListener("keydown", clearCredentialLikeValue);
         setTimeout(() => {
-          if (looksLikeCredential(input.value)) {
-            input.value = "";
-          }
+          clearCredentialLikeValue();
         }, 200);
       }
       function scheduleNextTypingQuestion() {
@@ -12423,7 +12459,7 @@
           drawingFeature.setDrawingCanvasVisibility(currentMode);
         }
         if (isTypingQuestion) {
-          elements.answerInput.focus();
+          focusAnswerInput();
         }
         resetResult(elements);
       }
@@ -12481,12 +12517,12 @@
         }
         switchModeUI();
         resetResult(elements);
-        elements.answerInput.value = "";
+        setAnswerInputValue("");
         drawingFeature.clearAllCanvases();
         drawingFeature.setDrawingMarkButtonsEnabled(false);
         if (state.currentQuestion.kind === "typing") {
           elements.promptElement.textContent = state.currentQuestion.kana;
-          elements.answerInput.focus();
+          focusAnswerInput();
         } else {
           drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
           elements.promptElement.textContent = state.currentQuestion.promptText;
@@ -12494,8 +12530,9 @@
         queueManager.updateQueueMeta();
       }
       function checkTypingAnswer() {
-        const userAnswer = sanitizeRomaji(elements.answerInput.value);
+        const userAnswer = sanitizeRomaji(getAnswerInputValue());
         answeringManager.processTypingAnswer(userAnswer);
+        setAnswerInputValue("");
         scheduleNextTypingQuestion();
       }
       function revealDrawingAnswer() {
@@ -12644,6 +12681,12 @@
           if (event.key === "Enter") {
             event.preventDefault();
             checkTypingAnswer();
+          }
+        });
+        elements.answerInput.addEventListener("input", () => {
+          const value = getAnswerInputValue().replace(/[\r\n]+/g, "");
+          if (value !== getAnswerInputValue()) {
+            setAnswerInputValue(value);
           }
         });
         drawingFeature.bindCanvasEvents();

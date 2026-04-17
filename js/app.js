@@ -9,7 +9,7 @@ import {
 import { getElements } from "./dom/elements.js";
 import { createState } from "./core/state.js";
 import { sanitizeRomaji, getTodayKey } from "./core/utils.js";
-import { updateStats, resetResult, showResult, setActiveProgressTab } from "./core/ui.js";
+import { updateStats, resetResult, showResult, showTypingMistake, setActiveProgressTab } from "./core/ui.js";
 import { getKanaCategory, renderBacklog, updateBacklog, getQuestionWeight } from "./features/backlog.js";
 import { pickTypingQuestion, pickWritingQuestion, getScriptContextForTyping } from "./features/quiz.js";
 import { saveProgress, loadProgress, buildProgressPayload, applyProgressPayload } from "./features/storage.js";
@@ -45,6 +45,7 @@ const answeringManager = createAnsweringManager(
   srsManager,
   queueManager,
   showResult,
+  showTypingMistake,
   updateStats,
   updateBacklog,
   addDailyAttempt,
@@ -55,6 +56,25 @@ const answeringManager = createAnsweringManager(
 
 let cloudSync = { queueUpload() {}, async syncNow() {} };
 let deferredInstallPrompt = null;
+
+function getAnswerInputValue() {
+  if ("value" in elements.answerInput) {
+    return elements.answerInput.value;
+  }
+  return elements.answerInput.textContent || "";
+}
+
+function setAnswerInputValue(value) {
+  if ("value" in elements.answerInput) {
+    elements.answerInput.value = value;
+    return;
+  }
+  elements.answerInput.textContent = value;
+}
+
+function focusAnswerInput() {
+  elements.answerInput.focus();
+}
 
 function    setupPwaInstall() {
   if (!("serviceWorker" in navigator)) {
@@ -138,7 +158,6 @@ function ensureTodayEntry() {
 
 function setupAnswerInputGuards() {
   const input = elements.answerInput;
-  let unlocked = false;
 
   function looksLikeCredential(value) {
     if (!value) {
@@ -150,27 +169,25 @@ function setupAnswerInputGuards() {
     return /@|\s|https?:\/\//i.test(value) || /[^a-z-]/i.test(value);
   }
 
-  function unlockInput() {
-    if (unlocked) {
-      return;
-    }
-    unlocked = true;
-    input.removeAttribute("readonly");
-    if (looksLikeCredential(input.value)) {
-      input.value = "";
+  function clearCredentialLikeValue() {
+    const currentValue = "value" in input ? input.value : input.textContent || "";
+    if (looksLikeCredential(currentValue)) {
+      if ("value" in input) {
+        input.value = "";
+      } else {
+        input.textContent = "";
+      }
     }
   }
 
-  input.addEventListener("focus", unlockInput, { once: true });
-  input.addEventListener("pointerdown", unlockInput, { once: true });
-  input.addEventListener("touchstart", unlockInput, { once: true });
-  input.addEventListener("keydown", unlockInput, { once: true });
+  input.addEventListener("focus", clearCredentialLikeValue);
+  input.addEventListener("pointerdown", clearCredentialLikeValue);
+  input.addEventListener("touchstart", clearCredentialLikeValue);
+  input.addEventListener("keydown", clearCredentialLikeValue);
 
   // Some password managers inject slightly after first paint.
   setTimeout(() => {
-    if (looksLikeCredential(input.value)) {
-      input.value = "";
-    }
+    clearCredentialLikeValue();
   }, 200);
 }
 
@@ -208,7 +225,7 @@ function switchModeUI() {
   }
 
   if (isTypingQuestion) {
-    elements.answerInput.focus();
+    focusAnswerInput();
   }
 
   resetResult(elements);
@@ -272,13 +289,13 @@ function newQuestion() {
 
   switchModeUI();
   resetResult(elements);
-  elements.answerInput.value = "";
+  setAnswerInputValue("");
   drawingFeature.clearAllCanvases();
   drawingFeature.setDrawingMarkButtonsEnabled(false);
 
   if (state.currentQuestion.kind === "typing") {
     elements.promptElement.textContent = state.currentQuestion.kana;
-    elements.answerInput.focus();
+    focusAnswerInput();
   } else {
     drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
     elements.promptElement.textContent = state.currentQuestion.promptText;
@@ -288,8 +305,9 @@ function newQuestion() {
 }
 
 function checkTypingAnswer() {
-  const userAnswer = sanitizeRomaji(elements.answerInput.value);
+  const userAnswer = sanitizeRomaji(getAnswerInputValue());
   answeringManager.processTypingAnswer(userAnswer);
+  setAnswerInputValue("");
   scheduleNextTypingQuestion();
 }
 
@@ -456,6 +474,13 @@ function bindEvents() {
     if (event.key === "Enter") {
       event.preventDefault();
       checkTypingAnswer();
+    }
+  });
+
+  elements.answerInput.addEventListener("input", () => {
+    const value = getAnswerInputValue().replace(/[\r\n]+/g, "");
+    if (value !== getAnswerInputValue()) {
+      setAnswerInputValue(value);
     }
   });
 

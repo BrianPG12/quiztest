@@ -16,6 +16,35 @@ export function showResult(elements, message, isCorrect) {
   elements.resultElement.classList.toggle("bad", !isCorrect);
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export function showTypingMistake(elements, userAnswer, correctAnswer) {
+  const user = userAnswer ? userAnswer : "(blank)";
+  const correct = correctAnswer || "-";
+  elements.resultElement.innerHTML = `
+    <div class="result-title">Not quite</div>
+    <div class="result-compare">
+      <div class="result-row">
+        <span class="result-row-label">You typed</span>
+        <span class="result-row-value">${escapeHtml(user)}</span>
+      </div>
+      <div class="result-row">
+        <span class="result-row-label">Correct</span>
+        <span class="result-row-value">${escapeHtml(correct)}</span>
+      </div>
+    </div>
+  `;
+  elements.resultElement.classList.remove("ok");
+  elements.resultElement.classList.add("bad");
+}
+
 export function setActiveProgressTab(elements, tabName) {
   const showBacklog = tabName === "backlog";
   elements.backlogPanel.classList.toggle("hidden", !showBacklog);
