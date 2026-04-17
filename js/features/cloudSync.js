@@ -10,6 +10,12 @@ export async function setupCloudSync({
 }) {
   function setStatus(text) {
     elements.syncStatus.textContent = text;
+    elements.syncStatus.classList.remove("ok", "bad");
+    if (/error|disabled|unavailable/i.test(text)) {
+      elements.syncStatus.classList.add("bad");
+    } else if (/connected|synced|uploaded|downloaded|pulled|ready|created|logged out/i.test(text)) {
+      elements.syncStatus.classList.add("ok");
+    }
   }
 
   if (!syncConfig.enabled) {

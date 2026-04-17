@@ -8,6 +8,8 @@
   --accent-2: #256f5d;
   --ok: #136f48;
   --bad: #9f1d1d;
+  --warm-glow: rgba(201, 87, 48, 0.16);
+  --cool-glow: rgba(37, 111, 93, 0.16);
 }
 
 * {
@@ -37,12 +39,14 @@ body {
 .hero {
   text-align: center;
   animation: fade-slide 420ms ease-out;
+  padding: 8px 10px;
 }
 
 .hero h1 {
   margin: 0;
   font-size: clamp(1.8rem, 3.5vw, 2.8rem);
   letter-spacing: 0.02em;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
 .hero p {
@@ -145,6 +149,7 @@ button:disabled {
   border: 2px dashed #ccb290;
   border-radius: 14px;
   padding: 14px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03), 0 8px 20px var(--warm-glow);
 }
 
 .prompt-label {
@@ -235,6 +240,13 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+.stats span {
+  border: 1px solid #dbcab5;
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 12px;
+}
+
 .backlog {
   padding: 18px;
   display: grid;
@@ -247,6 +259,16 @@ button:disabled {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.progress-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#openSyncBtn {
+  background: #3b5f9d;
 }
 
 .backlog h2 {
@@ -300,6 +322,7 @@ button:disabled {
   border-radius: 10px;
   background: #fff;
   padding: 10px;
+  box-shadow: 0 6px 18px var(--cool-glow);
 }
 
 .sync-card h3 {
@@ -323,6 +346,14 @@ button:disabled {
   margin-top: 8px;
   font-size: 0.84rem;
   color: #5e5446;
+}
+
+.sync-status.ok {
+  color: var(--ok);
+}
+
+.sync-status.bad {
+  color: var(--bad);
 }
 
 #forcePullBtn,
@@ -406,6 +437,20 @@ button:disabled {
   .quiz,
   .backlog {
     padding: 12px;
+  }
+
+  .backlog-header {
+    align-items: stretch;
+  }
+
+  .tab-buttons,
+  .progress-actions {
+    width: 100%;
+  }
+
+  .tab-buttons button,
+  .progress-actions button {
+    flex: 1 1 calc(50% - 8px);
   }
 
   .input-row {

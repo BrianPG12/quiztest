@@ -109,7 +109,10 @@
           <button id="backlogTabBtn" class="btn-secondary tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="backlogPanel">Backlog</button>
           <button id="dailyProgressTabBtn" class="btn-secondary tab-btn" type="button" role="tab" aria-selected="false" aria-controls="progressPanel">Progress by Day</button>
         </div>
-        <button id="resetAllDataBtn" class="btn-danger" type="button">Reset All Data</button>
+        <div class="progress-actions">
+          <button id="openSyncBtn" class="btn-secondary" type="button">Open Cloud Sync</button>
+          <button id="resetAllDataBtn" class="btn-danger" type="button">Reset All Data</button>
+        </div>
       </div>
       <div id="backlogPanel" role="tabpanel">
         <p>Green = typing right &gt; typing wrong, drawing right &gt; drawing wrong, and typing+drawing correct &gt; 3 &nbsp;|&nbsp; Red = otherwise after attempts &nbsp;|&nbsp; Grey = not yet seen.</p>
@@ -149,7 +152,7 @@
       </div>
         <div id="progressPanel" class="hidden" role="tabpanel">
           <p>Compare two days to see how your typing and drawing accuracy is changing.</p>
-            <div class="sync-card">
+            <div id="syncCard" class="sync-card">
               <h3>Cloud Sync</h3>
               <p>Login to sync the same progress across phone and PC.</p>
               <div class="sync-controls">

@@ -224,6 +224,7 @@
       drawingWrongCountElement: document.getElementById("drawingWrongCount"),
       backlogTabBtn: document.getElementById("backlogTabBtn"),
       dailyProgressTabBtn: document.getElementById("dailyProgressTabBtn"),
+      openSyncBtn: document.getElementById("openSyncBtn"),
       resetAllDataBtn: document.getElementById("resetAllDataBtn"),
       backlogPanel: document.getElementById("backlogPanel"),
       progressPanel: document.getElementById("progressPanel"),
@@ -239,6 +240,7 @@
       syncNowBtn: document.getElementById("syncNowBtn"),
       forcePullBtn: document.getElementById("forcePullBtn"),
       forcePushBtn: document.getElementById("forcePushBtn"),
+      syncCard: document.getElementById("syncCard"),
       syncStatus: document.getElementById("syncStatus"),
       dailyProgressGraph: document.getElementById("dailyProgressGraph"),
       drawingGalleryDialog: document.getElementById("drawingGalleryDialog"),
@@ -1098,6 +1100,12 @@
   }) {
     function setStatus(text) {
       elements2.syncStatus.textContent = text;
+      elements2.syncStatus.classList.remove("ok", "bad");
+      if (/error|disabled|unavailable/i.test(text)) {
+        elements2.syncStatus.classList.add("bad");
+      } else if (/connected|synced|uploaded|downloaded|pulled|ready|created|logged out/i.test(text)) {
+        elements2.syncStatus.classList.add("ok");
+      }
     }
     if (!syncConfig.enabled) {
       setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
@@ -1547,6 +1555,11 @@
     });
     elements.backlogTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "backlog"));
     elements.dailyProgressTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "daily"));
+    elements.openSyncBtn.addEventListener("click", () => {
+      setActiveProgressTab(elements, "daily");
+      elements.syncCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      elements.syncEmail.focus();
+    });
     elements.resetAllDataBtn.addEventListener("click", resetAllData);
     bindProgressCompareSelectors(elements, state);
     elements.checkBtn.addEventListener("click", checkTypingAnswer);

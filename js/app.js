@@ -334,6 +334,11 @@ function bindEvents() {
 
   elements.backlogTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "backlog"));
   elements.dailyProgressTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "daily"));
+  elements.openSyncBtn.addEventListener("click", () => {
+    setActiveProgressTab(elements, "daily");
+    elements.syncCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    elements.syncEmail.focus();
+  });
   elements.resetAllDataBtn.addEventListener("click", resetAllData);
   bindProgressCompareSelectors(elements, state);
 
