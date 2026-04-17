@@ -1,4 +1,4 @@
-const CACHE_NAME = "kana-quiz-v22";
+const CACHE_NAME = "kana-quiz-v23";
 const ASSETS = [
   "/quiztest/",
   "/quiztest/index.html",
@@ -43,6 +43,26 @@ self.addEventListener("fetch", (event) => {
     requestUrl.pathname === "/";
 
   if (!isAppAsset) {
+    return;
+  }
+
+  const isNavigationRequest = event.request.mode === "navigate";
+
+  // For page navigations, prefer network so layout HTML updates are picked up immediately.
+  if (isNavigationRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put("/quiztest/index.html", responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match("/quiztest/index.html"))
+    );
     return;
   }
 

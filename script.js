@@ -12437,6 +12437,22 @@
         elements.quickAnswerOptions.innerHTML = options.map((romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`).join("");
         elements.quickAnswerOptions.classList.remove("hidden");
       }
+      function ensureAudioButtonsAboveKanaBox() {
+        const playAudioBtn = document.getElementById("playAudioBtn");
+        const muteAudioBtn = document.getElementById("muteAudioBtn");
+        const promptWrap = document.querySelector(".prompt-wrap");
+        const quizCard = promptWrap ? promptWrap.closest(".quiz") : null;
+        if (!playAudioBtn || !muteAudioBtn || !promptWrap || !quizCard) {
+          return;
+        }
+        let quickActions = quizCard.querySelector(".quiz-quick-actions");
+        if (!quickActions) {
+          quickActions = document.createElement("div");
+          quickActions.className = "quiz-quick-actions";
+        }
+        quickActions.append(playAudioBtn, muteAudioBtn);
+        quizCard.insertBefore(quickActions, promptWrap);
+      }
       function setupPwaInstall() {
         if (!("serviceWorker" in navigator)) {
           return;
@@ -12864,6 +12880,7 @@
           elements.syncStatus.textContent = `Cloud sync unavailable: ${error.message}`;
         });
         bindEvents();
+        ensureAudioButtonsAboveKanaBox();
         setupAnswerInputGuards();
         setupPwaInstall();
         elements.practiceStrategySelect.value = state.practiceStrategy;
