@@ -201,6 +201,7 @@
       drawingArea: document.getElementById("drawingArea"),
       drawGuideToggle: document.getElementById("drawGuideToggle"),
       answerInput: document.getElementById("answerInput"),
+      quickAnswerOptions: document.getElementById("quickAnswerOptions"),
       checkBtn: document.getElementById("checkBtn"),
       revealBtn: document.getElementById("revealBtn"),
       clearCanvasBtn: document.getElementById("clearCanvasBtn"),
@@ -12322,6 +12323,7 @@
       }, async syncNow() {
       } };
       var deferredInstallPrompt = null;
+      var isCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
       function getAnswerInputValue() {
         if ("value" in elements.answerInput) {
           return elements.answerInput.value;
@@ -12337,6 +12339,41 @@
       }
       function focusAnswerInput() {
         elements.answerInput.focus();
+      }
+      function shouldAutoFocusAnswer() {
+        return !isCoarsePointer;
+      }
+      function renderQuickAnswerOptions() {
+        if (!elements.quickAnswerOptions) {
+          return;
+        }
+        if (!state.currentQuestion || state.currentQuestion.kind !== "typing") {
+          elements.quickAnswerOptions.innerHTML = "";
+          elements.quickAnswerOptions.classList.add("hidden");
+          return;
+        }
+        const correct = state.currentQuestion.romaji;
+        const allRomaji = kanaData.map((item) => item.romaji).filter((romaji) => romaji !== correct);
+        const similar = allRomaji.filter((romaji) => romaji[0] === correct[0]);
+        const distractorPool = similar.length >= 3 ? similar : allRomaji;
+        const distractors = [];
+        while (distractors.length < 3 && distractorPool.length > 0) {
+          const index = Math.floor(Math.random() * distractorPool.length);
+          const [picked] = distractorPool.splice(index, 1);
+          if (picked && !distractors.includes(picked)) {
+            distractors.push(picked);
+          }
+        }
+        while (distractors.length < 3 && allRomaji.length > 0) {
+          const index = Math.floor(Math.random() * allRomaji.length);
+          const picked = allRomaji[index];
+          if (picked && !distractors.includes(picked)) {
+            distractors.push(picked);
+          }
+        }
+        const options = [correct, ...distractors].filter((value, index, arr) => arr.indexOf(value) === index).sort(() => Math.random() - 0.5);
+        elements.quickAnswerOptions.innerHTML = options.map((romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`).join("");
+        elements.quickAnswerOptions.classList.remove("hidden");
       }
       function setupPwaInstall() {
         if (!("serviceWorker" in navigator)) {
@@ -12459,7 +12496,14 @@
           drawingFeature.setDrawingCanvasVisibility(currentMode);
         }
         if (isTypingQuestion) {
-          focusAnswerInput();
+          if (shouldAutoFocusAnswer()) {
+            focusAnswerInput();
+          }
+          if (elements.quickAnswerOptions) {
+            elements.quickAnswerOptions.classList.remove("hidden");
+          }
+        } else if (elements.quickAnswerOptions) {
+          elements.quickAnswerOptions.classList.add("hidden");
         }
         resetResult(elements);
       }
@@ -12522,15 +12566,19 @@
         drawingFeature.setDrawingMarkButtonsEnabled(false);
         if (state.currentQuestion.kind === "typing") {
           elements.promptElement.textContent = state.currentQuestion.kana;
-          focusAnswerInput();
+          if (shouldAutoFocusAnswer()) {
+            focusAnswerInput();
+          }
         } else {
           drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
           elements.promptElement.textContent = state.currentQuestion.promptText;
         }
+        renderQuickAnswerOptions();
         queueManager.updateQueueMeta();
       }
-      function checkTypingAnswer() {
-        const userAnswer = sanitizeRomaji(getAnswerInputValue());
+      function checkTypingAnswer(forcedAnswer = null) {
+        const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : getAnswerInputValue();
+        const userAnswer = sanitizeRomaji(rawAnswer);
         answeringManager.processTypingAnswer(userAnswer);
         setAnswerInputValue("");
         scheduleNextTypingQuestion();
@@ -12689,6 +12737,17 @@
             setAnswerInputValue(value);
           }
         });
+        if (elements.quickAnswerOptions) {
+          elements.quickAnswerOptions.addEventListener("click", (event) => {
+            const button = event.target.closest(".quick-answer-btn");
+            if (!button) {
+              return;
+            }
+            const answer = button.dataset.answer || "";
+            setAnswerInputValue(answer);
+            checkTypingAnswer(answer);
+          });
+        }
         drawingFeature.bindCanvasEvents();
       }
       function init() {

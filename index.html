@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
 </head>
 <body>
   <form autocomplete="on" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
@@ -94,6 +94,7 @@
           <div id="answerInput" class="answer-input-editable" role="textbox" aria-label="Type romaji" aria-multiline="false" contenteditable="true" spellcheck="false" autocapitalize="none" autocorrect="off" inputmode="latin" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-placeholder="e.g. ka"></div>
           <button id="checkBtn" class="btn-primary">Check</button>
         </div>
+        <div id="quickAnswerOptions" class="quick-options hidden" aria-label="Quick answer options"></div>
       </div>
 
       <div id="drawingArea" class="answer-block hidden">
@@ -229,7 +230,7 @@
       // Load only the pre-built bundle in every environment.
       // This avoids browser differences with module graphs and cache behavior.
       var bundle = document.createElement("script");
-      bundle.src = "script.js?v=16";
+      bundle.src = "script.js?v=17";
       document.body.appendChild(bundle);
     })();
   </script>

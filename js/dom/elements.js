@@ -18,6 +18,7 @@ export function getElements() {
     drawingArea: document.getElementById("drawingArea"),
     drawGuideToggle: document.getElementById("drawGuideToggle"),
     answerInput: document.getElementById("answerInput"),
+    quickAnswerOptions: document.getElementById("quickAnswerOptions"),
     checkBtn: document.getElementById("checkBtn"),
     revealBtn: document.getElementById("revealBtn"),
     clearCanvasBtn: document.getElementById("clearCanvasBtn"),
