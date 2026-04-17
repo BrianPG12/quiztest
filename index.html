@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <main class="app-shell">
@@ -199,26 +199,11 @@
 
   <script>
     (function bootstrapScripts() {
-      var isLocalDev = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:";
-
-      if (isLocalDev) {
-        // Use ES modules on localhost for fast dev (no bundling needed)
-        var main = document.createElement("script");
-        main.type = "module";
-        main.src = "js/app.js";
-        main.onerror = function () {
-          var fallback = document.createElement("script");
-          fallback.src = "script.js?v=4";
-          document.body.appendChild(fallback);
-        };
-        document.body.appendChild(main);
-      } else {
-        // Always use the pre-built bundle on deployed sites.
-        // One file = one cache entry, ?v=4 forces all browsers to fetch fresh.
-        var bundle = document.createElement("script");
-        bundle.src = "script.js?v=4";
-        document.body.appendChild(bundle);
-      }
+      // Load only the pre-built bundle in every environment.
+      // This avoids browser differences with module graphs and cache behavior.
+      var bundle = document.createElement("script");
+      bundle.src = "script.js?v=5";
+      document.body.appendChild(bundle);
     })();
   </script>
 </body>

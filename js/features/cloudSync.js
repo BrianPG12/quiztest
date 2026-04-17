@@ -1,4 +1,13 @@
 import { syncConfig } from "../config/syncConfig.js";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut
+} from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
 export async function setupCloudSync({
   elements,
@@ -27,61 +36,9 @@ export async function setupCloudSync({
     elements.forcePushBtn.disabled = disabled;
   }
 
-  async function importWithFallback(urls, moduleName) {
-    let lastError = null;
-    for (const url of urls) {
-      try {
-        return await import(url);
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    const message = lastError && lastError.message ? lastError.message : "unknown network error";
-    throw new Error(`${moduleName} failed to load (${message}).`);
-  }
-
   if (!syncConfig.enabled) {
     setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
     disableAuthButtons(true);
-    return createNoopSync();
-  }
-
-  let initializeApp;
-  let getAuth;
-  let onAuthStateChanged;
-  let createUserWithEmailAndPassword;
-  let signInWithEmailAndPassword;
-  let signOut;
-  let getFirestore;
-  let doc;
-  let getDoc;
-  let setDoc;
-
-  try {
-    ({ initializeApp } = await importWithFallback([
-      "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js",
-      "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app.js"
-    ], "Firebase app module"));
-
-    ({
-      getAuth,
-      onAuthStateChanged,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      signOut
-    } = await importWithFallback([
-      "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js",
-      "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-auth.js"
-    ], "Firebase auth module"));
-
-    ({ getFirestore, doc, getDoc, setDoc } = await importWithFallback([
-      "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js",
-      "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-firestore.js"
-    ], "Firebase firestore module"));
-  } catch (error) {
-    disableAuthButtons(true);
-    setStatus(`Cloud sync unavailable in this browser/network. ${error.message} Disable Opera ad/tracker blocking for this site and reload.`);
     return createNoopSync();
   }
 
