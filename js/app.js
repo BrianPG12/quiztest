@@ -21,6 +21,10 @@ import {
 } from "./features/progress.js";
 import { createDrawingFeature } from "./features/drawing.js";
 import { setupCloudSync } from "./features/cloudSync.js";
+import { createSrsManager } from "./features/srs.js";
+import { createQueueManager } from "./features/queue.js";
+import { createAudioManager } from "./features/audio.js";
+import { createAnsweringManager } from "./features/answering.js";
 
 const elements = getElements();
 const state = createState(kanaData);
@@ -29,169 +33,28 @@ const drawingFeature = createDrawingFeature({
   state,
   maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA
 });
+
+// Feature managers
+const getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
+const srsManager = createSrsManager(state);
+const queueManager = createQueueManager(state, elements, srsManager, getKanaCategoryFn);
+const audioManager = createAudioManager(state, elements);
+const answeringManager = createAnsweringManager(
+  state,
+  elements,
+  srsManager,
+  queueManager,
+  showResult,
+  updateStats,
+  updateBacklog,
+  addDailyAttempt,
+  () => renderBacklogView(),
+  () => refreshProgressView(),
+  () => persistState()
+);
+
 let cloudSync = { queueUpload() {}, async syncNow() {} };
 let deferredInstallPrompt = null;
-const MAX_RECENT_MISTAKES = 120;
-
-const getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
-
-function getDueRomajiList() {
-  const now = Date.now();
-  return Object.entries(state.srsByRomaji)
-    .filter(([, entry]) => Number(entry.dueAt || 0) <= now)
-    .sort((a, b) => Number(a[1].dueAt || 0) - Number(b[1].dueAt || 0))
-    .map(([romaji]) => romaji);
-}
-
-function filterRomajiForCurrentKanaSet(romajiList) {
-  const setMode = elements.kanaSetSelect.value;
-  if (setMode === "all") {
-    return romajiList;
-  }
-
-  return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
-}
-
-function getPreferredRomajiList() {
-  if (state.practiceStrategy === "mistakeReview") {
-    return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
-  }
-
-  if (state.practiceStrategy === "srs") {
-    return filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 30);
-  }
-
-  // Adaptive weighting: emphasize mistakes early, shift to SRS as data accumulates
-  const totalAttempts = Object.values(state.srsByRomaji)
-    .reduce((sum, entry) => sum + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
-  
-  let mistakesCount, dueCount;
-  if (totalAttempts < 100) {
-    // Early stage: 80% mistakes, 20% due
-    mistakesCount = 24;
-    dueCount = 6;
-  } else if (totalAttempts < 300) {
-    // Mid stage: 60% mistakes, 40% due
-    mistakesCount = 18;
-    dueCount = 12;
-  } else {
-    // Advanced: 40% mistakes, 60% due
-    mistakesCount = 12;
-    dueCount = 18;
-  }
-
-  const due = filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, dueCount);
-  const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, mistakesCount);
-  return [...new Set([...mistakes, ...due])];
-}
-
-function updateQueueMeta() {
-  const due = getDueRomajiList().length;
-  const mistakes = state.recentMistakes.length;
-  const strategy = state.practiceStrategy === "mistakeReview"
-    ? `Mistakes: ${mistakes}`
-    : state.practiceStrategy === "srs"
-      ? `Due: ${due}`
-      : `Due ${due} • Mistakes ${mistakes}`;
-  elements.queueMeta.textContent = strategy;
-}
-
-function upsertRecentMistake(romaji) {
-  state.recentMistakes = [romaji, ...state.recentMistakes.filter((value) => value !== romaji)].slice(0, MAX_RECENT_MISTAKES);
-}
-
-function removeRecentMistake(romaji) {
-  state.recentMistakes = state.recentMistakes.filter((value) => value !== romaji);
-}
-
-function updateSrsOnAttempt(romaji, wasCorrect) {
-  const current = state.srsByRomaji[romaji] || {
-    dueAt: 0,
-    intervalHours: 0,
-    lastSeenAt: 0,
-    lastCorrect: false
-  };
-
-  const now = Date.now();
-  if (wasCorrect) {
-    const previous = Number(current.intervalHours || 0);
-    // Aggressive intervals for daily practice: 1.5h start, 2.5x multiplier, 14-day cap
-    const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
-    current.intervalHours = nextInterval;
-    current.dueAt = now + nextInterval * 60 * 60 * 1000;
-    removeRecentMistake(romaji);
-  } else {
-    current.intervalHours = 0.5;
-    current.dueAt = now + 30 * 60 * 1000; // 30 minutes for quick retry on mistakes
-    upsertRecentMistake(romaji);
-  }
-
-  current.lastSeenAt = now;
-  current.lastCorrect = wasCorrect;
-  state.srsByRomaji[romaji] = current;
-}
-
-function getAudioTextForQuestion(question) {
-  if (!question) {
-    return "";
-  }
-
-  if (question.kind === "typing") {
-    return question.kana;
-  }
-
-  if (question.canvasMode === "both") {
-    return `${question.hiragana} ${question.katakana}`;
-  }
-
-  return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
-}
-
-function playCurrentAudio() {
-  if (state.audioMuted) {
-    showResult(elements, "Audio is muted.", false);
-    return;
-  }
-
-  if (!window.speechSynthesis) {
-    showResult(elements, "Audio unavailable in this browser.", false);
-    return;
-  }
-
-  const text = getAudioTextForQuestion(state.currentQuestion);
-  if (!text) {
-    return;
-  }
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "ja-JP";
-  utterance.rate = 0.75;          // Slower for clarity
-  utterance.pitch = 1.2;          // Slightly higher pitch
-  utterance.volume = 1.0;         // Full volume
-  
-  // Wait for voices to load if empty, then speak
-  const speak = () => {
-    const voices = window.speechSynthesis.getVoices();
-    const japaneseVoice = voices.find(v => v.lang && v.lang.startsWith('ja-'));
-    if (japaneseVoice) {
-      utterance.voice = japaneseVoice;
-    }
-    window.speechSynthesis.speak(utterance);
-  };
-
-  if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.onvoiceschanged = speak;
-    setTimeout(speak, 100); // Fallback if voices don't load
-  } else {
-    speak();
-  }
-}
-
-function refreshAudioButton() {
-  elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
-  elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
-}
 
 function setupPwaInstall() {
   if (!("serviceWorker" in navigator)) {
@@ -377,45 +240,12 @@ function newQuestion() {
     elements.promptElement.textContent = state.currentQuestion.promptText;
   }
 
-  updateQueueMeta();
+  queueManager.updateQueueMeta();
 }
 
 function checkTypingAnswer() {
-  if (!state.currentQuestion) {
-    showResult(elements, "Create a question first.", false);
-    return;
-  }
-
   const userAnswer = sanitizeRomaji(elements.answerInput.value);
-  if (!userAnswer) {
-    showResult(elements, "Type a romaji answer.", false);
-    return;
-  }
-
-  const correct = userAnswer === state.currentQuestion.romaji;
-  if (correct) {
-    state.typingRightCount += 1;
-    showResult(elements, "Correct!", true);
-  } else {
-    state.typingWrongCount += 1;
-    showResult(elements, `Not quite. Correct answer: ${state.currentQuestion.romaji}`, false);
-  }
-
-  updateBacklog({
-    backlog: state.backlog,
-    romaji: state.currentQuestion.romaji,
-    wasCorrect: correct,
-    scriptContext: getScriptContextForTyping(state.currentQuestion),
-    answerMode: "typing"
-  });
-
-  updateSrsOnAttempt(state.currentQuestion.romaji, correct);
-  addDailyAttempt(state, "typing", correct);
-  updateStats(elements, state);
-  renderBacklogView();
-  refreshProgressView();
-  updateQueueMeta();
-  persistState();
+  answeringManager.processTypingAnswer(userAnswer);
   scheduleNextTypingQuestion();
 }
 
@@ -430,33 +260,7 @@ function revealDrawingAnswer() {
 }
 
 function markDrawingResult(wasCorrect) {
-  if (!state.currentQuestion) {
-    showResult(elements, "Create a question first.", false);
-    return;
-  }
-
-  if (wasCorrect) {
-    state.drawingRightCount += 1;
-    drawingFeature.saveCurrentDrawingIfCorrect();
-  } else {
-    state.drawingWrongCount += 1;
-  }
-
-  updateBacklog({
-    backlog: state.backlog,
-    romaji: state.currentQuestion.romaji,
-    wasCorrect,
-    scriptContext: state.currentQuestion.canvasMode,
-    answerMode: "drawing"
-  });
-
-  updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
-  addDailyAttempt(state, "drawing", wasCorrect);
-  updateStats(elements, state);
-  renderBacklogView();
-  refreshProgressView();
-  updateQueueMeta();
-  persistState();
+  answeringManager.processDrawingResult(wasCorrect, () => drawingFeature.saveCurrentDrawingIfCorrect());
   drawingFeature.setDrawingMarkButtonsEnabled(false);
   showResult(
     elements,
@@ -525,7 +329,7 @@ function resetAllData() {
   localStorage.removeItem(STORAGE_KEY);
 
   elements.practiceStrategySelect.value = state.practiceStrategy;
-  updateQueueMeta();
+  queueManager.updateQueueMeta();
   updateStats(elements, state);
   renderBacklogView();
   refreshProgressView();
@@ -543,12 +347,12 @@ function bindEvents() {
   });
   elements.scriptSelect.addEventListener("change", newQuestion);
   elements.kanaSetSelect.addEventListener("change", () => {
-    updateQueueMeta();
+    queueManager.updateQueueMeta();
     newQuestion();
   });
   elements.practiceStrategySelect.addEventListener("change", () => {
     state.practiceStrategy = elements.practiceStrategySelect.value;
-    updateQueueMeta();
+    queueManager.updateQueueMeta();
     persistState();
     newQuestion();
   });
@@ -569,10 +373,9 @@ function bindEvents() {
   bindProgressCompareSelectors(elements, state);
 
   elements.checkBtn.addEventListener("click", checkTypingAnswer);
-  elements.playAudioBtn.addEventListener("click", playCurrentAudio);
+  elements.playAudioBtn.addEventListener("click", () => audioManager.playCurrentAudio());
   elements.muteAudioBtn.addEventListener("click", () => {
-    state.audioMuted = !state.audioMuted;
-    refreshAudioButton();
+    audioManager.toggleAudioMute();
     persistState();
   });
   elements.revealBtn.addEventListener("click", revealDrawingAnswer);
@@ -633,7 +436,7 @@ function init() {
       updateStats(elements, state);
       renderBacklogView();
       refreshProgressView();
-      updateQueueMeta();
+      queueManager.updateQueueMeta();
       saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
     },
     onLocalStateSaved(payload) {
@@ -652,8 +455,8 @@ function init() {
   elements.practiceStrategySelect.value = state.practiceStrategy;
   elements.drawGuideToggle.checked = state.drawGuideEnabled;
   drawingFeature.setGuideEnabled(state.drawGuideEnabled);
-  refreshAudioButton();
-  updateQueueMeta();
+  audioManager.refreshAudioButton();
+  queueManager.updateQueueMeta();
   switchModeUI();
   drawingFeature.clearAllCanvases();
   updateStats(elements, state);

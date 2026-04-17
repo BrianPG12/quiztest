@@ -648,9 +648,6 @@
       revealText: `Answer: ${useHiragana ? "Hiragana" : "Katakana"} ${useHiragana ? item.hiragana : item.katakana} | Other script: ${useHiragana ? item.katakana : item.hiragana}. Mark yourself right or wrong.`
     };
   }
-  function getScriptContextForTyping(question) {
-    return question.scriptName === "Hiragana" ? "hiragana" : "katakana";
-  }
   var init_quiz = __esm({
     "js/features/quiz.js"() {
     }
@@ -21946,6 +21943,255 @@ This typically indicates that your device does not have a healthy Internet conne
     }
   });
 
+  // js/features/srs.js
+  function createSrsManager(state) {
+    function getDueRomajiList() {
+      const now = Date.now();
+      return Object.entries(state.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
+    }
+    function upsertRecentMistake(romaji) {
+      state.recentMistakes = [
+        romaji,
+        ...state.recentMistakes.filter((value) => value !== romaji)
+      ].slice(0, MAX_RECENT_MISTAKES);
+    }
+    function removeRecentMistake(romaji) {
+      state.recentMistakes = state.recentMistakes.filter((value) => value !== romaji);
+    }
+    function updateSrsOnAttempt(romaji, wasCorrect) {
+      const current = state.srsByRomaji[romaji] || {
+        dueAt: 0,
+        intervalHours: 0,
+        lastSeenAt: 0,
+        lastCorrect: false
+      };
+      const now = Date.now();
+      if (wasCorrect) {
+        const previous = Number(current.intervalHours || 0);
+        const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
+        current.intervalHours = nextInterval;
+        current.dueAt = now + nextInterval * 60 * 60 * 1e3;
+        removeRecentMistake(romaji);
+      } else {
+        current.intervalHours = 0.5;
+        current.dueAt = now + 30 * 60 * 1e3;
+        upsertRecentMistake(romaji);
+      }
+      current.lastSeenAt = now;
+      current.lastCorrect = wasCorrect;
+      state.srsByRomaji[romaji] = current;
+    }
+    function getTotalAttempts() {
+      return Object.values(state.srsByRomaji).reduce((sum, entry) => sum + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
+    }
+    return {
+      getDueRomajiList,
+      upsertRecentMistake,
+      removeRecentMistake,
+      updateSrsOnAttempt,
+      getTotalAttempts
+    };
+  }
+  var MAX_RECENT_MISTAKES;
+  var init_srs = __esm({
+    "js/features/srs.js"() {
+      MAX_RECENT_MISTAKES = 120;
+    }
+  });
+
+  // js/features/queue.js
+  function createQueueManager(state, elements, srsManager, getKanaCategoryFn) {
+    function filterRomajiForCurrentKanaSet(romajiList) {
+      const setMode = elements.kanaSetSelect.value;
+      if (setMode === "all") {
+        return romajiList;
+      }
+      return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
+    }
+    function getPreferredRomajiList2() {
+      if (state.practiceStrategy === "mistakeReview") {
+        return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
+      }
+      if (state.practiceStrategy === "srs") {
+        return filterRomajiForCurrentKanaSet(srsManager.getDueRomajiList()).slice(0, 30);
+      }
+      const totalAttempts = srsManager.getTotalAttempts();
+      let mistakesCount, dueCount;
+      if (totalAttempts < 100) {
+        mistakesCount = 24;
+        dueCount = 6;
+      } else if (totalAttempts < 300) {
+        mistakesCount = 18;
+        dueCount = 12;
+      } else {
+        mistakesCount = 12;
+        dueCount = 18;
+      }
+      const due = filterRomajiForCurrentKanaSet(srsManager.getDueRomajiList()).slice(0, dueCount);
+      const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, mistakesCount);
+      return [.../* @__PURE__ */ new Set([...mistakes, ...due])];
+    }
+    function updateQueueMeta() {
+      const due = srsManager.getDueRomajiList().length;
+      const mistakes = state.recentMistakes.length;
+      const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
+      elements.queueMeta.textContent = strategy;
+    }
+    return {
+      getPreferredRomajiList: getPreferredRomajiList2,
+      updateQueueMeta,
+      filterRomajiForCurrentKanaSet
+    };
+  }
+  var init_queue = __esm({
+    "js/features/queue.js"() {
+    }
+  });
+
+  // js/features/audio.js
+  function createAudioManager(state, elements) {
+    function getAudioTextForQuestion(question) {
+      if (!question) {
+        return "";
+      }
+      if (question.kind === "typing") {
+        return question.kana;
+      }
+      if (question.canvasMode === "both") {
+        return `${question.hiragana} ${question.katakana}`;
+      }
+      return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
+    }
+    function playCurrentAudio() {
+      if (state.audioMuted) {
+        return;
+      }
+      if (!window.speechSynthesis) {
+        return;
+      }
+      const text = getAudioTextForQuestion(state.currentQuestion);
+      if (!text) {
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ja-JP";
+      utterance.rate = 0.75;
+      utterance.pitch = 1.2;
+      utterance.volume = 1;
+      const speak = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const japaneseVoice = voices.find((v2) => v2.lang && v2.lang.startsWith("ja-"));
+        if (japaneseVoice) {
+          utterance.voice = japaneseVoice;
+        }
+        window.speechSynthesis.speak(utterance);
+      };
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = speak;
+        setTimeout(speak, 100);
+      } else {
+        speak();
+      }
+    }
+    function refreshAudioButton() {
+      elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
+      elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
+    }
+    function toggleAudioMute() {
+      state.audioMuted = !state.audioMuted;
+      refreshAudioButton();
+    }
+    return {
+      getAudioTextForQuestion,
+      playCurrentAudio,
+      refreshAudioButton,
+      toggleAudioMute
+    };
+  }
+  var init_audio = __esm({
+    "js/features/audio.js"() {
+    }
+  });
+
+  // js/features/answering.js
+  function createAnsweringManager(state, elements, srsManager, queueManager, showResult2, updateStats2, updateBacklog2, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
+    function validateTypingAnswer(romaji) {
+      if (!romaji) {
+        return { correct: false, answer: "", reason: "Type a romaji answer" };
+      }
+      return { correct: true, answer: romaji };
+    }
+    function processTypingAnswer(userRomaji) {
+      if (!state.currentQuestion) {
+        showResult2(elements, "Create a question first.", false);
+        return;
+      }
+      const validation = validateTypingAnswer(userRomaji);
+      if (!validation.correct) {
+        showResult2(elements, validation.reason, false);
+        return;
+      }
+      const correct = userRomaji === state.currentQuestion.romaji;
+      if (correct) {
+        state.typingRightCount += 1;
+        showResult2(elements, "Correct!", true);
+      } else {
+        state.typingWrongCount += 1;
+        showResult2(elements, `Not quite. Correct answer: ${state.currentQuestion.romaji}`, false);
+      }
+      updateBacklog2({
+        backlog: state.backlog,
+        romaji: state.currentQuestion.romaji,
+        wasCorrect: correct,
+        scriptContext: state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
+        answerMode: "typing"
+      });
+      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct);
+      addDailyAttemptFn(state, "typing", correct);
+      updateStats2(elements, state);
+      renderBacklogViewFn();
+      refreshProgressViewFn();
+      queueManager.updateQueueMeta();
+      persistStateFn();
+    }
+    function processDrawingResult(wasCorrect, saveDrawingFn) {
+      if (!state.currentQuestion) {
+        showResult2(elements, "Create a question first.", false);
+        return;
+      }
+      if (wasCorrect) {
+        state.drawingRightCount += 1;
+        saveDrawingFn();
+      } else {
+        state.drawingWrongCount += 1;
+      }
+      updateBacklog2({
+        backlog: state.backlog,
+        romaji: state.currentQuestion.romaji,
+        wasCorrect,
+        scriptContext: state.currentQuestion.canvasMode,
+        answerMode: "drawing"
+      });
+      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
+      addDailyAttemptFn(state, "drawing", wasCorrect);
+      updateStats2(elements, state);
+      renderBacklogViewFn();
+      refreshProgressViewFn();
+      queueManager.updateQueueMeta();
+      persistStateFn();
+    }
+    return {
+      validateTypingAnswer,
+      processTypingAnswer,
+      processDrawingResult
+    };
+  }
+  var init_answering = __esm({
+    "js/features/answering.js"() {
+    }
+  });
+
   // js/app.js
   var require_app = __commonJS({
     "js/app.js"() {
@@ -21960,6 +22206,10 @@ This typically indicates that your device does not have a healthy Internet conne
       init_progress();
       init_drawing();
       init_cloudSync();
+      init_srs();
+      init_queue();
+      init_audio();
+      init_answering();
       var elements = getElements();
       var state = createState(kanaData);
       var drawingFeature = createDrawingFeature({
@@ -21967,131 +22217,27 @@ This typically indicates that your device does not have a healthy Internet conne
         state,
         maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA
       });
+      var getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
+      var srsManager = createSrsManager(state);
+      var queueManager = createQueueManager(state, elements, srsManager, getKanaCategoryFn);
+      var audioManager = createAudioManager(state, elements);
+      var answeringManager = createAnsweringManager(
+        state,
+        elements,
+        srsManager,
+        queueManager,
+        showResult,
+        updateStats,
+        updateBacklog,
+        addDailyAttempt,
+        () => renderBacklogView(),
+        () => refreshProgressView(),
+        () => persistState()
+      );
       var cloudSync = { queueUpload() {
       }, async syncNow() {
       } };
       var deferredInstallPrompt = null;
-      var MAX_RECENT_MISTAKES = 120;
-      var getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
-      function getDueRomajiList() {
-        const now = Date.now();
-        return Object.entries(state.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
-      }
-      function filterRomajiForCurrentKanaSet(romajiList) {
-        const setMode = elements.kanaSetSelect.value;
-        if (setMode === "all") {
-          return romajiList;
-        }
-        return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
-      }
-      function getPreferredRomajiList() {
-        if (state.practiceStrategy === "mistakeReview") {
-          return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
-        }
-        if (state.practiceStrategy === "srs") {
-          return filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 30);
-        }
-        const totalAttempts = Object.values(state.srsByRomaji).reduce((sum, entry) => sum + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
-        let mistakesCount, dueCount;
-        if (totalAttempts < 100) {
-          mistakesCount = 24;
-          dueCount = 6;
-        } else if (totalAttempts < 300) {
-          mistakesCount = 18;
-          dueCount = 12;
-        } else {
-          mistakesCount = 12;
-          dueCount = 18;
-        }
-        const due = filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, dueCount);
-        const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, mistakesCount);
-        return [.../* @__PURE__ */ new Set([...mistakes, ...due])];
-      }
-      function updateQueueMeta() {
-        const due = getDueRomajiList().length;
-        const mistakes = state.recentMistakes.length;
-        const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
-        elements.queueMeta.textContent = strategy;
-      }
-      function upsertRecentMistake(romaji) {
-        state.recentMistakes = [romaji, ...state.recentMistakes.filter((value) => value !== romaji)].slice(0, MAX_RECENT_MISTAKES);
-      }
-      function removeRecentMistake(romaji) {
-        state.recentMistakes = state.recentMistakes.filter((value) => value !== romaji);
-      }
-      function updateSrsOnAttempt(romaji, wasCorrect) {
-        const current = state.srsByRomaji[romaji] || {
-          dueAt: 0,
-          intervalHours: 0,
-          lastSeenAt: 0,
-          lastCorrect: false
-        };
-        const now = Date.now();
-        if (wasCorrect) {
-          const previous = Number(current.intervalHours || 0);
-          const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
-          current.intervalHours = nextInterval;
-          current.dueAt = now + nextInterval * 60 * 60 * 1e3;
-          removeRecentMistake(romaji);
-        } else {
-          current.intervalHours = 0.5;
-          current.dueAt = now + 30 * 60 * 1e3;
-          upsertRecentMistake(romaji);
-        }
-        current.lastSeenAt = now;
-        current.lastCorrect = wasCorrect;
-        state.srsByRomaji[romaji] = current;
-      }
-      function getAudioTextForQuestion(question) {
-        if (!question) {
-          return "";
-        }
-        if (question.kind === "typing") {
-          return question.kana;
-        }
-        if (question.canvasMode === "both") {
-          return `${question.hiragana} ${question.katakana}`;
-        }
-        return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
-      }
-      function playCurrentAudio() {
-        if (state.audioMuted) {
-          showResult(elements, "Audio is muted.", false);
-          return;
-        }
-        if (!window.speechSynthesis) {
-          showResult(elements, "Audio unavailable in this browser.", false);
-          return;
-        }
-        const text = getAudioTextForQuestion(state.currentQuestion);
-        if (!text) {
-          return;
-        }
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "ja-JP";
-        utterance.rate = 0.75;
-        utterance.pitch = 1.2;
-        utterance.volume = 1;
-        const speak = () => {
-          const voices = window.speechSynthesis.getVoices();
-          const japaneseVoice = voices.find((v2) => v2.lang && v2.lang.startsWith("ja-"));
-          if (japaneseVoice) {
-            utterance.voice = japaneseVoice;
-          }
-          window.speechSynthesis.speak(utterance);
-        };
-        if (window.speechSynthesis.getVoices().length === 0) {
-          window.speechSynthesis.onvoiceschanged = speak;
-          setTimeout(speak, 100);
-        } else {
-          speak();
-        }
-      }
-      function refreshAudioButton() {
-        elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
-        elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
-      }
       function setupPwaInstall() {
         if (!("serviceWorker" in navigator)) {
           return;
@@ -22246,40 +22392,11 @@ This typically indicates that your device does not have a healthy Internet conne
           drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
           elements.promptElement.textContent = state.currentQuestion.promptText;
         }
-        updateQueueMeta();
+        queueManager.updateQueueMeta();
       }
       function checkTypingAnswer() {
-        if (!state.currentQuestion) {
-          showResult(elements, "Create a question first.", false);
-          return;
-        }
         const userAnswer = sanitizeRomaji(elements.answerInput.value);
-        if (!userAnswer) {
-          showResult(elements, "Type a romaji answer.", false);
-          return;
-        }
-        const correct = userAnswer === state.currentQuestion.romaji;
-        if (correct) {
-          state.typingRightCount += 1;
-          showResult(elements, "Correct!", true);
-        } else {
-          state.typingWrongCount += 1;
-          showResult(elements, `Not quite. Correct answer: ${state.currentQuestion.romaji}`, false);
-        }
-        updateBacklog({
-          backlog: state.backlog,
-          romaji: state.currentQuestion.romaji,
-          wasCorrect: correct,
-          scriptContext: getScriptContextForTyping(state.currentQuestion),
-          answerMode: "typing"
-        });
-        updateSrsOnAttempt(state.currentQuestion.romaji, correct);
-        addDailyAttempt(state, "typing", correct);
-        updateStats(elements, state);
-        renderBacklogView();
-        refreshProgressView();
-        updateQueueMeta();
-        persistState();
+        answeringManager.processTypingAnswer(userAnswer);
         scheduleNextTypingQuestion();
       }
       function revealDrawingAnswer() {
@@ -22291,30 +22408,7 @@ This typically indicates that your device does not have a healthy Internet conne
         drawingFeature.setDrawingMarkButtonsEnabled(true);
       }
       function markDrawingResult(wasCorrect) {
-        if (!state.currentQuestion) {
-          showResult(elements, "Create a question first.", false);
-          return;
-        }
-        if (wasCorrect) {
-          state.drawingRightCount += 1;
-          drawingFeature.saveCurrentDrawingIfCorrect();
-        } else {
-          state.drawingWrongCount += 1;
-        }
-        updateBacklog({
-          backlog: state.backlog,
-          romaji: state.currentQuestion.romaji,
-          wasCorrect,
-          scriptContext: state.currentQuestion.canvasMode,
-          answerMode: "drawing"
-        });
-        updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
-        addDailyAttempt(state, "drawing", wasCorrect);
-        updateStats(elements, state);
-        renderBacklogView();
-        refreshProgressView();
-        updateQueueMeta();
-        persistState();
+        answeringManager.processDrawingResult(wasCorrect, () => drawingFeature.saveCurrentDrawingIfCorrect());
         drawingFeature.setDrawingMarkButtonsEnabled(false);
         showResult(
           elements,
@@ -22375,7 +22469,7 @@ This typically indicates that your device does not have a healthy Internet conne
         state.lastSavedAt = 0;
         localStorage.removeItem(STORAGE_KEY);
         elements.practiceStrategySelect.value = state.practiceStrategy;
-        updateQueueMeta();
+        queueManager.updateQueueMeta();
         updateStats(elements, state);
         renderBacklogView();
         refreshProgressView();
@@ -22392,12 +22486,12 @@ This typically indicates that your device does not have a healthy Internet conne
         });
         elements.scriptSelect.addEventListener("change", newQuestion);
         elements.kanaSetSelect.addEventListener("change", () => {
-          updateQueueMeta();
+          queueManager.updateQueueMeta();
           newQuestion();
         });
         elements.practiceStrategySelect.addEventListener("change", () => {
           state.practiceStrategy = elements.practiceStrategySelect.value;
-          updateQueueMeta();
+          queueManager.updateQueueMeta();
           persistState();
           newQuestion();
         });
@@ -22416,10 +22510,9 @@ This typically indicates that your device does not have a healthy Internet conne
         elements.resetAllDataBtn.addEventListener("click", resetAllData);
         bindProgressCompareSelectors(elements, state);
         elements.checkBtn.addEventListener("click", checkTypingAnswer);
-        elements.playAudioBtn.addEventListener("click", playCurrentAudio);
+        elements.playAudioBtn.addEventListener("click", () => audioManager.playCurrentAudio());
         elements.muteAudioBtn.addEventListener("click", () => {
-          state.audioMuted = !state.audioMuted;
-          refreshAudioButton();
+          audioManager.toggleAudioMute();
           persistState();
         });
         elements.revealBtn.addEventListener("click", revealDrawingAnswer);
@@ -22473,7 +22566,7 @@ This typically indicates that your device does not have a healthy Internet conne
             updateStats(elements, state);
             renderBacklogView();
             refreshProgressView();
-            updateQueueMeta();
+            queueManager.updateQueueMeta();
             saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
           },
           onLocalStateSaved(payload) {
@@ -22491,8 +22584,8 @@ This typically indicates that your device does not have a healthy Internet conne
         elements.practiceStrategySelect.value = state.practiceStrategy;
         elements.drawGuideToggle.checked = state.drawGuideEnabled;
         drawingFeature.setGuideEnabled(state.drawGuideEnabled);
-        refreshAudioButton();
-        updateQueueMeta();
+        audioManager.refreshAudioButton();
+        queueManager.updateQueueMeta();
         switchModeUI();
         drawingFeature.clearAllCanvases();
         updateStats(elements, state);
