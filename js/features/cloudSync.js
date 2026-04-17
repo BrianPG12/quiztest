@@ -18,29 +18,6 @@ export async function setupCloudSync({
     }
   }
 
-  if (!syncConfig.enabled) {
-    setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
-    disableAuthButtons(true);
-    return createNoopSync();
-  }
-
-  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-  const {
-    getAuth,
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut
-  } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
-  const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
-
-  const app = initializeApp(syncConfig.firebase);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  let currentUser = null;
-  let uploadTimer = null;
-
   function disableAuthButtons(disabled) {
     elements.signUpBtn.disabled = disabled;
     elements.loginBtn.disabled = disabled;
@@ -49,6 +26,71 @@ export async function setupCloudSync({
     elements.forcePullBtn.disabled = disabled;
     elements.forcePushBtn.disabled = disabled;
   }
+
+  async function importWithFallback(urls, moduleName) {
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        return await import(url);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    const message = lastError && lastError.message ? lastError.message : "unknown network error";
+    throw new Error(`${moduleName} failed to load (${message}).`);
+  }
+
+  if (!syncConfig.enabled) {
+    setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
+    disableAuthButtons(true);
+    return createNoopSync();
+  }
+
+  let initializeApp;
+  let getAuth;
+  let onAuthStateChanged;
+  let createUserWithEmailAndPassword;
+  let signInWithEmailAndPassword;
+  let signOut;
+  let getFirestore;
+  let doc;
+  let getDoc;
+  let setDoc;
+
+  try {
+    ({ initializeApp } = await importWithFallback([
+      "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js",
+      "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app.js"
+    ], "Firebase app module"));
+
+    ({
+      getAuth,
+      onAuthStateChanged,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut
+    } = await importWithFallback([
+      "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js",
+      "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-auth.js"
+    ], "Firebase auth module"));
+
+    ({ getFirestore, doc, getDoc, setDoc } = await importWithFallback([
+      "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js",
+      "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-firestore.js"
+    ], "Firebase firestore module"));
+  } catch (error) {
+    disableAuthButtons(true);
+    setStatus(`Cloud sync unavailable in this browser/network. ${error.message} Disable Opera ad/tracker blocking for this site and reload.`);
+    return createNoopSync();
+  }
+
+  const app = initializeApp(syncConfig.firebase);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+  let uploadTimer = null;
 
   async function pullOrPushOnLogin(user) {
     const stateRef = doc(db, "quizStates", user.uid);

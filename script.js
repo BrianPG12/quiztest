@@ -1,33 +1,4 @@
 (() => {
-  var __create = Object.create;
-  var __defProp = Object.defineProperty;
-  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-  var __getOwnPropNames = Object.getOwnPropertyNames;
-  var __getProtoOf = Object.getPrototypeOf;
-  var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-  }) : x)(function(x) {
-    if (typeof require !== "undefined") return require.apply(this, arguments);
-    throw Error('Dynamic require of "' + x + '" is not supported');
-  });
-  var __copyProps = (to, from, except, desc) => {
-    if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key) && key !== except)
-          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-    }
-    return to;
-  };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-    // If the importer is in node compatibility mode or this is not an ESM
-    // file that has been converted to a CommonJS file using a Babel-
-    // compatible transform (i.e. "__esModule" has not been set), then set
-    // "default" to the CommonJS "module.exports" for node compatibility.
-    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-    mod
-  ));
-
   // js/data/kanaData.js
   var kanaData = [
     { romaji: "a", hiragana: "\u3042", katakana: "\u30A2" },
@@ -1108,25 +1079,6 @@
         elements2.syncStatus.classList.add("ok");
       }
     }
-    if (!syncConfig.enabled) {
-      setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
-      disableAuthButtons(true);
-      return createNoopSync();
-    }
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
-    const {
-      getAuth,
-      onAuthStateChanged,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      signOut
-    } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js");
-    const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js");
-    const app = initializeApp(syncConfig.firebase);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    let currentUser = null;
-    let uploadTimer = null;
     function disableAuthButtons(disabled) {
       elements2.signUpBtn.disabled = disabled;
       elements2.loginBtn.disabled = disabled;
@@ -1135,6 +1087,62 @@
       elements2.forcePullBtn.disabled = disabled;
       elements2.forcePushBtn.disabled = disabled;
     }
+    async function importWithFallback(urls, moduleName) {
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          return await import(url);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      const message = lastError && lastError.message ? lastError.message : "unknown network error";
+      throw new Error(`${moduleName} failed to load (${message}).`);
+    }
+    if (!syncConfig.enabled) {
+      setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
+      disableAuthButtons(true);
+      return createNoopSync();
+    }
+    let initializeApp;
+    let getAuth;
+    let onAuthStateChanged;
+    let createUserWithEmailAndPassword;
+    let signInWithEmailAndPassword;
+    let signOut;
+    let getFirestore;
+    let doc;
+    let getDoc;
+    let setDoc;
+    try {
+      ({ initializeApp } = await importWithFallback([
+        "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js",
+        "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app.js"
+      ], "Firebase app module"));
+      ({
+        getAuth,
+        onAuthStateChanged,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signOut
+      } = await importWithFallback([
+        "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js",
+        "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-auth.js"
+      ], "Firebase auth module"));
+      ({ getFirestore, doc, getDoc, setDoc } = await importWithFallback([
+        "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js",
+        "https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-firestore.js"
+      ], "Firebase firestore module"));
+    } catch (error) {
+      disableAuthButtons(true);
+      setStatus(`Cloud sync unavailable in this browser/network. ${error.message} Disable Opera ad/tracker blocking for this site and reload.`);
+      return createNoopSync();
+    }
+    const app = initializeApp(syncConfig.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let currentUser = null;
+    let uploadTimer = null;
     async function pullOrPushOnLogin(user) {
       const stateRef = doc(db, "quizStates", user.uid);
       const remoteSnap = await getDoc(stateRef);
