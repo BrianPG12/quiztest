@@ -1,6 +1,7 @@
 export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
   let drawing = false;
   let activeCanvas = null;
+  let drawGuideEnabled = state.drawGuideEnabled !== false;
 
   const canvases = [
     { canvas: elements.canvasHiragana, ctx: elements.ctxHiragana },
@@ -23,10 +24,36 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
   function clearCanvas(canvas, ctx) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (drawGuideEnabled) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(79, 70, 229, 0.16)";
+      ctx.lineWidth = 1;
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, 0);
+      ctx.lineTo(centerX, canvas.height);
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(canvas.width, centerY);
+      ctx.stroke();
+
+      const boxPadX = canvas.width * 0.22;
+      const boxPadY = canvas.height * 0.18;
+      ctx.strokeRect(boxPadX, boxPadY, canvas.width - boxPadX * 2, canvas.height - boxPadY * 2);
+      ctx.restore();
+    }
   }
 
   function clearAllCanvases() {
     canvases.forEach(({ canvas, ctx }) => clearCanvas(canvas, ctx));
+  }
+
+  function setGuideEnabled(enabled) {
+    drawGuideEnabled = Boolean(enabled);
+    clearAllCanvases();
   }
 
   function getCanvasPoint(canvas, event) {
@@ -140,6 +167,7 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
   return {
     setDrawingMarkButtonsEnabled,
     setDrawingCanvasVisibility,
+    setGuideEnabled,
     clearAllCanvases,
     saveCurrentDrawingIfCorrect,
     openDrawingGallery,

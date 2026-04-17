@@ -17,6 +17,14 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
 
   return {
     savedAt,
+    practiceStrategy: state.practiceStrategy,
+    recentMistakes: state.recentMistakes,
+    srsByRomaji: state.srsByRomaji,
+    audioMuted: state.audioMuted,
+    drawGuideEnabled: state.drawGuideEnabled,
+    dailyGoal: state.dailyGoal,
+    lastCloudSyncAt: state.lastCloudSyncAt,
+    syncUserEmail: state.syncUserEmail,
     typingRightCount: state.typingRightCount,
     typingWrongCount: state.typingWrongCount,
     drawingRightCount: state.drawingRightCount,
@@ -33,6 +41,17 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   }
 
   state.lastSavedAt = Number(payload.savedAt || 0);
+  state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed"
+    ? payload.practiceStrategy
+    : "srs";
+  state.recentMistakes = Array.isArray(payload.recentMistakes)
+    ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
+    : [];
+  state.audioMuted = Boolean(payload.audioMuted);
+  state.drawGuideEnabled = payload.drawGuideEnabled !== false;
+  state.dailyGoal = Math.max(5, Math.min(200, Number(payload.dailyGoal || 25)));
+  state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
+  state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
   state.typingRightCount = Number(payload.typingRightCount || 0);
   state.typingWrongCount = Number(payload.typingWrongCount || 0);
   state.drawingRightCount = Number(payload.drawingRightCount || 0);
@@ -43,6 +62,16 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   });
   Object.keys(state.dailyStats).forEach((dateKey) => {
     delete state.dailyStats[dateKey];
+  });
+
+  kanaData.forEach((item) => {
+    const savedSrs = payload.srsByRomaji && payload.srsByRomaji[item.romaji];
+    state.srsByRomaji[item.romaji] = {
+      dueAt: Number(savedSrs && savedSrs.dueAt || 0),
+      intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
+      lastSeenAt: Number(savedSrs && savedSrs.lastSeenAt || 0),
+      lastCorrect: Boolean(savedSrs && savedSrs.lastCorrect)
+    };
   });
 
   if (payload.backlog && typeof payload.backlog === "object") {

@@ -1,7 +1,23 @@
-export function pickQuestion({ kanaData, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog }) {
-  const pool = kanaSet === "all"
+export function pickQuestion({
+  kanaData,
+  kanaSet,
+  getKanaCategoryFn,
+  getQuestionWeightFn,
+  backlog,
+  preferredRomajiList = null
+}) {
+  const basePool = kanaSet === "all"
     ? kanaData
     : kanaData.filter((item) => getKanaCategoryFn(item.romaji) === kanaSet);
+
+  let pool = basePool;
+  if (Array.isArray(preferredRomajiList) && preferredRomajiList.length > 0) {
+    const preferredSet = new Set(preferredRomajiList);
+    const targeted = basePool.filter((item) => preferredSet.has(item.romaji));
+    if (targeted.length > 0) {
+      pool = targeted;
+    }
+  }
 
   const weights = pool.map((item) => getQuestionWeightFn(backlog, item));
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
@@ -15,8 +31,23 @@ export function pickQuestion({ kanaData, kanaSet, getKanaCategoryFn, getQuestion
   return pool[pool.length - 1];
 }
 
-export function pickTypingQuestion({ kanaData, scriptMode, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog }) {
-  const item = pickQuestion({ kanaData, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog });
+export function pickTypingQuestion({
+  kanaData,
+  scriptMode,
+  kanaSet,
+  getKanaCategoryFn,
+  getQuestionWeightFn,
+  backlog,
+  preferredRomajiList
+}) {
+  const item = pickQuestion({
+    kanaData,
+    kanaSet,
+    getKanaCategoryFn,
+    getQuestionWeightFn,
+    backlog,
+    preferredRomajiList
+  });
 
   if (scriptMode === "hiragana") {
     return {
@@ -45,8 +76,23 @@ export function pickTypingQuestion({ kanaData, scriptMode, kanaSet, getKanaCateg
   };
 }
 
-export function pickWritingQuestion({ kanaData, writingMode, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog }) {
-  const item = pickQuestion({ kanaData, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog });
+export function pickWritingQuestion({
+  kanaData,
+  writingMode,
+  kanaSet,
+  getKanaCategoryFn,
+  getQuestionWeightFn,
+  backlog,
+  preferredRomajiList
+}) {
+  const item = pickQuestion({
+    kanaData,
+    kanaSet,
+    getKanaCategoryFn,
+    getQuestionWeightFn,
+    backlog,
+    preferredRomajiList
+  });
 
   if (writingMode === "both") {
     return {

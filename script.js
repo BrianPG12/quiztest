@@ -191,10 +191,15 @@
       writingScriptGroup: document.getElementById("writingScriptGroup"),
       writingScriptSelect: document.getElementById("writingScriptSelect"),
       kanaSetSelect: document.getElementById("kanaSetSelect"),
+      practiceStrategySelect: document.getElementById("practiceStrategySelect"),
       newQuestionBtn: document.getElementById("newQuestionBtn"),
       promptElement: document.getElementById("prompt"),
+      queueMeta: document.getElementById("queueMeta"),
+      playAudioBtn: document.getElementById("playAudioBtn"),
+      muteAudioBtn: document.getElementById("muteAudioBtn"),
       typingArea: document.getElementById("typingArea"),
       drawingArea: document.getElementById("drawingArea"),
+      drawGuideToggle: document.getElementById("drawGuideToggle"),
       answerInput: document.getElementById("answerInput"),
       checkBtn: document.getElementById("checkBtn"),
       revealBtn: document.getElementById("revealBtn"),
@@ -208,23 +213,27 @@
       drawingWrongCountElement: document.getElementById("drawingWrongCount"),
       backlogTabBtn: document.getElementById("backlogTabBtn"),
       dailyProgressTabBtn: document.getElementById("dailyProgressTabBtn"),
+      installAppBtn: document.getElementById("installAppBtn"),
       openSyncBtn: document.getElementById("openSyncBtn"),
       resetAllDataBtn: document.getElementById("resetAllDataBtn"),
       backlogPanel: document.getElementById("backlogPanel"),
       progressPanel: document.getElementById("progressPanel"),
       compareDayASelect: document.getElementById("compareDayASelect"),
       compareDayBSelect: document.getElementById("compareDayBSelect"),
+      insightsGrid: document.getElementById("insightsGrid"),
       compareSummary: document.getElementById("compareSummary"),
       dailyHistoryTable: document.getElementById("dailyHistoryTable"),
       syncEmail: document.getElementById("syncEmail"),
       syncPassword: document.getElementById("syncPassword"),
       signUpBtn: document.getElementById("signUpBtn"),
       loginBtn: document.getElementById("loginBtn"),
+      forgotPasswordBtn: document.getElementById("forgotPasswordBtn"),
       logoutBtn: document.getElementById("logoutBtn"),
       syncNowBtn: document.getElementById("syncNowBtn"),
       forcePullBtn: document.getElementById("forcePullBtn"),
       forcePushBtn: document.getElementById("forcePushBtn"),
       syncCard: document.getElementById("syncCard"),
+      syncAccountInfo: document.getElementById("syncAccountInfo"),
       syncStatus: document.getElementById("syncStatus"),
       dailyProgressGraph: document.getElementById("dailyProgressGraph"),
       drawingGalleryDialog: document.getElementById("drawingGalleryDialog"),
@@ -306,9 +315,25 @@
     }, {});
   }
   function createState(kanaData2) {
+    const srsByRomaji = kanaData2.reduce((acc, item) => {
+      acc[item.romaji] = {
+        dueAt: 0,
+        intervalHours: 0,
+        lastSeenAt: 0,
+        lastCorrect: false
+      };
+      return acc;
+    }, {});
     return {
       currentQuestion: null,
       nextQuestionTimer: null,
+      practiceStrategy: "srs",
+      recentMistakes: [],
+      srsByRomaji,
+      audioMuted: false,
+      drawGuideEnabled: true,
+      dailyGoal: 25,
+      installPromptSeen: false,
       typingRightCount: 0,
       typingWrongCount: 0,
       drawingRightCount: 0,
@@ -316,6 +341,8 @@
       drawingsByKana: {},
       dailyStats: {},
       lastSavedAt: 0,
+      lastCloudSyncAt: 0,
+      syncUserEmail: "",
       progressUiDayMarker: getTodayKey(),
       backlog: createBacklog(kanaData2)
     };
@@ -493,8 +520,23 @@
   });
 
   // js/features/quiz.js
-  function pickQuestion({ kanaData: kanaData2, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog }) {
-    const pool = kanaSet === "all" ? kanaData2 : kanaData2.filter((item) => getKanaCategoryFn(item.romaji) === kanaSet);
+  function pickQuestion({
+    kanaData: kanaData2,
+    kanaSet,
+    getKanaCategoryFn,
+    getQuestionWeightFn,
+    backlog,
+    preferredRomajiList = null
+  }) {
+    const basePool = kanaSet === "all" ? kanaData2 : kanaData2.filter((item) => getKanaCategoryFn(item.romaji) === kanaSet);
+    let pool = basePool;
+    if (Array.isArray(preferredRomajiList) && preferredRomajiList.length > 0) {
+      const preferredSet = new Set(preferredRomajiList);
+      const targeted = basePool.filter((item) => preferredSet.has(item.romaji));
+      if (targeted.length > 0) {
+        pool = targeted;
+      }
+    }
     const weights = pool.map((item) => getQuestionWeightFn(backlog, item));
     const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
     let rand = Math.random() * totalWeight;
@@ -504,8 +546,23 @@
     }
     return pool[pool.length - 1];
   }
-  function pickTypingQuestion({ kanaData: kanaData2, scriptMode, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog }) {
-    const item = pickQuestion({ kanaData: kanaData2, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog });
+  function pickTypingQuestion({
+    kanaData: kanaData2,
+    scriptMode,
+    kanaSet,
+    getKanaCategoryFn,
+    getQuestionWeightFn,
+    backlog,
+    preferredRomajiList
+  }) {
+    const item = pickQuestion({
+      kanaData: kanaData2,
+      kanaSet,
+      getKanaCategoryFn,
+      getQuestionWeightFn,
+      backlog,
+      preferredRomajiList
+    });
     if (scriptMode === "hiragana") {
       return {
         kind: "typing",
@@ -530,8 +587,23 @@
       scriptName: useHiragana ? "Hiragana" : "Katakana"
     };
   }
-  function pickWritingQuestion({ kanaData: kanaData2, writingMode, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog }) {
-    const item = pickQuestion({ kanaData: kanaData2, kanaSet, getKanaCategoryFn, getQuestionWeightFn, backlog });
+  function pickWritingQuestion({
+    kanaData: kanaData2,
+    writingMode,
+    kanaSet,
+    getKanaCategoryFn,
+    getQuestionWeightFn,
+    backlog,
+    preferredRomajiList
+  }) {
+    const item = pickQuestion({
+      kanaData: kanaData2,
+      kanaSet,
+      getKanaCategoryFn,
+      getQuestionWeightFn,
+      backlog,
+      preferredRomajiList
+    });
     if (writingMode === "both") {
       return {
         kind: "drawing",
@@ -600,6 +672,14 @@
     state.lastSavedAt = savedAt;
     return {
       savedAt,
+      practiceStrategy: state.practiceStrategy,
+      recentMistakes: state.recentMistakes,
+      srsByRomaji: state.srsByRomaji,
+      audioMuted: state.audioMuted,
+      drawGuideEnabled: state.drawGuideEnabled,
+      dailyGoal: state.dailyGoal,
+      lastCloudSyncAt: state.lastCloudSyncAt,
+      syncUserEmail: state.syncUserEmail,
       typingRightCount: state.typingRightCount,
       typingWrongCount: state.typingWrongCount,
       drawingRightCount: state.drawingRightCount,
@@ -614,6 +694,13 @@
       return;
     }
     state.lastSavedAt = Number(payload.savedAt || 0);
+    state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" ? payload.practiceStrategy : "srs";
+    state.recentMistakes = Array.isArray(payload.recentMistakes) ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [];
+    state.audioMuted = Boolean(payload.audioMuted);
+    state.drawGuideEnabled = payload.drawGuideEnabled !== false;
+    state.dailyGoal = Math.max(5, Math.min(200, Number(payload.dailyGoal || 25)));
+    state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
+    state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
     state.typingRightCount = Number(payload.typingRightCount || 0);
     state.typingWrongCount = Number(payload.typingWrongCount || 0);
     state.drawingRightCount = Number(payload.drawingRightCount || 0);
@@ -623,6 +710,15 @@
     });
     Object.keys(state.dailyStats).forEach((dateKey) => {
       delete state.dailyStats[dateKey];
+    });
+    kanaData2.forEach((item) => {
+      const savedSrs = payload.srsByRomaji && payload.srsByRomaji[item.romaji];
+      state.srsByRomaji[item.romaji] = {
+        dueAt: Number(savedSrs && savedSrs.dueAt || 0),
+        intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
+        lastSeenAt: Number(savedSrs && savedSrs.lastSeenAt || 0),
+        lastCorrect: Boolean(savedSrs && savedSrs.lastCorrect)
+      };
     });
     if (payload.backlog && typeof payload.backlog === "object") {
       kanaData2.forEach((item) => {
@@ -919,6 +1015,59 @@
     </table>
   `;
   }
+  function renderInsights(elements, state) {
+    if (!elements.insightsGrid) {
+      return;
+    }
+    const now = Date.now();
+    const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
+    const mistakesCount = (state.recentMistakes || []).length;
+    const today = state.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+    const todayDone = today.typingRight + today.typingWrong + today.drawingRight + today.drawingWrong;
+    const goal = Number(state.dailyGoal || 25);
+    const weakRows = Object.values(state.backlog || {}).map((row) => {
+      const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
+      const right = row.typingRight + row.drawingRight;
+      const accuracy = attempts ? Math.round(right / attempts * 100) : 100;
+      return { romaji: row.romaji, attempts, accuracy };
+    }).filter((row) => row.attempts >= 4).sort((a, b2) => a.accuracy - b2.accuracy).slice(0, 3);
+    const recentDateKeys = getSortedDateKeys(state.dailyStats).slice(0, 7);
+    let weekRight = 0;
+    let weekTotal = 0;
+    recentDateKeys.forEach((dateKey) => {
+      const day = state.dailyStats[dateKey];
+      weekRight += day.typingRight + day.drawingRight;
+      weekTotal += day.typingRight + day.typingWrong + day.drawingRight + day.drawingWrong;
+    });
+    const weekAccuracy = weekTotal ? `${Math.round(weekRight / weekTotal * 100)}%` : "-";
+    const weakText = weakRows.length ? weakRows.map((row) => `${row.romaji} (${row.accuracy}%)`).join(", ") : "Need more attempts";
+    elements.insightsGrid.innerHTML = `
+    <article class="insight-card">
+      <h4>Due Reviews</h4>
+      <div class="insight-value">${dueCount}</div>
+      <p>Ready in spaced repetition queue.</p>
+    </article>
+    <article class="insight-card">
+      <h4>Mistake Queue</h4>
+      <div class="insight-value">${mistakesCount}</div>
+      <p>Kana waiting for review mode.</p>
+    </article>
+    <article class="insight-card">
+      <h4>Today Goal</h4>
+      <div class="insight-value">${todayDone}/${goal}</div>
+      <p>${Math.min(100, Math.round(todayDone / goal * 100))}% complete today.</p>
+    </article>
+    <article class="insight-card">
+      <h4>7-Day Accuracy</h4>
+      <div class="insight-value">${weekAccuracy}</div>
+      <p>Typing + drawing combined.</p>
+    </article>
+    <article class="insight-card wide">
+      <h4>Weakest Kana</h4>
+      <p>${weakText}</p>
+    </article>
+  `;
+  }
   function addDailyAttempt(state, mode, wasCorrect) {
     const todayKey = getTodayKey();
     if (!state.dailyStats[todayKey]) {
@@ -956,6 +1105,7 @@
     renderDailyProgressGraph(elements, state.dailyStats);
     renderDayComparison(elements, state.dailyStats);
     renderDailyHistoryTable(elements, state.dailyStats);
+    renderInsights(elements, state);
   }
   function bindProgressCompareSelectors(elements, state) {
     elements.compareDayASelect.addEventListener("change", () => renderDayComparison(elements, state.dailyStats));
@@ -974,6 +1124,7 @@
   function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
     let drawing = false;
     let activeCanvas = null;
+    let drawGuideEnabled = state.drawGuideEnabled !== false;
     const canvases = [
       { canvas: elements.canvasHiragana, ctx: elements.ctxHiragana },
       { canvas: elements.canvasKatakana, ctx: elements.ctxKatakana }
@@ -991,9 +1142,30 @@
     function clearCanvas(canvas, ctx) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (drawGuideEnabled) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(79, 70, 229, 0.16)";
+        ctx.lineWidth = 1;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, canvas.height);
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(canvas.width, centerY);
+        ctx.stroke();
+        const boxPadX = canvas.width * 0.22;
+        const boxPadY = canvas.height * 0.18;
+        ctx.strokeRect(boxPadX, boxPadY, canvas.width - boxPadX * 2, canvas.height - boxPadY * 2);
+        ctx.restore();
+      }
     }
     function clearAllCanvases() {
       canvases.forEach(({ canvas, ctx }) => clearCanvas(canvas, ctx));
+    }
+    function setGuideEnabled(enabled) {
+      drawGuideEnabled = Boolean(enabled);
+      clearAllCanvases();
     }
     function getCanvasPoint(canvas, event) {
       const rect = canvas.getBoundingClientRect();
@@ -1088,6 +1260,7 @@
     return {
       setDrawingMarkButtonsEnabled,
       setDrawingCanvasVisibility,
+      setGuideEnabled,
       clearAllCanvases,
       saveCurrentDrawingIfCorrect,
       openDrawingGallery,
@@ -3950,6 +4123,12 @@
   async function signInWithPassword(auth, request) {
     return _performSignInRequest(auth, "POST", "/v1/accounts:signInWithPassword", _addTidIfNecessary(auth, request));
   }
+  async function sendOobCode(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:sendOobCode", _addTidIfNecessary(auth, request));
+  }
+  async function sendPasswordResetEmail$1(auth, request) {
+    return sendOobCode(auth, request);
+  }
   async function signInWithEmailLink$1(auth, request) {
     return _performSignInRequest(auth, "POST", "/v1/accounts:signInWithEmailLink", _addTidIfNecessary(auth, request));
   }
@@ -4084,11 +4263,76 @@
   async function signInWithCredential(auth, credential) {
     return _signInWithCredential(_castAuth(auth), credential);
   }
+  function _setActionCodeSettingsOnRequest(auth, request, actionCodeSettings) {
+    var _a;
+    _assert(
+      ((_a = actionCodeSettings.url) == null ? void 0 : _a.length) > 0,
+      auth,
+      "invalid-continue-uri"
+      /* AuthErrorCode.INVALID_CONTINUE_URI */
+    );
+    _assert(
+      typeof actionCodeSettings.dynamicLinkDomain === "undefined" || actionCodeSettings.dynamicLinkDomain.length > 0,
+      auth,
+      "invalid-dynamic-link-domain"
+      /* AuthErrorCode.INVALID_DYNAMIC_LINK_DOMAIN */
+    );
+    _assert(
+      typeof actionCodeSettings.linkDomain === "undefined" || actionCodeSettings.linkDomain.length > 0,
+      auth,
+      "invalid-hosting-link-domain"
+      /* AuthErrorCode.INVALID_HOSTING_LINK_DOMAIN */
+    );
+    request.continueUrl = actionCodeSettings.url;
+    request.dynamicLinkDomain = actionCodeSettings.dynamicLinkDomain;
+    request.linkDomain = actionCodeSettings.linkDomain;
+    request.canHandleCodeInApp = actionCodeSettings.handleCodeInApp;
+    if (actionCodeSettings.iOS) {
+      _assert(
+        actionCodeSettings.iOS.bundleId.length > 0,
+        auth,
+        "missing-ios-bundle-id"
+        /* AuthErrorCode.MISSING_IOS_BUNDLE_ID */
+      );
+      request.iOSBundleId = actionCodeSettings.iOS.bundleId;
+    }
+    if (actionCodeSettings.android) {
+      _assert(
+        actionCodeSettings.android.packageName.length > 0,
+        auth,
+        "missing-android-pkg-name"
+        /* AuthErrorCode.MISSING_ANDROID_PACKAGE_NAME */
+      );
+      request.androidInstallApp = actionCodeSettings.android.installApp;
+      request.androidMinimumVersionCode = actionCodeSettings.android.minimumVersion;
+      request.androidPackageName = actionCodeSettings.android.packageName;
+    }
+  }
   async function recachePasswordPolicy(auth) {
     const authInternal = _castAuth(auth);
     if (authInternal._getPasswordPolicyInternal()) {
       await authInternal._updatePasswordPolicy();
     }
+  }
+  async function sendPasswordResetEmail(auth, email, actionCodeSettings) {
+    const authInternal = _castAuth(auth);
+    const request = {
+      requestType: "PASSWORD_RESET",
+      email,
+      clientType: "CLIENT_TYPE_WEB"
+      /* RecaptchaClientType.WEB */
+    };
+    if (actionCodeSettings) {
+      _setActionCodeSettingsOnRequest(authInternal, request, actionCodeSettings);
+    }
+    await handleRecaptchaFlow(
+      authInternal,
+      request,
+      "getOobCode",
+      sendPasswordResetEmail$1,
+      "EMAIL_PASSWORD_PROVIDER"
+      /* RecaptchaAuthProvider.EMAIL_PASSWORD_PROVIDER */
+    );
   }
   async function createUserWithEmailAndPassword(auth, email, password) {
     if (_isFirebaseServerApp(auth.app)) {
@@ -21503,6 +21747,14 @@ This typically indicates that your device does not have a healthy Internet conne
       elements.forcePullBtn.disabled = disabled;
       elements.forcePushBtn.disabled = disabled;
     }
+    function setAccountInfo(userEmail, lastSyncedAt) {
+      if (!userEmail) {
+        elements.syncAccountInfo.textContent = "Not signed in.";
+        return;
+      }
+      const syncText = lastSyncedAt ? ` Last synced: ${new Date(lastSyncedAt).toLocaleString()}.` : "";
+      elements.syncAccountInfo.textContent = `Signed in as ${userEmail}.${syncText}`;
+    }
     if (!syncConfig.enabled) {
       setStatus("Cloud sync disabled. Add Firebase config in js/config/syncConfig.js.");
       disableAuthButtons(true);
@@ -21557,7 +21809,13 @@ This typically indicates that your device does not have a healthy Internet conne
       const stateRef = doc(db, "quizStates", currentUser.uid);
       const payload = getLocalPayload();
       await setDoc(stateRef, payload);
-      onLocalStateSaved(payload);
+      const syncMeta = {
+        ...payload,
+        cloudSyncedAt: Date.now(),
+        userEmail: currentUser.email || ""
+      };
+      onLocalStateSaved(syncMeta);
+      setAccountInfo(syncMeta.userEmail, syncMeta.cloudSyncedAt);
       setStatus(`Synced at ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}.`);
     }
     function queueUpload() {
@@ -21575,6 +21833,7 @@ This typically indicates that your device does not have a healthy Internet conne
       }, 600);
     }
     disableAuthButtons(false);
+    setAccountInfo(state.syncUserEmail || "", state.lastCloudSyncAt || 0);
     setStatus("Cloud sync ready. Log in to link data across devices.");
     elements.signUpBtn.addEventListener("click", async () => {
       try {
@@ -21603,6 +21862,19 @@ This typically indicates that your device does not have a healthy Internet conne
         setStatus(`Login error: ${error.message}`);
       }
     });
+    elements.forgotPasswordBtn.addEventListener("click", async () => {
+      try {
+        const email = elements.syncEmail.value.trim();
+        if (!email) {
+          setStatus("Enter your email then tap Forgot Password.");
+          return;
+        }
+        await sendPasswordResetEmail(auth, email);
+        setStatus("Password reset email sent.");
+      } catch (error) {
+        setStatus(`Reset error: ${error.message}`);
+      }
+    });
     elements.logoutBtn.addEventListener("click", async () => {
       try {
         await signOut(auth);
@@ -21629,9 +21901,11 @@ This typically indicates that your device does not have a healthy Internet conne
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       if (!user) {
+        setAccountInfo("", 0);
         setStatus("Cloud sync ready. Log in to link data across devices.");
         return;
       }
+      setAccountInfo(user.email || user.uid, state.lastCloudSyncAt || 0);
       try {
         await pullOrPushOnLogin(user);
       } catch (error) {
@@ -21696,7 +21970,126 @@ This typically indicates that your device does not have a healthy Internet conne
       var cloudSync = { queueUpload() {
       }, async syncNow() {
       } };
+      var deferredInstallPrompt = null;
+      var MAX_RECENT_MISTAKES = 120;
       var getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
+      function getDueRomajiList() {
+        const now = Date.now();
+        return Object.entries(state.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
+      }
+      function filterRomajiForCurrentKanaSet(romajiList) {
+        const setMode = elements.kanaSetSelect.value;
+        if (setMode === "all") {
+          return romajiList;
+        }
+        return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
+      }
+      function getPreferredRomajiList() {
+        if (state.practiceStrategy === "mistakeReview") {
+          return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
+        }
+        if (state.practiceStrategy === "srs") {
+          return filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 30);
+        }
+        const due = filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 16);
+        const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 14);
+        return [.../* @__PURE__ */ new Set([...mistakes, ...due])];
+      }
+      function updateQueueMeta() {
+        const due = getDueRomajiList().length;
+        const mistakes = state.recentMistakes.length;
+        const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
+        elements.queueMeta.textContent = strategy;
+      }
+      function upsertRecentMistake(romaji) {
+        state.recentMistakes = [romaji, ...state.recentMistakes.filter((value) => value !== romaji)].slice(0, MAX_RECENT_MISTAKES);
+      }
+      function removeRecentMistake(romaji) {
+        state.recentMistakes = state.recentMistakes.filter((value) => value !== romaji);
+      }
+      function updateSrsOnAttempt(romaji, wasCorrect) {
+        const current = state.srsByRomaji[romaji] || {
+          dueAt: 0,
+          intervalHours: 0,
+          lastSeenAt: 0,
+          lastCorrect: false
+        };
+        const now = Date.now();
+        if (wasCorrect) {
+          const previous = Number(current.intervalHours || 0);
+          const nextInterval = previous <= 0 ? 4 : Math.min(previous * 2.2, 24 * 30);
+          current.intervalHours = nextInterval;
+          current.dueAt = now + nextInterval * 60 * 60 * 1e3;
+          removeRecentMistake(romaji);
+        } else {
+          current.intervalHours = 1;
+          current.dueAt = now + 60 * 60 * 1e3;
+          upsertRecentMistake(romaji);
+        }
+        current.lastSeenAt = now;
+        current.lastCorrect = wasCorrect;
+        state.srsByRomaji[romaji] = current;
+      }
+      function getAudioTextForQuestion(question) {
+        if (!question) {
+          return "";
+        }
+        if (question.kind === "typing") {
+          return question.kana;
+        }
+        if (question.canvasMode === "both") {
+          return `${question.hiragana} ${question.katakana}`;
+        }
+        return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
+      }
+      function playCurrentAudio() {
+        if (state.audioMuted) {
+          showResult(elements, "Audio is muted.", false);
+          return;
+        }
+        if (!window.speechSynthesis) {
+          showResult(elements, "Audio unavailable in this browser.", false);
+          return;
+        }
+        const text = getAudioTextForQuestion(state.currentQuestion);
+        if (!text) {
+          return;
+        }
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "ja-JP";
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      }
+      function refreshAudioButton() {
+        elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
+        elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
+      }
+      function setupPwaInstall() {
+        if (!("serviceWorker" in navigator)) {
+          return;
+        }
+        navigator.serviceWorker.register("sw.js").catch(() => {
+        });
+        window.addEventListener("beforeinstallprompt", (event) => {
+          event.preventDefault();
+          deferredInstallPrompt = event;
+          elements.installAppBtn.classList.remove("hidden");
+        });
+        elements.installAppBtn.addEventListener("click", async () => {
+          if (!deferredInstallPrompt) {
+            return;
+          }
+          deferredInstallPrompt.prompt();
+          await deferredInstallPrompt.userChoice;
+          deferredInstallPrompt = null;
+          elements.installAppBtn.classList.add("hidden");
+        });
+        window.addEventListener("appinstalled", () => {
+          deferredInstallPrompt = null;
+          elements.installAppBtn.classList.add("hidden");
+        });
+      }
       function renderBacklogView() {
         renderBacklog({
           kanaData,
@@ -21773,6 +22166,7 @@ This typically indicates that your device does not have a healthy Internet conne
           clearTimeout(state.nextQuestionTimer);
           state.nextQuestionTimer = null;
         }
+        const preferredRomajiList = getPreferredRomajiList();
         const mode = elements.modeSelect.value;
         if (mode === "kanaToRomaji") {
           state.currentQuestion = pickTypingQuestion({
@@ -21781,7 +22175,8 @@ This typically indicates that your device does not have a healthy Internet conne
             kanaSet: elements.kanaSetSelect.value,
             getKanaCategoryFn,
             getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog
+            backlog: state.backlog,
+            preferredRomajiList
           });
         } else if (mode === "romajiToKana") {
           state.currentQuestion = pickWritingQuestion({
@@ -21790,7 +22185,8 @@ This typically indicates that your device does not have a healthy Internet conne
             kanaSet: elements.kanaSetSelect.value,
             getKanaCategoryFn,
             getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog
+            backlog: state.backlog,
+            preferredRomajiList
           });
         } else {
           state.currentQuestion = Math.random() > 0.5 ? pickTypingQuestion({
@@ -21799,14 +22195,16 @@ This typically indicates that your device does not have a healthy Internet conne
             kanaSet: elements.kanaSetSelect.value,
             getKanaCategoryFn,
             getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog
+            backlog: state.backlog,
+            preferredRomajiList
           }) : pickWritingQuestion({
             kanaData,
             writingMode: elements.writingScriptSelect.value,
             kanaSet: elements.kanaSetSelect.value,
             getKanaCategoryFn,
             getQuestionWeightFn: getQuestionWeight,
-            backlog: state.backlog
+            backlog: state.backlog,
+            preferredRomajiList
           });
         }
         switchModeUI();
@@ -21821,6 +22219,7 @@ This typically indicates that your device does not have a healthy Internet conne
           drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
           elements.promptElement.textContent = state.currentQuestion.promptText;
         }
+        updateQueueMeta();
       }
       function checkTypingAnswer() {
         if (!state.currentQuestion) {
@@ -21847,10 +22246,12 @@ This typically indicates that your device does not have a healthy Internet conne
           scriptContext: getScriptContextForTyping(state.currentQuestion),
           answerMode: "typing"
         });
+        updateSrsOnAttempt(state.currentQuestion.romaji, correct);
         addDailyAttempt(state, "typing", correct);
         updateStats(elements, state);
         renderBacklogView();
         refreshProgressView();
+        updateQueueMeta();
         persistState();
         scheduleNextTypingQuestion();
       }
@@ -21880,10 +22281,12 @@ This typically indicates that your device does not have a healthy Internet conne
           scriptContext: state.currentQuestion.canvasMode,
           answerMode: "drawing"
         });
+        updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
         addDailyAttempt(state, "drawing", wasCorrect);
         updateStats(elements, state);
         renderBacklogView();
         refreshProgressView();
+        updateQueueMeta();
         persistState();
         drawingFeature.setDrawingMarkButtonsEnabled(false);
         showResult(
@@ -21902,6 +22305,18 @@ This typically indicates that your device does not have a healthy Internet conne
         state.typingWrongCount = 0;
         state.drawingRightCount = 0;
         state.drawingWrongCount = 0;
+        state.recentMistakes = [];
+        state.practiceStrategy = "srs";
+        state.lastCloudSyncAt = 0;
+        state.syncUserEmail = "";
+        Object.keys(state.srsByRomaji).forEach((romaji) => {
+          state.srsByRomaji[romaji] = {
+            dueAt: 0,
+            intervalHours: 0,
+            lastSeenAt: 0,
+            lastCorrect: false
+          };
+        });
         Object.keys(state.backlog).forEach((romaji) => {
           const row = state.backlog[romaji];
           row.right = 0;
@@ -21932,6 +22347,8 @@ This typically indicates that your device does not have a healthy Internet conne
         state.progressUiDayMarker = getTodayKey();
         state.lastSavedAt = 0;
         localStorage.removeItem(STORAGE_KEY);
+        elements.practiceStrategySelect.value = state.practiceStrategy;
+        updateQueueMeta();
         updateStats(elements, state);
         renderBacklogView();
         refreshProgressView();
@@ -21948,6 +22365,12 @@ This typically indicates that your device does not have a healthy Internet conne
         });
         elements.scriptSelect.addEventListener("change", newQuestion);
         elements.kanaSetSelect.addEventListener("change", newQuestion);
+        elements.practiceStrategySelect.addEventListener("change", () => {
+          state.practiceStrategy = elements.practiceStrategySelect.value;
+          updateQueueMeta();
+          persistState();
+          newQuestion();
+        });
         elements.writingScriptSelect.addEventListener("change", () => {
           if (elements.modeSelect.value === "romajiToKana" || elements.modeSelect.value === "mixedPractice") {
             newQuestion();
@@ -21963,10 +22386,21 @@ This typically indicates that your device does not have a healthy Internet conne
         elements.resetAllDataBtn.addEventListener("click", resetAllData);
         bindProgressCompareSelectors(elements, state);
         elements.checkBtn.addEventListener("click", checkTypingAnswer);
+        elements.playAudioBtn.addEventListener("click", playCurrentAudio);
+        elements.muteAudioBtn.addEventListener("click", () => {
+          state.audioMuted = !state.audioMuted;
+          refreshAudioButton();
+          persistState();
+        });
         elements.revealBtn.addEventListener("click", revealDrawingAnswer);
         elements.clearCanvasBtn.addEventListener("click", drawingFeature.clearAllCanvases);
         elements.markRightBtn.addEventListener("click", () => markDrawingResult(true));
         elements.markWrongBtn.addEventListener("click", () => markDrawingResult(false));
+        elements.drawGuideToggle.addEventListener("change", () => {
+          state.drawGuideEnabled = elements.drawGuideToggle.checked;
+          drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+          persistState();
+        });
         elements.closeGalleryBtn.addEventListener("click", () => elements.drawingGalleryDialog.close());
         window.addEventListener("resize", () => redrawProgressGraph(elements, state));
         window.addEventListener("visibilitychange", () => {
@@ -22009,10 +22443,13 @@ This typically indicates that your device does not have a healthy Internet conne
             updateStats(elements, state);
             renderBacklogView();
             refreshProgressView();
+            updateQueueMeta();
             saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
           },
           onLocalStateSaved(payload) {
             state.lastSavedAt = Number(payload.savedAt || state.lastSavedAt || 0);
+            state.lastCloudSyncAt = Number(payload.cloudSyncedAt || state.lastCloudSyncAt || 0);
+            state.syncUserEmail = payload.userEmail || state.syncUserEmail || "";
           }
         }).then((syncApi) => {
           cloudSync = syncApi;
@@ -22020,6 +22457,12 @@ This typically indicates that your device does not have a healthy Internet conne
           elements.syncStatus.textContent = `Cloud sync unavailable: ${error.message}`;
         });
         bindEvents();
+        setupPwaInstall();
+        elements.practiceStrategySelect.value = state.practiceStrategy;
+        elements.drawGuideToggle.checked = state.drawGuideEnabled;
+        drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+        refreshAudioButton();
+        updateQueueMeta();
         switchModeUI();
         drawingFeature.clearAllCanvases();
         updateStats(elements, state);

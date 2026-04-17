@@ -30,9 +30,26 @@ export function createBacklog(kanaData) {
 }
 
 export function createState(kanaData) {
+  const srsByRomaji = kanaData.reduce((acc, item) => {
+    acc[item.romaji] = {
+      dueAt: 0,
+      intervalHours: 0,
+      lastSeenAt: 0,
+      lastCorrect: false
+    };
+    return acc;
+  }, {});
+
   return {
     currentQuestion: null,
     nextQuestionTimer: null,
+    practiceStrategy: "srs",
+    recentMistakes: [],
+    srsByRomaji,
+    audioMuted: false,
+    drawGuideEnabled: true,
+    dailyGoal: 25,
+    installPromptSeen: false,
     typingRightCount: 0,
     typingWrongCount: 0,
     drawingRightCount: 0,
@@ -40,6 +57,8 @@ export function createState(kanaData) {
     drawingsByKana: {},
     dailyStats: {},
     lastSavedAt: 0,
+    lastCloudSyncAt: 0,
+    syncUserEmail: "",
     progressUiDayMarker: getTodayKey(),
     backlog: createBacklog(kanaData)
   };

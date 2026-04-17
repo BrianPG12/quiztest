@@ -30,8 +30,162 @@ const drawingFeature = createDrawingFeature({
   maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA
 });
 let cloudSync = { queueUpload() {}, async syncNow() {} };
+let deferredInstallPrompt = null;
+const MAX_RECENT_MISTAKES = 120;
 
 const getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
+
+function getDueRomajiList() {
+  const now = Date.now();
+  return Object.entries(state.srsByRomaji)
+    .filter(([, entry]) => Number(entry.dueAt || 0) <= now)
+    .sort((a, b) => Number(a[1].dueAt || 0) - Number(b[1].dueAt || 0))
+    .map(([romaji]) => romaji);
+}
+
+function filterRomajiForCurrentKanaSet(romajiList) {
+  const setMode = elements.kanaSetSelect.value;
+  if (setMode === "all") {
+    return romajiList;
+  }
+
+  return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
+}
+
+function getPreferredRomajiList() {
+  if (state.practiceStrategy === "mistakeReview") {
+    return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
+  }
+
+  if (state.practiceStrategy === "srs") {
+    return filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 30);
+  }
+
+  const due = filterRomajiForCurrentKanaSet(getDueRomajiList()).slice(0, 16);
+  const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 14);
+  return [...new Set([...mistakes, ...due])];
+}
+
+function updateQueueMeta() {
+  const due = getDueRomajiList().length;
+  const mistakes = state.recentMistakes.length;
+  const strategy = state.practiceStrategy === "mistakeReview"
+    ? `Mistakes: ${mistakes}`
+    : state.practiceStrategy === "srs"
+      ? `Due: ${due}`
+      : `Due ${due} • Mistakes ${mistakes}`;
+  elements.queueMeta.textContent = strategy;
+}
+
+function upsertRecentMistake(romaji) {
+  state.recentMistakes = [romaji, ...state.recentMistakes.filter((value) => value !== romaji)].slice(0, MAX_RECENT_MISTAKES);
+}
+
+function removeRecentMistake(romaji) {
+  state.recentMistakes = state.recentMistakes.filter((value) => value !== romaji);
+}
+
+function updateSrsOnAttempt(romaji, wasCorrect) {
+  const current = state.srsByRomaji[romaji] || {
+    dueAt: 0,
+    intervalHours: 0,
+    lastSeenAt: 0,
+    lastCorrect: false
+  };
+
+  const now = Date.now();
+  if (wasCorrect) {
+    const previous = Number(current.intervalHours || 0);
+    const nextInterval = previous <= 0 ? 4 : Math.min(previous * 2.2, 24 * 30);
+    current.intervalHours = nextInterval;
+    current.dueAt = now + nextInterval * 60 * 60 * 1000;
+    removeRecentMistake(romaji);
+  } else {
+    current.intervalHours = 1;
+    current.dueAt = now + 60 * 60 * 1000;
+    upsertRecentMistake(romaji);
+  }
+
+  current.lastSeenAt = now;
+  current.lastCorrect = wasCorrect;
+  state.srsByRomaji[romaji] = current;
+}
+
+function getAudioTextForQuestion(question) {
+  if (!question) {
+    return "";
+  }
+
+  if (question.kind === "typing") {
+    return question.kana;
+  }
+
+  if (question.canvasMode === "both") {
+    return `${question.hiragana} ${question.katakana}`;
+  }
+
+  return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
+}
+
+function playCurrentAudio() {
+  if (state.audioMuted) {
+    showResult(elements, "Audio is muted.", false);
+    return;
+  }
+
+  if (!window.speechSynthesis) {
+    showResult(elements, "Audio unavailable in this browser.", false);
+    return;
+  }
+
+  const text = getAudioTextForQuestion(state.currentQuestion);
+  if (!text) {
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.9;
+  window.speechSynthesis.speak(utterance);
+}
+
+function refreshAudioButton() {
+  elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
+  elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
+}
+
+function setupPwaInstall() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  navigator.serviceWorker.register("sw.js").catch(() => {
+    // Non-blocking. Quiz still works without service worker registration.
+  });
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    elements.installAppBtn.classList.remove("hidden");
+  });
+
+  elements.installAppBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    elements.installAppBtn.classList.add("hidden");
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    elements.installAppBtn.classList.add("hidden");
+  });
+}
 
 function renderBacklogView() {
   renderBacklog({
@@ -127,6 +281,7 @@ function newQuestion() {
     state.nextQuestionTimer = null;
   }
 
+  const preferredRomajiList = getPreferredRomajiList();
   const mode = elements.modeSelect.value;
   if (mode === "kanaToRomaji") {
     state.currentQuestion = pickTypingQuestion({
@@ -135,7 +290,8 @@ function newQuestion() {
       kanaSet: elements.kanaSetSelect.value,
       getKanaCategoryFn,
       getQuestionWeightFn: getQuestionWeight,
-      backlog: state.backlog
+      backlog: state.backlog,
+      preferredRomajiList
     });
   } else if (mode === "romajiToKana") {
     state.currentQuestion = pickWritingQuestion({
@@ -144,7 +300,8 @@ function newQuestion() {
       kanaSet: elements.kanaSetSelect.value,
       getKanaCategoryFn,
       getQuestionWeightFn: getQuestionWeight,
-      backlog: state.backlog
+      backlog: state.backlog,
+      preferredRomajiList
     });
   } else {
     state.currentQuestion = Math.random() > 0.5
@@ -154,7 +311,8 @@ function newQuestion() {
         kanaSet: elements.kanaSetSelect.value,
         getKanaCategoryFn,
         getQuestionWeightFn: getQuestionWeight,
-        backlog: state.backlog
+        backlog: state.backlog,
+        preferredRomajiList
       })
       : pickWritingQuestion({
         kanaData,
@@ -162,7 +320,8 @@ function newQuestion() {
         kanaSet: elements.kanaSetSelect.value,
         getKanaCategoryFn,
         getQuestionWeightFn: getQuestionWeight,
-        backlog: state.backlog
+        backlog: state.backlog,
+        preferredRomajiList
       });
   }
 
@@ -179,6 +338,8 @@ function newQuestion() {
     drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
     elements.promptElement.textContent = state.currentQuestion.promptText;
   }
+
+  updateQueueMeta();
 }
 
 function checkTypingAnswer() {
@@ -210,10 +371,12 @@ function checkTypingAnswer() {
     answerMode: "typing"
   });
 
+  updateSrsOnAttempt(state.currentQuestion.romaji, correct);
   addDailyAttempt(state, "typing", correct);
   updateStats(elements, state);
   renderBacklogView();
   refreshProgressView();
+  updateQueueMeta();
   persistState();
   scheduleNextTypingQuestion();
 }
@@ -249,10 +412,12 @@ function markDrawingResult(wasCorrect) {
     answerMode: "drawing"
   });
 
+  updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
   addDailyAttempt(state, "drawing", wasCorrect);
   updateStats(elements, state);
   renderBacklogView();
   refreshProgressView();
+  updateQueueMeta();
   persistState();
   drawingFeature.setDrawingMarkButtonsEnabled(false);
   showResult(
@@ -273,6 +438,19 @@ function resetAllData() {
   state.typingWrongCount = 0;
   state.drawingRightCount = 0;
   state.drawingWrongCount = 0;
+  state.recentMistakes = [];
+  state.practiceStrategy = "srs";
+  state.lastCloudSyncAt = 0;
+  state.syncUserEmail = "";
+
+  Object.keys(state.srsByRomaji).forEach((romaji) => {
+    state.srsByRomaji[romaji] = {
+      dueAt: 0,
+      intervalHours: 0,
+      lastSeenAt: 0,
+      lastCorrect: false
+    };
+  });
 
   Object.keys(state.backlog).forEach((romaji) => {
     const row = state.backlog[romaji];
@@ -308,6 +486,8 @@ function resetAllData() {
   state.lastSavedAt = 0;
   localStorage.removeItem(STORAGE_KEY);
 
+  elements.practiceStrategySelect.value = state.practiceStrategy;
+  updateQueueMeta();
   updateStats(elements, state);
   renderBacklogView();
   refreshProgressView();
@@ -325,6 +505,12 @@ function bindEvents() {
   });
   elements.scriptSelect.addEventListener("change", newQuestion);
   elements.kanaSetSelect.addEventListener("change", newQuestion);
+  elements.practiceStrategySelect.addEventListener("change", () => {
+    state.practiceStrategy = elements.practiceStrategySelect.value;
+    updateQueueMeta();
+    persistState();
+    newQuestion();
+  });
   elements.writingScriptSelect.addEventListener("change", () => {
     if (elements.modeSelect.value === "romajiToKana" || elements.modeSelect.value === "mixedPractice") {
       newQuestion();
@@ -342,10 +528,21 @@ function bindEvents() {
   bindProgressCompareSelectors(elements, state);
 
   elements.checkBtn.addEventListener("click", checkTypingAnswer);
+  elements.playAudioBtn.addEventListener("click", playCurrentAudio);
+  elements.muteAudioBtn.addEventListener("click", () => {
+    state.audioMuted = !state.audioMuted;
+    refreshAudioButton();
+    persistState();
+  });
   elements.revealBtn.addEventListener("click", revealDrawingAnswer);
   elements.clearCanvasBtn.addEventListener("click", drawingFeature.clearAllCanvases);
   elements.markRightBtn.addEventListener("click", () => markDrawingResult(true));
   elements.markWrongBtn.addEventListener("click", () => markDrawingResult(false));
+  elements.drawGuideToggle.addEventListener("change", () => {
+    state.drawGuideEnabled = elements.drawGuideToggle.checked;
+    drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+    persistState();
+  });
   elements.closeGalleryBtn.addEventListener("click", () => elements.drawingGalleryDialog.close());
 
   window.addEventListener("resize", () => redrawProgressGraph(elements, state));
@@ -395,10 +592,13 @@ function init() {
       updateStats(elements, state);
       renderBacklogView();
       refreshProgressView();
+      updateQueueMeta();
       saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
     },
     onLocalStateSaved(payload) {
       state.lastSavedAt = Number(payload.savedAt || state.lastSavedAt || 0);
+      state.lastCloudSyncAt = Number(payload.cloudSyncedAt || state.lastCloudSyncAt || 0);
+      state.syncUserEmail = payload.userEmail || state.syncUserEmail || "";
     }
   }).then((syncApi) => {
     cloudSync = syncApi;
@@ -407,6 +607,12 @@ function init() {
   });
 
   bindEvents();
+  setupPwaInstall();
+  elements.practiceStrategySelect.value = state.practiceStrategy;
+  elements.drawGuideToggle.checked = state.drawGuideEnabled;
+  drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+  refreshAudioButton();
+  updateQueueMeta();
   switchModeUI();
   drawingFeature.clearAllCanvases();
   updateStats(elements, state);

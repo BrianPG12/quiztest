@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#4f46e5"/>
+  <rect x="72" y="72" width="368" height="368" rx="42" fill="#eef2ff"/>
+  <text x="256" y="220" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="74" fill="#3730a3">Kana</text>
+  <text x="256" y="300" text-anchor="middle" font-family="'Kosugi Maru',sans-serif" font-size="94" fill="#111827">か</text>
+  <text x="256" y="374" text-anchor="middle" font-family="'Kosugi Maru',sans-serif" font-size="70" fill="#4b5563">カ</text>
+</svg>

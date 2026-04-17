@@ -4,10 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kana Quiz Trainer</title>
+  <meta name="theme-color" content="#4f46e5" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
   <main class="app-shell">
@@ -55,6 +57,15 @@
         </select>
       </div>
 
+      <div class="control-group">
+        <label for="practiceStrategySelect">Queue</label>
+        <select id="practiceStrategySelect">
+          <option value="srs">Spaced Repetition</option>
+          <option value="mistakeReview">Mistake Review</option>
+          <option value="mixed">Balanced</option>
+        </select>
+      </div>
+
       <button id="newQuestionBtn" class="btn-primary">New Question</button>
     </section>
 
@@ -62,8 +73,14 @@
       <div class="prompt-wrap">
         <div class="prompt-meta">
           <span class="prompt-label">Question</span>
+          <span id="queueMeta" class="queue-meta">Due: 0</span>
         </div>
         <div id="prompt" class="prompt">Press "New Question" to begin</div>
+      </div>
+
+      <div class="quiz-quick-actions">
+        <button id="playAudioBtn" class="btn-secondary" type="button">Play Audio</button>
+        <button id="muteAudioBtn" class="btn-secondary" type="button" aria-pressed="false">Audio: On</button>
       </div>
 
       <div id="typingArea" class="answer-block">
@@ -78,6 +95,7 @@
         <p class="draw-instructions">
           Draw the character, reveal the answer, then mark yourself right or wrong.
         </p>
+        <label class="guide-toggle"><input id="drawGuideToggle" type="checkbox" checked /> Show draw guide</label>
         <div class="draw-grid">
           <div class="draw-pane">
             <h3>Hiragana</h3>
@@ -112,6 +130,7 @@
           <button id="dailyProgressTabBtn" class="btn-secondary tab-btn" type="button" role="tab" aria-selected="false" aria-controls="progressPanel">Progress by Day</button>
         </div>
         <div class="progress-actions">
+          <button id="installAppBtn" class="btn-secondary hidden" type="button">Install App</button>
           <button id="openSyncBtn" class="btn-secondary" type="button">Open Cloud Sync</button>
           <button id="resetAllDataBtn" class="btn-danger" type="button">Reset All Data</button>
         </div>
@@ -154,14 +173,17 @@
       </div>
         <div id="progressPanel" class="hidden" role="tabpanel">
           <p>Compare two days to see how your typing and drawing accuracy is changing.</p>
+            <div id="insightsGrid" class="insights-grid"></div>
             <div id="syncCard" class="sync-card">
               <h3>Cloud Sync</h3>
               <p>Login to sync the same progress across phone and PC.</p>
+              <div id="syncAccountInfo" class="sync-account-info">Not signed in.</div>
               <div class="sync-controls">
                 <input id="syncEmail" type="email" placeholder="Email" autocomplete="email" />
                 <input id="syncPassword" type="password" placeholder="Password" autocomplete="current-password" />
                 <button id="signUpBtn" class="btn-secondary" type="button">Sign Up</button>
                 <button id="loginBtn" class="btn-primary" type="button">Log In</button>
+                <button id="forgotPasswordBtn" class="btn-secondary" type="button">Forgot Password</button>
                 <button id="logoutBtn" class="btn-secondary" type="button">Log Out</button>
                 <button id="syncNowBtn" class="btn-secondary" type="button">Sync Now</button>
                 <button id="forcePullBtn" class="btn-secondary" type="button">Force Pull Cloud</button>
@@ -202,7 +224,7 @@
       // Load only the pre-built bundle in every environment.
       // This avoids browser differences with module graphs and cache behavior.
       var bundle = document.createElement("script");
-      bundle.src = "script.js?v=5";
+      bundle.src = "script.js?v=6";
       document.body.appendChild(bundle);
     })();
   </script>

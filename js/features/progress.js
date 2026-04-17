@@ -243,6 +243,71 @@ function renderDailyHistoryTable(elements, dailyStats) {
   `;
 }
 
+function renderInsights(elements, state) {
+  if (!elements.insightsGrid) {
+    return;
+  }
+
+  const now = Date.now();
+  const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
+  const mistakesCount = (state.recentMistakes || []).length;
+  const today = state.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+  const todayDone = today.typingRight + today.typingWrong + today.drawingRight + today.drawingWrong;
+  const goal = Number(state.dailyGoal || 25);
+
+  const weakRows = Object.values(state.backlog || {})
+    .map((row) => {
+      const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
+      const right = row.typingRight + row.drawingRight;
+      const accuracy = attempts ? Math.round((right / attempts) * 100) : 100;
+      return { romaji: row.romaji, attempts, accuracy };
+    })
+    .filter((row) => row.attempts >= 4)
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 3);
+
+  const recentDateKeys = getSortedDateKeys(state.dailyStats).slice(0, 7);
+  let weekRight = 0;
+  let weekTotal = 0;
+  recentDateKeys.forEach((dateKey) => {
+    const day = state.dailyStats[dateKey];
+    weekRight += day.typingRight + day.drawingRight;
+    weekTotal += day.typingRight + day.typingWrong + day.drawingRight + day.drawingWrong;
+  });
+  const weekAccuracy = weekTotal ? `${Math.round((weekRight / weekTotal) * 100)}%` : "-";
+
+  const weakText = weakRows.length
+    ? weakRows.map((row) => `${row.romaji} (${row.accuracy}%)`).join(", ")
+    : "Need more attempts";
+
+  elements.insightsGrid.innerHTML = `
+    <article class="insight-card">
+      <h4>Due Reviews</h4>
+      <div class="insight-value">${dueCount}</div>
+      <p>Ready in spaced repetition queue.</p>
+    </article>
+    <article class="insight-card">
+      <h4>Mistake Queue</h4>
+      <div class="insight-value">${mistakesCount}</div>
+      <p>Kana waiting for review mode.</p>
+    </article>
+    <article class="insight-card">
+      <h4>Today Goal</h4>
+      <div class="insight-value">${todayDone}/${goal}</div>
+      <p>${Math.min(100, Math.round((todayDone / goal) * 100))}% complete today.</p>
+    </article>
+    <article class="insight-card">
+      <h4>7-Day Accuracy</h4>
+      <div class="insight-value">${weekAccuracy}</div>
+      <p>Typing + drawing combined.</p>
+    </article>
+    <article class="insight-card wide">
+      <h4>Weakest Kana</h4>
+      <p>${weakText}</p>
+    </article>
+  `;
+}
+
 export function addDailyAttempt(state, mode, wasCorrect) {
   const todayKey = getTodayKey();
   if (!state.dailyStats[todayKey]) {
@@ -285,6 +350,7 @@ export function renderDailyProgress({ elements, state, setActiveProgressTab }) {
   renderDailyProgressGraph(elements, state.dailyStats);
   renderDayComparison(elements, state.dailyStats);
   renderDailyHistoryTable(elements, state.dailyStats);
+  renderInsights(elements, state);
 }
 
 export function bindProgressCompareSelectors(elements, state) {

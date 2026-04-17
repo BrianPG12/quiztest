@@ -5,7 +5,8 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -34,6 +35,18 @@ export async function setupCloudSync({
     elements.syncNowBtn.disabled = disabled;
     elements.forcePullBtn.disabled = disabled;
     elements.forcePushBtn.disabled = disabled;
+  }
+
+  function setAccountInfo(userEmail, lastSyncedAt) {
+    if (!userEmail) {
+      elements.syncAccountInfo.textContent = "Not signed in.";
+      return;
+    }
+
+    const syncText = lastSyncedAt
+      ? ` Last synced: ${new Date(lastSyncedAt).toLocaleString()}.`
+      : "";
+    elements.syncAccountInfo.textContent = `Signed in as ${userEmail}.${syncText}`;
   }
 
   if (!syncConfig.enabled) {
@@ -101,7 +114,13 @@ export async function setupCloudSync({
     const stateRef = doc(db, "quizStates", currentUser.uid);
     const payload = getLocalPayload();
     await setDoc(stateRef, payload);
-    onLocalStateSaved(payload);
+    const syncMeta = {
+      ...payload,
+      cloudSyncedAt: Date.now(),
+      userEmail: currentUser.email || ""
+    };
+    onLocalStateSaved(syncMeta);
+    setAccountInfo(syncMeta.userEmail, syncMeta.cloudSyncedAt);
     setStatus(`Synced at ${new Date().toLocaleTimeString()}.`);
   }
 
@@ -123,6 +142,7 @@ export async function setupCloudSync({
   }
 
   disableAuthButtons(false);
+  setAccountInfo(state.syncUserEmail || "", state.lastCloudSyncAt || 0);
   setStatus("Cloud sync ready. Log in to link data across devices.");
 
   elements.signUpBtn.addEventListener("click", async () => {
@@ -151,6 +171,20 @@ export async function setupCloudSync({
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       setStatus(`Login error: ${error.message}`);
+    }
+  });
+
+  elements.forgotPasswordBtn.addEventListener("click", async () => {
+    try {
+      const email = elements.syncEmail.value.trim();
+      if (!email) {
+        setStatus("Enter your email then tap Forgot Password.");
+        return;
+      }
+      await sendPasswordResetEmail(auth, email);
+      setStatus("Password reset email sent.");
+    } catch (error) {
+      setStatus(`Reset error: ${error.message}`);
     }
   });
 
@@ -184,9 +218,12 @@ export async function setupCloudSync({
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (!user) {
+      setAccountInfo("", 0);
       setStatus("Cloud sync ready. Log in to link data across devices.");
       return;
     }
+
+    setAccountInfo(user.email || user.uid, state.lastCloudSyncAt || 0);
 
     try {
       await pullOrPushOnLogin(user);

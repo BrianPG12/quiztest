@@ -1,0 +1,18 @@
+{
+  "name": "Kana Quiz Trainer",
+  "short_name": "Kana Quiz",
+  "start_url": "/quiztest/",
+  "scope": "/quiztest/",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#4f46e5",
+  "description": "Practice Hiragana and Katakana with spaced repetition, drawing, and cloud sync.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
