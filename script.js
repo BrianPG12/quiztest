@@ -473,11 +473,20 @@
     return "normal";
   }
   function getCardStatus(stats) {
-    if (stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong === 0) return "";
-    const typingNetPositive = stats.typingRight > stats.typingWrong;
-    const drawingNetPositive = stats.drawingRight > stats.drawingWrong;
-    if (typingNetPositive && drawingNetPositive) return "status-good";
-    if (!typingNetPositive && !drawingNetPositive) return "status-bad";
+    const totalAttempts = stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong;
+    if (totalAttempts === 0) return "";
+    const typingAttempts = stats.typingRight + stats.typingWrong;
+    const drawingAttempts = stats.drawingRight + stats.drawingWrong;
+    const typingPositive = typingAttempts > 0 && stats.typingRight > stats.typingWrong;
+    const drawingPositive = drawingAttempts > 0 && stats.drawingRight > stats.drawingWrong;
+    const typingNegative = typingAttempts > 0 && stats.typingRight <= stats.typingWrong;
+    const drawingNegative = drawingAttempts > 0 && stats.drawingRight <= stats.drawingWrong;
+    if ((typingPositive || typingAttempts === 0) && (drawingPositive || drawingAttempts === 0) && (typingPositive || drawingPositive)) {
+      return "status-good";
+    }
+    if ((typingNegative || typingAttempts === 0) && (drawingNegative || drawingAttempts === 0) && (typingNegative || drawingNegative)) {
+      return "status-bad";
+    }
     return "status-mixed";
   }
   function getTotalAttempts(stats) {

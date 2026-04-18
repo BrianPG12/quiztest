@@ -5,13 +5,30 @@ export function getKanaCategory(romaji, YOON_SET, DAKUTEN_SET) {
 }
 
 function getCardStatus(stats) {
-  if (stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong === 0) return "";
+  const totalAttempts = stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong;
+  if (totalAttempts === 0) return "";
 
-  const typingNetPositive = stats.typingRight > stats.typingWrong;
-  const drawingNetPositive = stats.drawingRight > stats.drawingWrong;
+  const typingAttempts = stats.typingRight + stats.typingWrong;
+  const drawingAttempts = stats.drawingRight + stats.drawingWrong;
 
-  if (typingNetPositive && drawingNetPositive) return "status-good";
-  if (!typingNetPositive && !drawingNetPositive) return "status-bad";
+  // A mode counts as "positive" only if it has been played AND more right than wrong.
+  // An unattempted mode (0/0) is treated as neutral — it doesn't drag down a good mode.
+  const typingPositive = typingAttempts > 0 && stats.typingRight > stats.typingWrong;
+  const drawingPositive = drawingAttempts > 0 && stats.drawingRight > stats.drawingWrong;
+  const typingNegative = typingAttempts > 0 && stats.typingRight <= stats.typingWrong;
+  const drawingNegative = drawingAttempts > 0 && stats.drawingRight <= stats.drawingWrong;
+
+  // Every played mode is positive → green
+  if ((typingPositive || typingAttempts === 0) && (drawingPositive || drawingAttempts === 0)
+      && (typingPositive || drawingPositive)) {
+    return "status-good";
+  }
+  // Every played mode is negative → red
+  if ((typingNegative || typingAttempts === 0) && (drawingNegative || drawingAttempts === 0)
+      && (typingNegative || drawingNegative)) {
+    return "status-bad";
+  }
+  // One mode positive, one mode negative → yellow
   return "status-mixed";
 }
 
