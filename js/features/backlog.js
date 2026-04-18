@@ -15,6 +15,10 @@ function getCardStatus(stats) {
   return "status-bad";
 }
 
+function getTotalAttempts(stats) {
+  return stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong;
+}
+
 function getScriptStats(row, scriptType) {
   if (scriptType === "hiragana") {
     return {
@@ -43,9 +47,48 @@ function getDisplayRomaji(item, scriptType) {
   return item.romaji;
 }
 
-export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCategoryFn }) {
+export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCategoryFn, filters }) {
+  const activeFilters = filters || {
+    status: "all",
+    script: "all",
+    weakness: "all",
+    minAttempts: 0
+  };
+
+  function passesFilters(stats) {
+    const attempts = getTotalAttempts(stats);
+    const status = getCardStatus(stats);
+    const minAttempts = Math.max(0, Number(activeFilters.minAttempts || 0));
+    if (attempts < minAttempts) {
+      return false;
+    }
+
+    if (activeFilters.status === "unseen" && attempts > 0) {
+      return false;
+    }
+    if (activeFilters.status === "weak" && status !== "status-bad") {
+      return false;
+    }
+    if (activeFilters.status === "strong" && status !== "status-good") {
+      return false;
+    }
+
+    if (activeFilters.weakness === "typing" && !(stats.typingWrong > stats.typingRight)) {
+      return false;
+    }
+    if (activeFilters.weakness === "drawing" && !(stats.drawingWrong > stats.drawingRight)) {
+      return false;
+    }
+
+    return true;
+  }
+
   function makeCard(kanaChar, romaji, row, scriptType) {
     const stats = getScriptStats(row, scriptType);
+    if (!passesFilters(stats)) {
+      return "";
+    }
+
     const status = getCardStatus(stats);
     const drawingsCount = (drawingsByKana[kanaChar] || []).length;
 
@@ -63,19 +106,34 @@ export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCatego
   function fillSection(prefix, category) {
     const items = kanaData.filter((item) => getKanaCategoryFn(item.romaji) === category);
 
-    document.getElementById(prefix + "HiraganaGrid").innerHTML = items
-      .map((item) => {
-        const row = backlog[item.romaji];
-        return makeCard(item.hiragana, getDisplayRomaji(item, "hiragana"), row, "hiragana");
-      })
-      .join("");
+    const shouldShowHiragana = activeFilters.script === "all" || activeFilters.script === "hiragana";
+    const shouldShowKatakana = activeFilters.script === "all" || activeFilters.script === "katakana";
 
-    document.getElementById(prefix + "KatakanaGrid").innerHTML = items
-      .map((item) => {
-        const row = backlog[item.romaji];
-        return makeCard(item.katakana, getDisplayRomaji(item, "katakana"), row, "katakana");
-      })
-      .join("");
+    const hiraganaCards = shouldShowHiragana
+      ? items
+        .map((item) => {
+          const row = backlog[item.romaji];
+          return makeCard(item.hiragana, getDisplayRomaji(item, "hiragana"), row, "hiragana");
+        })
+        .filter(Boolean)
+      : [];
+
+    const katakanaCards = shouldShowKatakana
+      ? items
+        .map((item) => {
+          const row = backlog[item.romaji];
+          return makeCard(item.katakana, getDisplayRomaji(item, "katakana"), row, "katakana");
+        })
+        .filter(Boolean)
+      : [];
+
+    document.getElementById(prefix + "HiraganaGrid").innerHTML = shouldShowHiragana
+      ? (hiraganaCards.length > 0 ? hiraganaCards.join("") : "<div class=\"kana-card empty-card\">No matches</div>")
+      : "";
+
+    document.getElementById(prefix + "KatakanaGrid").innerHTML = shouldShowKatakana
+      ? (katakanaCards.length > 0 ? katakanaCards.join("") : "<div class=\"kana-card empty-card\">No matches</div>")
+      : "";
   }
 
   fillSection("normal", "normal");

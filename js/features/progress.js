@@ -16,6 +16,14 @@ function getDayTotals(day) {
   };
 }
 
+function getCategoryTotals(categoryEntry) {
+  return {
+    normal: Number(categoryEntry && categoryEntry.normal || 0),
+    dakuten: Number(categoryEntry && categoryEntry.dakuten || 0),
+    yoon: Number(categoryEntry && categoryEntry.yoon || 0)
+  };
+}
+
 function buildDayOptions(elements, dailyStats) {
   const dateKeys = getSortedDateKeys(dailyStats);
   const options = dateKeys
@@ -252,8 +260,16 @@ function renderInsights(elements, state) {
   const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
   const mistakesCount = (state.recentMistakes || []).length;
   const today = state.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+  const todayCategory = getCategoryTotals(state.dailyCategoryStats && state.dailyCategoryStats[getTodayKey()]);
   const todayDone = today.typingRight + today.typingWrong + today.drawingRight + today.drawingWrong;
-  const goal = Number(state.dailyGoal || 25);
+  const goals = state.dailyGoals || {
+    total: Number(state.dailyGoal || 25),
+    typing: 12,
+    drawing: 8,
+    normal: 10,
+    dakuten: 6,
+    yoon: 6
+  };
 
   const weakRows = Object.values(state.backlog || {})
     .map((row) => {
@@ -280,6 +296,15 @@ function renderInsights(elements, state) {
     ? weakRows.map((row) => `${row.romaji} (${row.accuracy}%)`).join(", ")
     : "Need more attempts";
 
+  const typingDone = today.typingRight + today.typingWrong;
+  const drawingDone = today.drawingRight + today.drawingWrong;
+
+  function goalLine(label, done, goal) {
+    const safeGoal = Number(goal || 0);
+    const pct = safeGoal > 0 ? Math.min(100, Math.round((done / safeGoal) * 100)) : 0;
+    return `${label}: ${done}/${safeGoal} (${pct}%)`;
+  }
+
   elements.insightsGrid.innerHTML = `
     <article class="insight-card">
       <h4>Due Reviews</h4>
@@ -292,9 +317,13 @@ function renderInsights(elements, state) {
       <p>Kana waiting for review mode.</p>
     </article>
     <article class="insight-card">
-      <h4>Today Goal</h4>
-      <div class="insight-value">${todayDone}/${goal}</div>
-      <p>${Math.min(100, Math.round((todayDone / goal) * 100))}% complete today.</p>
+      <h4>Today Goals</h4>
+      <div class="insight-value">${todayDone}/${goals.total}</div>
+      <p>${goalLine("Typing", typingDone, goals.typing)}</p>
+      <p>${goalLine("Drawing", drawingDone, goals.drawing)}</p>
+      <p>${goalLine("Normal", todayCategory.normal, goals.normal)}</p>
+      <p>${goalLine("Dakuten", todayCategory.dakuten, goals.dakuten)}</p>
+      <p>${goalLine("Yoon", todayCategory.yoon, goals.yoon)}</p>
     </article>
     <article class="insight-card">
       <h4>7-Day Accuracy</h4>
@@ -308,7 +337,100 @@ function renderInsights(elements, state) {
   `;
 }
 
-export function addDailyAttempt(state, mode, wasCorrect) {
+function getRomajiRowGroup(romaji) {
+  const value = String(romaji || "");
+  if (/^(a|i|u|e|o)$/.test(value)) {
+    return "vowel";
+  }
+  if (value.startsWith("ch") || value.startsWith("ts")) {
+    return "t";
+  }
+  if (value.startsWith("sh") || value.startsWith("j")) {
+    return "s";
+  }
+  return value[0] || "other";
+}
+
+function renderScriptHeatmap(elements, state) {
+  if (!elements.scriptHeatmap) {
+    return;
+  }
+
+  const groups = [
+    { key: "vowel", label: "Vowel" },
+    { key: "k", label: "K" },
+    { key: "s", label: "S" },
+    { key: "t", label: "T" },
+    { key: "n", label: "N" },
+    { key: "h", label: "H" },
+    { key: "m", label: "M" },
+    { key: "y", label: "Y" },
+    { key: "r", label: "R" },
+    { key: "w", label: "W" },
+    { key: "g", label: "G" },
+    { key: "z", label: "Z/J" },
+    { key: "d", label: "D" },
+    { key: "b", label: "B" },
+    { key: "p", label: "P" }
+  ];
+
+  const metrics = groups.reduce((acc, group) => {
+    acc[group.key] = {
+      hiraganaRight: 0,
+      hiraganaWrong: 0,
+      katakanaRight: 0,
+      katakanaWrong: 0
+    };
+    return acc;
+  }, {});
+
+  Object.values(state.backlog || {}).forEach((row) => {
+    const key = getRomajiRowGroup(row.romaji);
+    if (!metrics[key]) {
+      return;
+    }
+    metrics[key].hiraganaRight += Number(row.hiraganaRight || 0);
+    metrics[key].hiraganaWrong += Number(row.hiraganaWrong || 0);
+    metrics[key].katakanaRight += Number(row.katakanaRight || 0);
+    metrics[key].katakanaWrong += Number(row.katakanaWrong || 0);
+  });
+
+  function colorFor(ratio, attempts) {
+    if (attempts === 0) {
+      return "#f3f4f6";
+    }
+    if (ratio >= 0.85) {
+      return "#b7e4c7";
+    }
+    if (ratio >= 0.7) {
+      return "#fde68a";
+    }
+    return "#fecaca";
+  }
+
+  function tile(label, right, wrong) {
+    const attempts = right + wrong;
+    const ratio = attempts > 0 ? right / attempts : 0;
+    const percent = attempts > 0 ? `${Math.round(ratio * 100)}%` : "-";
+    return `<div class="heat-cell" style="background:${colorFor(ratio, attempts)}"><strong>${label}</strong><span>${percent}</span><small>${right}/${attempts || 0}</small></div>`;
+  }
+
+  elements.scriptHeatmap.innerHTML = `
+    <div class="heat-head">Row</div>
+    <div class="heat-head">Hiragana</div>
+    <div class="heat-head">Katakana</div>
+    ${groups.map((group) => {
+      const row = metrics[group.key];
+      return `
+        <div class="heat-row-label">${group.label}</div>
+        ${tile("H", row.hiraganaRight, row.hiraganaWrong)}
+        ${tile("K", row.katakanaRight, row.katakanaWrong)}
+      `;
+    }).join("")}
+  `;
+}
+
+export function addDailyAttempt(state, mode, wasCorrect, category = null) {
   const todayKey = getTodayKey();
   if (!state.dailyStats[todayKey]) {
     state.dailyStats[todayKey] = {
@@ -319,6 +441,14 @@ export function addDailyAttempt(state, mode, wasCorrect) {
     };
   }
 
+  if (!state.dailyCategoryStats[todayKey]) {
+    state.dailyCategoryStats[todayKey] = {
+      normal: 0,
+      dakuten: 0,
+      yoon: 0
+    };
+  }
+
   const entry = state.dailyStats[todayKey];
   if (mode === "typing") {
     if (wasCorrect) {
@@ -326,13 +456,16 @@ export function addDailyAttempt(state, mode, wasCorrect) {
     } else {
       entry.typingWrong += 1;
     }
-    return;
+  } else {
+    if (wasCorrect) {
+      entry.drawingRight += 1;
+    } else {
+      entry.drawingWrong += 1;
+    }
   }
 
-  if (wasCorrect) {
-    entry.drawingRight += 1;
-  } else {
-    entry.drawingWrong += 1;
+  if (category && state.dailyCategoryStats[todayKey][category] !== undefined) {
+    state.dailyCategoryStats[todayKey][category] += 1;
   }
 }
 
@@ -351,6 +484,7 @@ export function renderDailyProgress({ elements, state, setActiveProgressTab }) {
   renderDayComparison(elements, state.dailyStats);
   renderDailyHistoryTable(elements, state.dailyStats);
   renderInsights(elements, state);
+  renderScriptHeatmap(elements, state);
 }
 
 export function bindProgressCompareSelectors(elements, state) {

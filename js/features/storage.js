@@ -9,8 +9,47 @@ export function trimDailyStatsToLimit(dailyStats, limit) {
   });
 }
 
+function clampGoal(value, min = 0, max = 200, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
+function normalizeDailyGoals(state, payload) {
+  const legacyTotal = clampGoal(payload && payload.dailyGoal, 5, 200, 25);
+  const source = payload && payload.dailyGoals && typeof payload.dailyGoals === "object"
+    ? payload.dailyGoals
+    : {};
+
+  const total = clampGoal(source.total, 5, 200, legacyTotal);
+  return {
+    total,
+    typing: clampGoal(source.typing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.typing, 0, 200, 12)),
+    drawing: clampGoal(source.drawing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.drawing, 0, 200, 8)),
+    normal: clampGoal(source.normal, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.normal, 0, 200, 10)),
+    dakuten: clampGoal(source.dakuten, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.dakuten, 0, 200, 6)),
+    yoon: clampGoal(source.yoon, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.yoon, 0, 200, 6))
+  };
+}
+
+function normalizeBacklogFilters(payload) {
+  const source = payload && payload.backlogFilters && typeof payload.backlogFilters === "object"
+    ? payload.backlogFilters
+    : {};
+
+  const status = ["all", "weak", "strong", "unseen"].includes(source.status) ? source.status : "all";
+  const script = ["all", "hiragana", "katakana"].includes(source.script) ? source.script : "all";
+  const weakness = ["all", "typing", "drawing"].includes(source.weakness) ? source.weakness : "all";
+  const minAttempts = clampGoal(source.minAttempts, 0, 999, 0);
+
+  return { status, script, weakness, minAttempts };
+}
+
 export function buildProgressPayload({ state, dailyHistoryLimit }) {
   trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+  trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
 
   const savedAt = Date.now();
   state.lastSavedAt = savedAt;
@@ -25,6 +64,8 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
     audioMuted: state.audioMuted,
     drawGuideEnabled: state.drawGuideEnabled,
     dailyGoal: state.dailyGoal,
+    dailyGoals: state.dailyGoals,
+    backlogFilters: state.backlogFilters,
     lastCloudSyncAt: state.lastCloudSyncAt,
     syncUserEmail: state.syncUserEmail,
     typingRightCount: state.typingRightCount,
@@ -33,7 +74,8 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
     drawingWrongCount: state.drawingWrongCount,
     backlog: state.backlog,
     drawingsByKana: state.drawingsByKana,
-    dailyStats: state.dailyStats
+    dailyStats: state.dailyStats,
+    dailyCategoryStats: state.dailyCategoryStats
   };
 }
 
@@ -62,7 +104,9 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   state.recentMistakes = [...new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
   state.audioMuted = Boolean(payload.audioMuted);
   state.drawGuideEnabled = payload.drawGuideEnabled !== false;
-  state.dailyGoal = Math.max(5, Math.min(200, Number(payload.dailyGoal || 25)));
+  state.dailyGoals = normalizeDailyGoals(state, payload);
+  state.dailyGoal = state.dailyGoals.total;
+  state.backlogFilters = normalizeBacklogFilters(payload);
   state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
   state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
   state.typingRightCount = Number(payload.typingRightCount || 0);
@@ -75,6 +119,9 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   });
   Object.keys(state.dailyStats).forEach((dateKey) => {
     delete state.dailyStats[dateKey];
+  });
+  Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
+    delete state.dailyCategoryStats[dateKey];
   });
 
   kanaData.forEach((item) => {
@@ -147,7 +194,27 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
     });
   }
 
+  if (payload.dailyCategoryStats && typeof payload.dailyCategoryStats === "object") {
+    Object.keys(payload.dailyCategoryStats).forEach((dateKey) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        return;
+      }
+
+      const saved = payload.dailyCategoryStats[dateKey];
+      if (!saved || typeof saved !== "object") {
+        return;
+      }
+
+      state.dailyCategoryStats[dateKey] = {
+        normal: Number(saved.normal || 0),
+        dakuten: Number(saved.dakuten || 0),
+        yoon: Number(saved.yoon || 0)
+      };
+    });
+  }
+
   trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+  trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
 }
 
 export function saveProgress({ storageKey, state, dailyHistoryLimit }) {

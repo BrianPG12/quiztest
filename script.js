@@ -219,13 +219,29 @@
       backlogTabBtn: document.getElementById("backlogTabBtn"),
       dailyProgressTabBtn: document.getElementById("dailyProgressTabBtn"),
       installAppBtn: document.getElementById("installAppBtn"),
+      exportDataBtn: document.getElementById("exportDataBtn"),
+      importDataBtn: document.getElementById("importDataBtn"),
+      importDataInput: document.getElementById("importDataInput"),
       openSyncBtn: document.getElementById("openSyncBtn"),
       resetAllDataBtn: document.getElementById("resetAllDataBtn"),
       backlogPanel: document.getElementById("backlogPanel"),
       progressPanel: document.getElementById("progressPanel"),
+      backlogStatusFilter: document.getElementById("backlogStatusFilter"),
+      backlogScriptFilter: document.getElementById("backlogScriptFilter"),
+      backlogWeaknessFilter: document.getElementById("backlogWeaknessFilter"),
+      backlogMinAttemptsFilter: document.getElementById("backlogMinAttemptsFilter"),
+      resetBacklogFiltersBtn: document.getElementById("resetBacklogFiltersBtn"),
       compareDayASelect: document.getElementById("compareDayASelect"),
       compareDayBSelect: document.getElementById("compareDayBSelect"),
+      dailyGoalTotalInput: document.getElementById("dailyGoalTotalInput"),
+      dailyGoalTypingInput: document.getElementById("dailyGoalTypingInput"),
+      dailyGoalDrawingInput: document.getElementById("dailyGoalDrawingInput"),
+      dailyGoalNormalInput: document.getElementById("dailyGoalNormalInput"),
+      dailyGoalDakutenInput: document.getElementById("dailyGoalDakutenInput"),
+      dailyGoalYoonInput: document.getElementById("dailyGoalYoonInput"),
+      saveDailyGoalBtn: document.getElementById("saveDailyGoalBtn"),
       insightsGrid: document.getElementById("insightsGrid"),
+      scriptHeatmap: document.getElementById("scriptHeatmap"),
       compareSummary: document.getElementById("compareSummary"),
       dailyHistoryTable: document.getElementById("dailyHistoryTable"),
       syncEmail: document.getElementById("syncEmail"),
@@ -340,6 +356,20 @@
       audioMuted: false,
       drawGuideEnabled: true,
       dailyGoal: 25,
+      dailyGoals: {
+        total: 25,
+        typing: 12,
+        drawing: 8,
+        normal: 10,
+        dakuten: 6,
+        yoon: 6
+      },
+      backlogFilters: {
+        status: "all",
+        script: "all",
+        weakness: "all",
+        minAttempts: 0
+      },
       installPromptSeen: false,
       typingRightCount: 0,
       typingWrongCount: 0,
@@ -347,6 +377,7 @@
       drawingWrongCount: 0,
       drawingsByKana: {},
       dailyStats: {},
+      dailyCategoryStats: {},
       lastSavedAt: 0,
       lastCloudSyncAt: 0,
       syncUserEmail: "",
@@ -426,6 +457,9 @@
     if (typingNetPositive && drawingNetPositive && enoughCombinedCorrect) return "status-good";
     return "status-bad";
   }
+  function getTotalAttempts(stats) {
+    return stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong;
+  }
   function getScriptStats(row, scriptType) {
     if (scriptType === "hiragana") {
       return {
@@ -451,9 +485,42 @@
     }
     return item.romaji;
   }
-  function renderBacklog({ kanaData: kanaData2, backlog, drawingsByKana, getKanaCategoryFn }) {
+  function renderBacklog({ kanaData: kanaData2, backlog, drawingsByKana, getKanaCategoryFn, filters }) {
+    const activeFilters = filters || {
+      status: "all",
+      script: "all",
+      weakness: "all",
+      minAttempts: 0
+    };
+    function passesFilters(stats) {
+      const attempts = getTotalAttempts(stats);
+      const status = getCardStatus(stats);
+      const minAttempts = Math.max(0, Number(activeFilters.minAttempts || 0));
+      if (attempts < minAttempts) {
+        return false;
+      }
+      if (activeFilters.status === "unseen" && attempts > 0) {
+        return false;
+      }
+      if (activeFilters.status === "weak" && status !== "status-bad") {
+        return false;
+      }
+      if (activeFilters.status === "strong" && status !== "status-good") {
+        return false;
+      }
+      if (activeFilters.weakness === "typing" && !(stats.typingWrong > stats.typingRight)) {
+        return false;
+      }
+      if (activeFilters.weakness === "drawing" && !(stats.drawingWrong > stats.drawingRight)) {
+        return false;
+      }
+      return true;
+    }
     function makeCard(kanaChar, romaji, row, scriptType) {
       const stats = getScriptStats(row, scriptType);
+      if (!passesFilters(stats)) {
+        return "";
+      }
       const status = getCardStatus(stats);
       const drawingsCount = (drawingsByKana[kanaChar] || []).length;
       return `<div class="kana-card ${status}">
@@ -468,14 +535,18 @@
     }
     function fillSection(prefix, category) {
       const items = kanaData2.filter((item) => getKanaCategoryFn(item.romaji) === category);
-      document.getElementById(prefix + "HiraganaGrid").innerHTML = items.map((item) => {
+      const shouldShowHiragana = activeFilters.script === "all" || activeFilters.script === "hiragana";
+      const shouldShowKatakana = activeFilters.script === "all" || activeFilters.script === "katakana";
+      const hiraganaCards = shouldShowHiragana ? items.map((item) => {
         const row = backlog[item.romaji];
         return makeCard(item.hiragana, getDisplayRomaji(item, "hiragana"), row, "hiragana");
-      }).join("");
-      document.getElementById(prefix + "KatakanaGrid").innerHTML = items.map((item) => {
+      }).filter(Boolean) : [];
+      const katakanaCards = shouldShowKatakana ? items.map((item) => {
         const row = backlog[item.romaji];
         return makeCard(item.katakana, getDisplayRomaji(item, "katakana"), row, "katakana");
-      }).join("");
+      }).filter(Boolean) : [];
+      document.getElementById(prefix + "HiraganaGrid").innerHTML = shouldShowHiragana ? hiraganaCards.length > 0 ? hiraganaCards.join("") : '<div class="kana-card empty-card">No matches</div>' : "";
+      document.getElementById(prefix + "KatakanaGrid").innerHTML = shouldShowKatakana ? katakanaCards.length > 0 ? katakanaCards.join("") : '<div class="kana-card empty-card">No matches</div>' : "";
     }
     fillSection("normal", "normal");
     fillSection("dakuten", "dakuten");
@@ -729,8 +800,37 @@
       delete dailyStats[dateKey];
     });
   }
+  function clampGoal(value, min = 0, max = 200, fallback = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+    return Math.max(min, Math.min(max, Math.round(parsed)));
+  }
+  function normalizeDailyGoals(state, payload) {
+    const legacyTotal = clampGoal(payload && payload.dailyGoal, 5, 200, 25);
+    const source = payload && payload.dailyGoals && typeof payload.dailyGoals === "object" ? payload.dailyGoals : {};
+    const total = clampGoal(source.total, 5, 200, legacyTotal);
+    return {
+      total,
+      typing: clampGoal(source.typing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.typing, 0, 200, 12)),
+      drawing: clampGoal(source.drawing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.drawing, 0, 200, 8)),
+      normal: clampGoal(source.normal, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.normal, 0, 200, 10)),
+      dakuten: clampGoal(source.dakuten, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.dakuten, 0, 200, 6)),
+      yoon: clampGoal(source.yoon, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.yoon, 0, 200, 6))
+    };
+  }
+  function normalizeBacklogFilters(payload) {
+    const source = payload && payload.backlogFilters && typeof payload.backlogFilters === "object" ? payload.backlogFilters : {};
+    const status = ["all", "weak", "strong", "unseen"].includes(source.status) ? source.status : "all";
+    const script = ["all", "hiragana", "katakana"].includes(source.script) ? source.script : "all";
+    const weakness = ["all", "typing", "drawing"].includes(source.weakness) ? source.weakness : "all";
+    const minAttempts = clampGoal(source.minAttempts, 0, 999, 0);
+    return { status, script, weakness, minAttempts };
+  }
   function buildProgressPayload({ state, dailyHistoryLimit }) {
     trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
     const savedAt = Date.now();
     state.lastSavedAt = savedAt;
     return {
@@ -743,6 +843,8 @@
       audioMuted: state.audioMuted,
       drawGuideEnabled: state.drawGuideEnabled,
       dailyGoal: state.dailyGoal,
+      dailyGoals: state.dailyGoals,
+      backlogFilters: state.backlogFilters,
       lastCloudSyncAt: state.lastCloudSyncAt,
       syncUserEmail: state.syncUserEmail,
       typingRightCount: state.typingRightCount,
@@ -751,7 +853,8 @@
       drawingWrongCount: state.drawingWrongCount,
       backlog: state.backlog,
       drawingsByKana: state.drawingsByKana,
-      dailyStats: state.dailyStats
+      dailyStats: state.dailyStats,
+      dailyCategoryStats: state.dailyCategoryStats
     };
   }
   function applyProgressPayload({ payload, state, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
@@ -766,7 +869,9 @@
     state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
     state.audioMuted = Boolean(payload.audioMuted);
     state.drawGuideEnabled = payload.drawGuideEnabled !== false;
-    state.dailyGoal = Math.max(5, Math.min(200, Number(payload.dailyGoal || 25)));
+    state.dailyGoals = normalizeDailyGoals(state, payload);
+    state.dailyGoal = state.dailyGoals.total;
+    state.backlogFilters = normalizeBacklogFilters(payload);
     state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
     state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
     state.typingRightCount = Number(payload.typingRightCount || 0);
@@ -778,6 +883,9 @@
     });
     Object.keys(state.dailyStats).forEach((dateKey) => {
       delete state.dailyStats[dateKey];
+    });
+    Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
+      delete state.dailyCategoryStats[dateKey];
     });
     kanaData2.forEach((item) => {
       const savedSrs = payload.srsByRomaji && payload.srsByRomaji[item.romaji];
@@ -840,7 +948,24 @@
         };
       });
     }
+    if (payload.dailyCategoryStats && typeof payload.dailyCategoryStats === "object") {
+      Object.keys(payload.dailyCategoryStats).forEach((dateKey) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+          return;
+        }
+        const saved = payload.dailyCategoryStats[dateKey];
+        if (!saved || typeof saved !== "object") {
+          return;
+        }
+        state.dailyCategoryStats[dateKey] = {
+          normal: Number(saved.normal || 0),
+          dakuten: Number(saved.dakuten || 0),
+          yoon: Number(saved.yoon || 0)
+        };
+      });
+    }
     trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
   }
   function saveProgress({ storageKey, state, dailyHistoryLimit }) {
     const payload = buildProgressPayload({ state, dailyHistoryLimit });
@@ -886,6 +1011,13 @@
       allRight: day.typingRight + day.drawingRight,
       allWrong: day.typingWrong + day.drawingWrong,
       allTotal: typingTotal + drawingTotal
+    };
+  }
+  function getCategoryTotals(categoryEntry) {
+    return {
+      normal: Number(categoryEntry && categoryEntry.normal || 0),
+      dakuten: Number(categoryEntry && categoryEntry.dakuten || 0),
+      yoon: Number(categoryEntry && categoryEntry.yoon || 0)
     };
   }
   function buildDayOptions(elements, dailyStats) {
@@ -1091,8 +1223,16 @@
     const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
     const mistakesCount = (state.recentMistakes || []).length;
     const today = state.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+    const todayCategory = getCategoryTotals(state.dailyCategoryStats && state.dailyCategoryStats[getTodayKey()]);
     const todayDone = today.typingRight + today.typingWrong + today.drawingRight + today.drawingWrong;
-    const goal = Number(state.dailyGoal || 25);
+    const goals = state.dailyGoals || {
+      total: Number(state.dailyGoal || 25),
+      typing: 12,
+      drawing: 8,
+      normal: 10,
+      dakuten: 6,
+      yoon: 6
+    };
     const weakRows = Object.values(state.backlog || {}).map((row) => {
       const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
       const right = row.typingRight + row.drawingRight;
@@ -1109,6 +1249,13 @@
     });
     const weekAccuracy = weekTotal ? `${Math.round(weekRight / weekTotal * 100)}%` : "-";
     const weakText = weakRows.length ? weakRows.map((row) => `${row.romaji} (${row.accuracy}%)`).join(", ") : "Need more attempts";
+    const typingDone = today.typingRight + today.typingWrong;
+    const drawingDone = today.drawingRight + today.drawingWrong;
+    function goalLine(label, done, goal) {
+      const safeGoal = Number(goal || 0);
+      const pct = safeGoal > 0 ? Math.min(100, Math.round(done / safeGoal * 100)) : 0;
+      return `${label}: ${done}/${safeGoal} (${pct}%)`;
+    }
     elements.insightsGrid.innerHTML = `
     <article class="insight-card">
       <h4>Due Reviews</h4>
@@ -1121,9 +1268,13 @@
       <p>Kana waiting for review mode.</p>
     </article>
     <article class="insight-card">
-      <h4>Today Goal</h4>
-      <div class="insight-value">${todayDone}/${goal}</div>
-      <p>${Math.min(100, Math.round(todayDone / goal * 100))}% complete today.</p>
+      <h4>Today Goals</h4>
+      <div class="insight-value">${todayDone}/${goals.total}</div>
+      <p>${goalLine("Typing", typingDone, goals.typing)}</p>
+      <p>${goalLine("Drawing", drawingDone, goals.drawing)}</p>
+      <p>${goalLine("Normal", todayCategory.normal, goals.normal)}</p>
+      <p>${goalLine("Dakuten", todayCategory.dakuten, goals.dakuten)}</p>
+      <p>${goalLine("Yoon", todayCategory.yoon, goals.yoon)}</p>
     </article>
     <article class="insight-card">
       <h4>7-Day Accuracy</h4>
@@ -1136,7 +1287,92 @@
     </article>
   `;
   }
-  function addDailyAttempt(state, mode, wasCorrect) {
+  function getRomajiRowGroup(romaji) {
+    const value = String(romaji || "");
+    if (/^(a|i|u|e|o)$/.test(value)) {
+      return "vowel";
+    }
+    if (value.startsWith("ch") || value.startsWith("ts")) {
+      return "t";
+    }
+    if (value.startsWith("sh") || value.startsWith("j")) {
+      return "s";
+    }
+    return value[0] || "other";
+  }
+  function renderScriptHeatmap(elements, state) {
+    if (!elements.scriptHeatmap) {
+      return;
+    }
+    const groups = [
+      { key: "vowel", label: "Vowel" },
+      { key: "k", label: "K" },
+      { key: "s", label: "S" },
+      { key: "t", label: "T" },
+      { key: "n", label: "N" },
+      { key: "h", label: "H" },
+      { key: "m", label: "M" },
+      { key: "y", label: "Y" },
+      { key: "r", label: "R" },
+      { key: "w", label: "W" },
+      { key: "g", label: "G" },
+      { key: "z", label: "Z/J" },
+      { key: "d", label: "D" },
+      { key: "b", label: "B" },
+      { key: "p", label: "P" }
+    ];
+    const metrics = groups.reduce((acc, group) => {
+      acc[group.key] = {
+        hiraganaRight: 0,
+        hiraganaWrong: 0,
+        katakanaRight: 0,
+        katakanaWrong: 0
+      };
+      return acc;
+    }, {});
+    Object.values(state.backlog || {}).forEach((row) => {
+      const key = getRomajiRowGroup(row.romaji);
+      if (!metrics[key]) {
+        return;
+      }
+      metrics[key].hiraganaRight += Number(row.hiraganaRight || 0);
+      metrics[key].hiraganaWrong += Number(row.hiraganaWrong || 0);
+      metrics[key].katakanaRight += Number(row.katakanaRight || 0);
+      metrics[key].katakanaWrong += Number(row.katakanaWrong || 0);
+    });
+    function colorFor(ratio, attempts) {
+      if (attempts === 0) {
+        return "#f3f4f6";
+      }
+      if (ratio >= 0.85) {
+        return "#b7e4c7";
+      }
+      if (ratio >= 0.7) {
+        return "#fde68a";
+      }
+      return "#fecaca";
+    }
+    function tile(label, right, wrong) {
+      const attempts = right + wrong;
+      const ratio = attempts > 0 ? right / attempts : 0;
+      const percent = attempts > 0 ? `${Math.round(ratio * 100)}%` : "-";
+      return `<div class="heat-cell" style="background:${colorFor(ratio, attempts)}"><strong>${label}</strong><span>${percent}</span><small>${right}/${attempts || 0}</small></div>`;
+    }
+    elements.scriptHeatmap.innerHTML = `
+    <div class="heat-head">Row</div>
+    <div class="heat-head">Hiragana</div>
+    <div class="heat-head">Katakana</div>
+    ${groups.map((group) => {
+      const row = metrics[group.key];
+      return `
+        <div class="heat-row-label">${group.label}</div>
+        ${tile("H", row.hiraganaRight, row.hiraganaWrong)}
+        ${tile("K", row.katakanaRight, row.katakanaWrong)}
+      `;
+    }).join("")}
+  `;
+  }
+  function addDailyAttempt(state, mode, wasCorrect, category = null) {
     const todayKey = getTodayKey();
     if (!state.dailyStats[todayKey]) {
       state.dailyStats[todayKey] = {
@@ -1146,6 +1382,13 @@
         drawingWrong: 0
       };
     }
+    if (!state.dailyCategoryStats[todayKey]) {
+      state.dailyCategoryStats[todayKey] = {
+        normal: 0,
+        dakuten: 0,
+        yoon: 0
+      };
+    }
     const entry = state.dailyStats[todayKey];
     if (mode === "typing") {
       if (wasCorrect) {
@@ -1153,12 +1396,15 @@
       } else {
         entry.typingWrong += 1;
       }
-      return;
-    }
-    if (wasCorrect) {
-      entry.drawingRight += 1;
     } else {
-      entry.drawingWrong += 1;
+      if (wasCorrect) {
+        entry.drawingRight += 1;
+      } else {
+        entry.drawingWrong += 1;
+      }
+    }
+    if (category && state.dailyCategoryStats[todayKey][category] !== void 0) {
+      state.dailyCategoryStats[todayKey][category] += 1;
     }
   }
   function renderDailyProgress({ elements, state, setActiveProgressTab: setActiveProgressTab2 }) {
@@ -1174,6 +1420,7 @@
     renderDayComparison(elements, state.dailyStats);
     renderDailyHistoryTable(elements, state.dailyStats);
     renderInsights(elements, state);
+    renderScriptHeatmap(elements, state);
   }
   function bindProgressCompareSelectors(elements, state) {
     elements.compareDayASelect.addEventListener("change", () => renderDayComparison(elements, state.dailyStats));
@@ -12122,7 +12369,7 @@
       current.lastCorrect = wasCorrect;
       state.srsByRomaji[romaji] = current;
     }
-    function getTotalAttempts() {
+    function getTotalAttempts2() {
       return Object.values(state.srsByRomaji).reduce((sum, entry) => sum + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
     }
     return {
@@ -12131,7 +12378,7 @@
       upsertRecentMistake,
       removeRecentMistake,
       updateSrsOnAttempt,
-      getTotalAttempts
+      getTotalAttempts: getTotalAttempts2
     };
   }
   var MAX_RECENT_MISTAKES;
@@ -12356,7 +12603,7 @@
         answerMode: "typing"
       });
       srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct, "typing");
-      addDailyAttemptFn(state, "typing", correct);
+      addDailyAttemptFn(state, "typing", correct, state.currentQuestion.romaji);
       updateStats2(elements, state);
       renderBacklogViewFn();
       refreshProgressViewFn();
@@ -12383,7 +12630,7 @@
         answerMode: "drawing"
       });
       srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect, "drawing");
-      addDailyAttemptFn(state, "drawing", wasCorrect);
+      addDailyAttemptFn(state, "drawing", wasCorrect, state.currentQuestion.romaji);
       updateStats2(elements, state);
       renderBacklogViewFn();
       refreshProgressViewFn();
@@ -12439,7 +12686,9 @@
         showTypingMistake,
         updateStats,
         updateBacklog,
-        addDailyAttempt,
+        (targetState, mode, wasCorrect, romaji) => {
+          addDailyAttempt(targetState, mode, wasCorrect, getKanaCategoryFn(romaji));
+        },
         () => renderBacklogView(),
         () => refreshProgressView(),
         () => persistState()
@@ -12606,7 +12855,8 @@
           kanaData,
           backlog: state.backlog,
           drawingsByKana: state.drawingsByKana,
-          getKanaCategoryFn
+          getKanaCategoryFn,
+          filters: state.backlogFilters
         });
       }
       function persistState() {
@@ -12616,6 +12866,306 @@
           dailyHistoryLimit: DAILY_HISTORY_LIMIT
         });
         cloudSync.queueUpload();
+      }
+      function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+          return fallback;
+        }
+        return Math.max(min, Math.min(max, Math.round(parsed)));
+      }
+      function normalizeDailyGoalsFromState() {
+        const current = state.dailyGoals || {};
+        const next = {
+          total: clampDailyGoal(current.total, 5, 200, 25),
+          typing: clampDailyGoal(current.typing, 0, 200, 12),
+          drawing: clampDailyGoal(current.drawing, 0, 200, 8),
+          normal: clampDailyGoal(current.normal, 0, 200, 10),
+          dakuten: clampDailyGoal(current.dakuten, 0, 200, 6),
+          yoon: clampDailyGoal(current.yoon, 0, 200, 6)
+        };
+        state.dailyGoals = next;
+        state.dailyGoal = next.total;
+      }
+      function renderDailyGoalInputs() {
+        normalizeDailyGoalsFromState();
+        elements.dailyGoalTotalInput.value = String(state.dailyGoals.total);
+        elements.dailyGoalTypingInput.value = String(state.dailyGoals.typing);
+        elements.dailyGoalDrawingInput.value = String(state.dailyGoals.drawing);
+        elements.dailyGoalNormalInput.value = String(state.dailyGoals.normal);
+        elements.dailyGoalDakutenInput.value = String(state.dailyGoals.dakuten);
+        elements.dailyGoalYoonInput.value = String(state.dailyGoals.yoon);
+      }
+      function saveDailyGoalFromUi() {
+        state.dailyGoals = {
+          total: clampDailyGoal(elements.dailyGoalTotalInput.value, 5, 200, 25),
+          typing: clampDailyGoal(elements.dailyGoalTypingInput.value, 0, 200, 12),
+          drawing: clampDailyGoal(elements.dailyGoalDrawingInput.value, 0, 200, 8),
+          normal: clampDailyGoal(elements.dailyGoalNormalInput.value, 0, 200, 10),
+          dakuten: clampDailyGoal(elements.dailyGoalDakutenInput.value, 0, 200, 6),
+          yoon: clampDailyGoal(elements.dailyGoalYoonInput.value, 0, 200, 6)
+        };
+        state.dailyGoal = state.dailyGoals.total;
+        renderDailyGoalInputs();
+        persistState();
+        refreshProgressView();
+        showResult(elements, "Daily goals saved.", true);
+      }
+      function resetBacklogFilters() {
+        state.backlogFilters = {
+          status: "all",
+          script: "all",
+          weakness: "all",
+          minAttempts: 0
+        };
+      }
+      function renderBacklogFilterInputs() {
+        if (!state.backlogFilters || typeof state.backlogFilters !== "object") {
+          resetBacklogFilters();
+        }
+        elements.backlogStatusFilter.value = state.backlogFilters.status;
+        elements.backlogScriptFilter.value = state.backlogFilters.script;
+        elements.backlogWeaknessFilter.value = state.backlogFilters.weakness;
+        elements.backlogMinAttemptsFilter.value = String(state.backlogFilters.minAttempts);
+      }
+      function applyBacklogFiltersFromUi() {
+        state.backlogFilters = {
+          status: elements.backlogStatusFilter.value,
+          script: elements.backlogScriptFilter.value,
+          weakness: elements.backlogWeaknessFilter.value,
+          minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0)
+        };
+        renderBacklogFilterInputs();
+        renderBacklogView();
+        persistState();
+      }
+      function downloadTextFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+      function exportLocalProgress() {
+        const payload = buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+        const now = /* @__PURE__ */ new Date();
+        const timestamp = [
+          now.getFullYear(),
+          String(now.getMonth() + 1).padStart(2, "0"),
+          String(now.getDate()).padStart(2, "0"),
+          "-",
+          String(now.getHours()).padStart(2, "0"),
+          String(now.getMinutes()).padStart(2, "0"),
+          String(now.getSeconds()).padStart(2, "0")
+        ].join("");
+        const filename = `kana-quiz-backup-${timestamp}.json`;
+        downloadTextFile(filename, JSON.stringify(payload, null, 2), "application/json");
+        showResult(elements, "Backup exported to JSON.", true);
+      }
+      function toSafeCount(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          return 0;
+        }
+        return parsed;
+      }
+      function mergeSrsEntry(localEntry, importedEntry) {
+        const localDueAt = toSafeCount(localEntry && localEntry.dueAt);
+        const importDueAt = toSafeCount(importedEntry && importedEntry.dueAt);
+        const dueCandidates = [localDueAt, importDueAt].filter((value) => value > 0);
+        const dueAt = dueCandidates.length > 0 ? Math.min(...dueCandidates) : 0;
+        const localSeenAt = toSafeCount(localEntry && localEntry.lastSeenAt);
+        const importSeenAt = toSafeCount(importedEntry && importedEntry.lastSeenAt);
+        return {
+          dueAt,
+          intervalHours: Math.max(toSafeCount(localEntry && localEntry.intervalHours), toSafeCount(importedEntry && importedEntry.intervalHours)),
+          lastSeenAt: Math.max(localSeenAt, importSeenAt),
+          lastCorrect: importSeenAt >= localSeenAt ? Boolean(importedEntry && importedEntry.lastCorrect) : Boolean(localEntry && localEntry.lastCorrect)
+        };
+      }
+      function mergeBacklogRow(targetRow, incomingRow) {
+        if (!incomingRow || typeof incomingRow !== "object") {
+          return;
+        }
+        const numericKeys = [
+          "right",
+          "wrong",
+          "typingRight",
+          "typingWrong",
+          "drawingRight",
+          "drawingWrong",
+          "hiraganaTypingRight",
+          "hiraganaTypingWrong",
+          "hiraganaDrawingRight",
+          "hiraganaDrawingWrong",
+          "hiraganaRight",
+          "hiraganaWrong",
+          "katakanaTypingRight",
+          "katakanaTypingWrong",
+          "katakanaDrawingRight",
+          "katakanaDrawingWrong",
+          "katakanaRight",
+          "katakanaWrong"
+        ];
+        numericKeys.forEach((key) => {
+          targetRow[key] = toSafeCount(targetRow[key]) + toSafeCount(incomingRow[key]);
+        });
+      }
+      function mergeDailyStats(localDailyStats, incomingDailyStats) {
+        if (!incomingDailyStats || typeof incomingDailyStats !== "object") {
+          return;
+        }
+        Object.keys(incomingDailyStats).forEach((dateKey) => {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+            return;
+          }
+          const incoming = incomingDailyStats[dateKey];
+          if (!incoming || typeof incoming !== "object") {
+            return;
+          }
+          if (!localDailyStats[dateKey]) {
+            localDailyStats[dateKey] = {
+              typingRight: 0,
+              typingWrong: 0,
+              drawingRight: 0,
+              drawingWrong: 0
+            };
+          }
+          localDailyStats[dateKey].typingRight += toSafeCount(incoming.typingRight);
+          localDailyStats[dateKey].typingWrong += toSafeCount(incoming.typingWrong);
+          localDailyStats[dateKey].drawingRight += toSafeCount(incoming.drawingRight);
+          localDailyStats[dateKey].drawingWrong += toSafeCount(incoming.drawingWrong);
+        });
+      }
+      function mergeDailyCategoryStats(localDailyCategoryStats, incomingDailyCategoryStats) {
+        if (!incomingDailyCategoryStats || typeof incomingDailyCategoryStats !== "object") {
+          return;
+        }
+        Object.keys(incomingDailyCategoryStats).forEach((dateKey) => {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+            return;
+          }
+          const incoming = incomingDailyCategoryStats[dateKey];
+          if (!incoming || typeof incoming !== "object") {
+            return;
+          }
+          if (!localDailyCategoryStats[dateKey]) {
+            localDailyCategoryStats[dateKey] = {
+              normal: 0,
+              dakuten: 0,
+              yoon: 0
+            };
+          }
+          localDailyCategoryStats[dateKey].normal += toSafeCount(incoming.normal);
+          localDailyCategoryStats[dateKey].dakuten += toSafeCount(incoming.dakuten);
+          localDailyCategoryStats[dateKey].yoon += toSafeCount(incoming.yoon);
+        });
+      }
+      function mergeProgressPayload(importedPayload) {
+        if (!importedPayload || typeof importedPayload !== "object") {
+          return;
+        }
+        const localPayload = buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+        state.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
+        state.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
+        state.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
+        state.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
+        Object.keys(state.srsByRomaji).forEach((romaji) => {
+          const localEntry = localPayload.srsByRomaji && localPayload.srsByRomaji[romaji];
+          const incomingEntry = importedPayload.srsByRomaji && importedPayload.srsByRomaji[romaji];
+          state.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
+        });
+        Object.keys(state.backlog).forEach((romaji) => {
+          const incomingRow = importedPayload.backlog && importedPayload.backlog[romaji];
+          mergeBacklogRow(state.backlog[romaji], incomingRow);
+        });
+        mergeDailyStats(state.dailyStats, importedPayload.dailyStats);
+        mergeDailyCategoryStats(state.dailyCategoryStats, importedPayload.dailyCategoryStats);
+        const combinedTypingMistakes = [
+          ...Array.isArray(importedPayload.recentTypingMistakes) ? importedPayload.recentTypingMistakes : [],
+          ...Array.isArray(localPayload.recentTypingMistakes) ? localPayload.recentTypingMistakes : []
+        ].filter((value) => typeof value === "string");
+        const combinedDrawingMistakes = [
+          ...Array.isArray(importedPayload.recentDrawingMistakes) ? importedPayload.recentDrawingMistakes : [],
+          ...Array.isArray(localPayload.recentDrawingMistakes) ? localPayload.recentDrawingMistakes : []
+        ].filter((value) => typeof value === "string");
+        state.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
+        state.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
+        state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
+        if (importedPayload.drawingsByKana && typeof importedPayload.drawingsByKana === "object") {
+          Object.keys(importedPayload.drawingsByKana).forEach((kanaChar) => {
+            const localList = Array.isArray(state.drawingsByKana[kanaChar]) ? state.drawingsByKana[kanaChar] : [];
+            const incomingList = Array.isArray(importedPayload.drawingsByKana[kanaChar]) ? importedPayload.drawingsByKana[kanaChar].filter((value) => typeof value === "string") : [];
+            state.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA);
+          });
+        }
+        const localGoals = localPayload.dailyGoals && typeof localPayload.dailyGoals === "object" ? localPayload.dailyGoals : { total: localPayload.dailyGoal };
+        const incomingGoals = importedPayload.dailyGoals && typeof importedPayload.dailyGoals === "object" ? importedPayload.dailyGoals : { total: importedPayload.dailyGoal };
+        const localTotalGoal = clampDailyGoal(localGoals.total, 5, 200, 25);
+        const importedTotalGoal = clampDailyGoal(incomingGoals.total, 5, 200, 25);
+        const shouldUseImportedGoals = localTotalGoal === 25 && importedTotalGoal !== 25;
+        state.dailyGoals = {
+          total: shouldUseImportedGoals ? importedTotalGoal : localTotalGoal,
+          typing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.typing, 0, 200, 12) : clampDailyGoal(localGoals.typing, 0, 200, 12),
+          drawing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.drawing, 0, 200, 8) : clampDailyGoal(localGoals.drawing, 0, 200, 8),
+          normal: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.normal, 0, 200, 10) : clampDailyGoal(localGoals.normal, 0, 200, 10),
+          dakuten: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.dakuten, 0, 200, 6) : clampDailyGoal(localGoals.dakuten, 0, 200, 6),
+          yoon: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.yoon, 0, 200, 6) : clampDailyGoal(localGoals.yoon, 0, 200, 6)
+        };
+        state.dailyGoal = state.dailyGoals.total;
+        state.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
+      }
+      async function importLocalProgressFromFile(file) {
+        if (!file) {
+          return;
+        }
+        let payload = null;
+        try {
+          const raw = await file.text();
+          payload = JSON.parse(raw);
+        } catch (e) {
+          showResult(elements, "Import failed: invalid JSON file.", false);
+          return;
+        }
+        if (!payload || typeof payload !== "object") {
+          showResult(elements, "Import failed: backup format is not valid.", false);
+          return;
+        }
+        const shouldMerge = window.confirm(
+          "Merge imported progress into current local progress? Click OK to merge, or Cancel to choose replace/cancel."
+        );
+        if (shouldMerge) {
+          mergeProgressPayload(payload);
+        } else {
+          const shouldReplace = window.confirm("Replace current local progress with imported data?");
+          if (!shouldReplace) {
+            return;
+          }
+          applyProgressPayload({
+            payload,
+            state,
+            kanaData,
+            maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
+            dailyHistoryLimit: DAILY_HISTORY_LIMIT
+          });
+        }
+        ensureTodayEntry();
+        elements.practiceStrategySelect.value = state.practiceStrategy;
+        elements.drawGuideToggle.checked = state.drawGuideEnabled;
+        renderDailyGoalInputs();
+        renderBacklogFilterInputs();
+        drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+        audioManager.refreshAudioButton();
+        updateStats(elements, state);
+        renderBacklogView();
+        refreshProgressView();
+        queueManager.updateQueueMeta();
+        persistState();
+        showResult(elements, shouldMerge ? "Backup merged into local progress." : "Backup imported and local progress restored.", true);
       }
       function getLocalPayload() {
         return buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
@@ -12640,6 +13190,13 @@
             typingWrong: 0,
             drawingRight: 0,
             drawingWrong: 0
+          };
+        }
+        if (!state.dailyCategoryStats[todayKey]) {
+          state.dailyCategoryStats[todayKey] = {
+            normal: 0,
+            dakuten: 0,
+            yoon: 0
           };
         }
       }
@@ -12804,6 +13361,16 @@
         state.practiceStrategy = "srs";
         state.lastCloudSyncAt = 0;
         state.syncUserEmail = "";
+        state.dailyGoals = {
+          total: 25,
+          typing: 12,
+          drawing: 8,
+          normal: 10,
+          dakuten: 6,
+          yoon: 6
+        };
+        state.dailyGoal = 25;
+        resetBacklogFilters();
         Object.keys(state.srsByRomaji).forEach((romaji) => {
           state.srsByRomaji[romaji] = {
             dueAt: 0,
@@ -12839,10 +13406,15 @@
         Object.keys(state.dailyStats).forEach((dateKey) => {
           delete state.dailyStats[dateKey];
         });
+        Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
+          delete state.dailyCategoryStats[dateKey];
+        });
         state.progressUiDayMarker = getTodayKey();
         state.lastSavedAt = 0;
         localStorage.removeItem(STORAGE_KEY);
         elements.practiceStrategySelect.value = state.practiceStrategy;
+        renderDailyGoalInputs();
+        renderBacklogFilterInputs();
         queueManager.updateQueueMeta();
         updateStats(elements, state);
         renderBacklogView();
@@ -12882,6 +13454,41 @@
           elements.syncEmail.focus();
         });
         elements.resetAllDataBtn.addEventListener("click", resetAllData);
+        elements.saveDailyGoalBtn.addEventListener("click", saveDailyGoalFromUi);
+        [
+          elements.dailyGoalTotalInput,
+          elements.dailyGoalTypingInput,
+          elements.dailyGoalDrawingInput,
+          elements.dailyGoalNormalInput,
+          elements.dailyGoalDakutenInput,
+          elements.dailyGoalYoonInput
+        ].forEach((input) => {
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              saveDailyGoalFromUi();
+            }
+          });
+        });
+        elements.backlogStatusFilter.addEventListener("change", applyBacklogFiltersFromUi);
+        elements.backlogScriptFilter.addEventListener("change", applyBacklogFiltersFromUi);
+        elements.backlogWeaknessFilter.addEventListener("change", applyBacklogFiltersFromUi);
+        elements.backlogMinAttemptsFilter.addEventListener("change", applyBacklogFiltersFromUi);
+        elements.resetBacklogFiltersBtn.addEventListener("click", () => {
+          resetBacklogFilters();
+          renderBacklogFilterInputs();
+          renderBacklogView();
+          persistState();
+        });
+        elements.exportDataBtn.addEventListener("click", exportLocalProgress);
+        elements.importDataBtn.addEventListener("click", () => {
+          elements.importDataInput.click();
+        });
+        elements.importDataInput.addEventListener("change", async () => {
+          const file = elements.importDataInput.files && elements.importDataInput.files[0] ? elements.importDataInput.files[0] : null;
+          await importLocalProgressFromFile(file);
+          elements.importDataInput.value = "";
+        });
         bindProgressCompareSelectors(elements, state);
         elements.checkBtn.addEventListener("click", checkTypingAnswer);
         elements.playAudioBtn.addEventListener("click", () => audioManager.playCurrentAudio());
@@ -12993,6 +13600,9 @@
         setupPwaInstall();
         elements.practiceStrategySelect.value = state.practiceStrategy;
         elements.drawGuideToggle.checked = state.drawGuideEnabled;
+        normalizeDailyGoalsFromState();
+        renderDailyGoalInputs();
+        renderBacklogFilterInputs();
         drawingFeature.setGuideEnabled(state.drawGuideEnabled);
         audioManager.refreshAudioButton();
         queueManager.updateQueueMeta();

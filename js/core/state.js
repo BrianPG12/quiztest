@@ -51,6 +51,20 @@ export function createState(kanaData) {
     audioMuted: false,
     drawGuideEnabled: true,
     dailyGoal: 25,
+    dailyGoals: {
+      total: 25,
+      typing: 12,
+      drawing: 8,
+      normal: 10,
+      dakuten: 6,
+      yoon: 6
+    },
+    backlogFilters: {
+      status: "all",
+      script: "all",
+      weakness: "all",
+      minAttempts: 0
+    },
     installPromptSeen: false,
     typingRightCount: 0,
     typingWrongCount: 0,
@@ -58,6 +72,7 @@ export function createState(kanaData) {
     drawingWrongCount: 0,
     drawingsByKana: {},
     dailyStats: {},
+    dailyCategoryStats: {},
     lastSavedAt: 0,
     lastCloudSyncAt: 0,
     syncUserEmail: "",

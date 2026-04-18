@@ -624,6 +624,34 @@ button:disabled {
   color: var(--ink-muted);
 }
 
+.backlog-filters {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+}
+
+.backlog-filters button {
+  min-height: 40px;
+}
+
+.daily-goal-controls {
+  margin-top: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+}
+
+.daily-goal-controls .control-group {
+  margin: 0;
+}
+
+.daily-goal-controls button {
+  min-height: 40px;
+}
+
 /* ── Kana grid ── */
 .backlog-category {
   border-top: 1.5px solid var(--border);
@@ -672,6 +700,13 @@ button:disabled {
   min-width: 88px;
   text-align: center;
   transition: border-color 160ms, background 160ms;
+}
+
+.kana-card.empty-card {
+  min-height: 64px;
+  align-content: center;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
 }
 
 .kana-card.status-good {
@@ -782,6 +817,65 @@ button:disabled {
   margin: 0;
   font-size: 0.84rem;
   color: var(--ink-muted);
+}
+
+.script-heatmap-wrap {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 12px;
+}
+
+.script-heatmap-wrap h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.script-heatmap {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 88px 1fr 1fr;
+  align-items: stretch;
+}
+
+.heat-head {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.heat-row-label {
+  display: grid;
+  align-items: center;
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.heat-cell {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.heat-cell strong {
+  font-size: 0.74rem;
+  color: #374151;
+}
+
+.heat-cell span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.heat-cell small {
+  font-size: 0.72rem;
+  color: #4b5563;
 }
 
 /* ── Sync card ── */
@@ -1118,6 +1212,26 @@ button:disabled {
 
   .sync-controls {
     grid-template-columns: 1fr;
+  }
+
+  .daily-goal-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-goal-controls button {
+    width: 100%;
+  }
+
+  .backlog-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .backlog-filters button {
+    width: 100%;
+  }
+
+  .script-heatmap {
+    grid-template-columns: 74px 1fr 1fr;
   }
 
   .daily-history-table th,
