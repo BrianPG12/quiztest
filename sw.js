@@ -1,4 +1,4 @@
-const CACHE_NAME = "kana-quiz-v35";
+const CACHE_NAME = "kana-quiz-v36";
 const SCOPE_URL = new URL(self.registration.scope);
 const BASE_PATH = SCOPE_URL.pathname.endsWith("/") ? SCOPE_URL.pathname : `${SCOPE_URL.pathname}/`;
 const INDEX_PATH = `${BASE_PATH}index.html`;
@@ -47,6 +47,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   const isNavigationRequest = event.request.mode === "navigate";
+  const isVersionedAsset = requestUrl.searchParams.has("v");
 
   // For page navigations, prefer network so layout HTML updates are picked up immediately.
   if (isNavigationRequest) {
@@ -62,6 +63,24 @@ self.addEventListener("fetch", (event) => {
           return networkResponse;
         })
         .catch(() => caches.match(INDEX_PATH))
+    );
+    return;
+  }
+
+  // Versioned assets should prefer network so UI updates land quickly on mobile.
+  if (isVersionedAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match(INDEX_PATH)))
     );
     return;
   }
