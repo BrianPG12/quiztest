@@ -438,6 +438,15 @@
       drawingWrong: row.katakanaDrawingWrong
     };
   }
+  function getDisplayRomaji(item, scriptType) {
+    if (scriptType === "hiragana" && item.hiragana === "\u3092") {
+      return "o";
+    }
+    if (scriptType === "katakana" && item.katakana === "\u30F2") {
+      return "wo";
+    }
+    return item.romaji;
+  }
   function renderBacklog({ kanaData: kanaData2, backlog, drawingsByKana, getKanaCategoryFn }) {
     function makeCard(kanaChar, romaji, row, scriptType) {
       const stats = getScriptStats(row, scriptType);
@@ -457,11 +466,11 @@
       const items = kanaData2.filter((item) => getKanaCategoryFn(item.romaji) === category);
       document.getElementById(prefix + "HiraganaGrid").innerHTML = items.map((item) => {
         const row = backlog[item.romaji];
-        return makeCard(item.hiragana, item.romaji, row, "hiragana");
+        return makeCard(item.hiragana, getDisplayRomaji(item, "hiragana"), row, "hiragana");
       }).join("");
       document.getElementById(prefix + "KatakanaGrid").innerHTML = items.map((item) => {
         const row = backlog[item.romaji];
-        return makeCard(item.katakana, item.romaji, row, "katakana");
+        return makeCard(item.katakana, getDisplayRomaji(item, "katakana"), row, "katakana");
       }).join("");
     }
     fillSection("normal", "normal");
