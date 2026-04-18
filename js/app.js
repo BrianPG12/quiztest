@@ -25,6 +25,8 @@ import { createSrsManager } from "./features/srs.js";
 import { createQueueManager } from "./features/queue.js";
 import { createAudioManager } from "./features/audio.js";
 import { createAnsweringManager } from "./features/answering.js";
+import { createProgressLayoutManager } from "./features/progressLayout.js";
+import { createProgressPreferencesManager } from "./features/progressPreferences.js";
 
 const elements = getElements();
 const state = createState(kanaData);
@@ -39,7 +41,7 @@ const getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_
 const srsManager = createSrsManager(state);
 const queueManager = createQueueManager(state, elements, srsManager, getKanaCategoryFn);
 const audioManager = createAudioManager(state, elements);
-const answeringManager = createAnsweringManager(
+const answeringManager = createAnsweringManager({
   state,
   elements,
   srsManager,
@@ -48,15 +50,17 @@ const answeringManager = createAnsweringManager(
   showTypingMistake,
   updateStats,
   updateBacklog,
-  (targetState, mode, wasCorrect, romaji) => {
+  addDailyAttemptFn: (targetState, mode, wasCorrect, romaji) => {
     addDailyAttempt(targetState, mode, wasCorrect, getKanaCategoryFn(romaji));
   },
-  () => renderBacklogView(),
-  () => refreshProgressView(),
-  () => persistState()
-);
+  renderBacklogViewFn: () => renderBacklogView(),
+  refreshProgressViewFn: () => refreshProgressView(),
+  persistStateFn: () => persistState()
+});
 
 let cloudSync = { queueUpload() {}, async syncNow() {} };
+let progressLayoutManager = null;
+let progressPreferencesManager = null;
 let deferredInstallPrompt = null;
 const isCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
 
@@ -282,152 +286,43 @@ function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
 }
 
 function normalizeDailyGoalsFromState() {
-  const current = state.dailyGoals || {};
-  const next = {
-    total: clampDailyGoal(current.total, 5, 200, 25),
-    typing: clampDailyGoal(current.typing, 0, 200, 12),
-    drawing: clampDailyGoal(current.drawing, 0, 200, 8),
-    normal: clampDailyGoal(current.normal, 0, 200, 10),
-    dakuten: clampDailyGoal(current.dakuten, 0, 200, 6),
-    yoon: clampDailyGoal(current.yoon, 0, 200, 6)
-  };
-  state.dailyGoals = next;
-  state.dailyGoal = next.total;
+  progressPreferencesManager.normalizeDailyGoalsFromState();
 }
 
 function renderDailyGoalInputs() {
-  normalizeDailyGoalsFromState();
-  elements.dailyGoalTotalInput.value = String(state.dailyGoals.total);
-  elements.dailyGoalTypingInput.value = String(state.dailyGoals.typing);
-  elements.dailyGoalDrawingInput.value = String(state.dailyGoals.drawing);
-  elements.dailyGoalNormalInput.value = String(state.dailyGoals.normal);
-  elements.dailyGoalDakutenInput.value = String(state.dailyGoals.dakuten);
-  elements.dailyGoalYoonInput.value = String(state.dailyGoals.yoon);
+  progressPreferencesManager.renderDailyGoalInputs();
 }
 
 function saveDailyGoalFromUi() {
-  state.dailyGoals = {
-    total: clampDailyGoal(elements.dailyGoalTotalInput.value, 5, 200, 25),
-    typing: clampDailyGoal(elements.dailyGoalTypingInput.value, 0, 200, 12),
-    drawing: clampDailyGoal(elements.dailyGoalDrawingInput.value, 0, 200, 8),
-    normal: clampDailyGoal(elements.dailyGoalNormalInput.value, 0, 200, 10),
-    dakuten: clampDailyGoal(elements.dailyGoalDakutenInput.value, 0, 200, 6),
-    yoon: clampDailyGoal(elements.dailyGoalYoonInput.value, 0, 200, 6)
-  };
-  state.dailyGoal = state.dailyGoals.total;
-  renderDailyGoalInputs();
-  persistState();
-  refreshProgressView();
-  showResult(elements, "Daily goals saved.", true);
+  progressPreferencesManager.saveDailyGoalFromUi();
 }
 
 function resetBacklogFilters() {
-  state.backlogFilters = {
-    status: "all",
-    script: "all",
-    weakness: "all",
-    minAttempts: 0
-  };
+  progressPreferencesManager.resetBacklogFilters();
 }
 
 function renderBacklogFilterInputs() {
-  if (!state.backlogFilters || typeof state.backlogFilters !== "object") {
-    resetBacklogFilters();
-  }
-  elements.backlogStatusFilter.value = state.backlogFilters.status;
-  elements.backlogScriptFilter.value = state.backlogFilters.script;
-  elements.backlogWeaknessFilter.value = state.backlogFilters.weakness;
-  elements.backlogMinAttemptsFilter.value = String(state.backlogFilters.minAttempts);
+  progressPreferencesManager.renderBacklogFilterInputs();
 }
 
 function applyBacklogFiltersFromUi() {
-  state.backlogFilters = {
-    status: elements.backlogStatusFilter.value,
-    script: elements.backlogScriptFilter.value,
-    weakness: elements.backlogWeaknessFilter.value,
-    minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0)
-  };
-  renderBacklogFilterInputs();
-  renderBacklogView();
-  persistState();
+  progressPreferencesManager.applyBacklogFiltersFromUi();
 }
 
 function normalizeProgressLayoutState() {
-  const validSubtabs = ["overview", "trends", "compare", "sync"];
-  state.progressSubtab = validSubtabs.includes(state.progressSubtab) ? state.progressSubtab : "overview";
-
-  if (!state.progressCollapsedSections || typeof state.progressCollapsedSections !== "object") {
-    state.progressCollapsedSections = {
-      overview: false,
-      trends: false,
-      compare: false,
-      sync: false
-    };
-    return;
-  }
-
-  state.progressCollapsedSections = {
-    overview: Boolean(state.progressCollapsedSections.overview),
-    trends: Boolean(state.progressCollapsedSections.trends),
-    compare: Boolean(state.progressCollapsedSections.compare),
-    sync: Boolean(state.progressCollapsedSections.sync)
-  };
+  progressLayoutManager.normalizeState();
 }
 
 function renderProgressSubtabUi() {
-  normalizeProgressLayoutState();
-
-  const tabMap = {
-    overview: elements.progressOverviewTabBtn,
-    trends: elements.progressTrendsTabBtn,
-    compare: elements.progressCompareTabBtn,
-    sync: elements.progressSyncTabBtn
-  };
-
-  const panelMap = {
-    overview: elements.progressOverviewSection,
-    trends: elements.progressTrendsSection,
-    compare: elements.progressCompareSection,
-    sync: elements.progressSyncSection
-  };
-
-  const bodyMap = {
-    overview: elements.progressOverviewBody,
-    trends: elements.progressTrendsBody,
-    compare: elements.progressCompareBody,
-    sync: elements.progressSyncBody
-  };
-
-  const toggleMap = {
-    overview: elements.toggleOverviewSectionBtn,
-    trends: elements.toggleTrendsSectionBtn,
-    compare: elements.toggleCompareSectionBtn,
-    sync: elements.toggleSyncSectionBtn
-  };
-
-  Object.keys(tabMap).forEach((key) => {
-    const isActive = state.progressSubtab === key;
-    tabMap[key].classList.toggle("active", isActive);
-    tabMap[key].setAttribute("aria-selected", String(isActive));
-    panelMap[key].classList.toggle("hidden", !isActive);
-
-    const isCollapsed = Boolean(state.progressCollapsedSections[key]);
-    bodyMap[key].classList.toggle("hidden", isCollapsed);
-    toggleMap[key].textContent = isCollapsed ? "Show" : "Hide";
-    toggleMap[key].setAttribute("aria-expanded", String(!isCollapsed));
-  });
+  progressLayoutManager.render();
 }
 
 function setActiveProgressSubtab(subtabName) {
-  state.progressSubtab = subtabName;
-  renderProgressSubtabUi();
+  progressLayoutManager.setActiveSubtab(subtabName);
 }
 
 function toggleProgressSection(sectionName) {
-  normalizeProgressLayoutState();
-  state.progressCollapsedSections[sectionName] = !state.progressCollapsedSections[sectionName];
-  renderProgressSubtabUi();
-  persistState();
+  progressLayoutManager.toggleSection(sectionName);
 }
 
 function downloadTextFile(filename, content, mimeType) {
@@ -1044,8 +939,7 @@ function bindEvents() {
   elements.dailyProgressTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "daily"));
   elements.openSyncBtn.addEventListener("click", () => {
     setActiveProgressTab(elements, "daily");
-    state.progressCollapsedSections.sync = false;
-    setActiveProgressSubtab("sync");
+    progressLayoutManager.openSyncSection();
     elements.syncCard.scrollIntoView({ behavior: "smooth", block: "start" });
     elements.syncEmail.focus();
   });
@@ -1204,6 +1098,21 @@ function init() {
     kanaData,
     maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
     dailyHistoryLimit: DAILY_HISTORY_LIMIT
+  });
+
+  progressPreferencesManager = createProgressPreferencesManager({
+    state,
+    elements,
+    persistState,
+    refreshProgressView,
+    renderBacklogView,
+    showResult
+  });
+
+  progressLayoutManager = createProgressLayoutManager({
+    state,
+    elements,
+    persistState
   });
 
   ensureTodayEntry();

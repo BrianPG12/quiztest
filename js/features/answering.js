@@ -3,7 +3,20 @@
  * Handles answer checking, result display, and state updates
  */
 
-export function createAnsweringManager(state, elements, srsManager, queueManager, showResult, showTypingMistake, updateStats, updateBacklog, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
+export function createAnsweringManager({
+  state,
+  elements,
+  srsManager,
+  queueManager,
+  showResult,
+  showTypingMistake,
+  updateStats,
+  updateBacklog,
+  addDailyAttemptFn,
+  renderBacklogViewFn,
+  refreshProgressViewFn,
+  persistStateFn
+}) {
   function getAcceptedRomajiSet(question) {
     const primary = String(question.romaji || "");
     const accepted = new Set([primary]);
