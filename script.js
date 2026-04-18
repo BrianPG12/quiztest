@@ -56,7 +56,7 @@
         { romaji: "re", hiragana: "\u308C", katakana: "\u30EC" },
         { romaji: "ro", hiragana: "\u308D", katakana: "\u30ED" },
         { romaji: "wa", hiragana: "\u308F", katakana: "\u30EF" },
-        { romaji: "o", hiragana: "\u3092", katakana: "\u30F2" },
+        { romaji: "wo", hiragana: "\u3092", katakana: "\u30F2" },
         { romaji: "n", hiragana: "\u3093", katakana: "\u30F3" },
         { romaji: "ga", hiragana: "\u304C", katakana: "\u30AC" },
         { romaji: "gi", hiragana: "\u304E", katakana: "\u30AE" },
@@ -575,6 +575,15 @@
     }
     return pool[pool.length - 1];
   }
+  function resolveTypingRomaji(item, scriptName) {
+    if (scriptName === "Hiragana" && item.hiragana === "\u3092") {
+      return "o";
+    }
+    if (scriptName === "Katakana" && item.katakana === "\u30F2") {
+      return "wo";
+    }
+    return item.romaji;
+  }
   function pickTypingQuestion({
     kanaData: kanaData2,
     scriptMode,
@@ -593,27 +602,30 @@
       preferredRomajiList
     });
     if (scriptMode === "hiragana") {
+      const scriptName2 = "Hiragana";
       return {
         kind: "typing",
-        romaji: item.romaji,
+        romaji: resolveTypingRomaji(item, scriptName2),
         kana: item.hiragana,
-        scriptName: "Hiragana"
+        scriptName: scriptName2
       };
     }
     if (scriptMode === "katakana") {
+      const scriptName2 = "Katakana";
       return {
         kind: "typing",
-        romaji: item.romaji,
+        romaji: resolveTypingRomaji(item, scriptName2),
         kana: item.katakana,
-        scriptName: "Katakana"
+        scriptName: scriptName2
       };
     }
     const useHiragana = Math.random() > 0.5;
+    const scriptName = useHiragana ? "Hiragana" : "Katakana";
     return {
       kind: "typing",
-      romaji: item.romaji,
+      romaji: resolveTypingRomaji(item, scriptName),
       kana: useHiragana ? item.hiragana : item.katakana,
-      scriptName: useHiragana ? "Hiragana" : "Katakana"
+      scriptName
     };
   }
   function pickWritingQuestion({

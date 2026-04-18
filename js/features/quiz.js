@@ -38,6 +38,16 @@ export function pickQuestion({
   return pool[pool.length - 1];
 }
 
+function resolveTypingRomaji(item, scriptName) {
+  if (scriptName === "Hiragana" && item.hiragana === "を") {
+    return "o";
+  }
+  if (scriptName === "Katakana" && item.katakana === "ヲ") {
+    return "wo";
+  }
+  return item.romaji;
+}
+
 export function pickTypingQuestion({
   kanaData,
   scriptMode,
@@ -57,29 +67,32 @@ export function pickTypingQuestion({
   });
 
   if (scriptMode === "hiragana") {
+    const scriptName = "Hiragana";
     return {
       kind: "typing",
-      romaji: item.romaji,
+      romaji: resolveTypingRomaji(item, scriptName),
       kana: item.hiragana,
-      scriptName: "Hiragana"
+      scriptName
     };
   }
 
   if (scriptMode === "katakana") {
+    const scriptName = "Katakana";
     return {
       kind: "typing",
-      romaji: item.romaji,
+      romaji: resolveTypingRomaji(item, scriptName),
       kana: item.katakana,
-      scriptName: "Katakana"
+      scriptName
     };
   }
 
   const useHiragana = Math.random() > 0.5;
+  const scriptName = useHiragana ? "Hiragana" : "Katakana";
   return {
     kind: "typing",
-    romaji: item.romaji,
+    romaji: resolveTypingRomaji(item, scriptName),
     kana: useHiragana ? item.hiragana : item.katakana,
-    scriptName: useHiragana ? "Hiragana" : "Katakana"
+    scriptName
   };
 }
 

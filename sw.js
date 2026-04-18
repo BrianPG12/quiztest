@@ -1,4 +1,4 @@
-const CACHE_NAME = "kana-quiz-v24";
+const CACHE_NAME = "kana-quiz-v25";
 const ASSETS = [
   "/quiztest/",
   "/quiztest/index.html",
