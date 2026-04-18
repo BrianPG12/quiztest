@@ -1,11 +1,14 @@
-const CACHE_NAME = "kana-quiz-v33";
+const CACHE_NAME = "kana-quiz-v34";
+const SCOPE_URL = new URL(self.registration.scope);
+const BASE_PATH = SCOPE_URL.pathname.endsWith("/") ? SCOPE_URL.pathname : `${SCOPE_URL.pathname}/`;
+const INDEX_PATH = `${BASE_PATH}index.html`;
 const ASSETS = [
-  "/quiztest/",
-  "/quiztest/index.html",
-  "/quiztest/styles.css",
-  "/quiztest/script.js",
-  "/quiztest/manifest.webmanifest",
-  "/quiztest/icon.svg"
+  BASE_PATH,
+  INDEX_PATH,
+  `${BASE_PATH}styles.css`,
+  `${BASE_PATH}script.js`,
+  `${BASE_PATH}manifest.webmanifest`,
+  `${BASE_PATH}icon.svg`
 ];
 
 self.addEventListener("install", (event) => {
@@ -37,10 +40,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const isAppAsset =
-    requestUrl.pathname.startsWith("/quiztest/") ||
-    requestUrl.pathname === "/quiztest" ||
-    requestUrl.pathname === "/";
+  const isAppAsset = requestUrl.pathname.startsWith(BASE_PATH) || requestUrl.pathname === "/";
 
   if (!isAppAsset) {
     return;
@@ -56,12 +56,12 @@ self.addEventListener("fetch", (event) => {
           if (networkResponse && networkResponse.ok) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put("/quiztest/index.html", responseClone);
+              cache.put(INDEX_PATH, responseClone);
             });
           }
           return networkResponse;
         })
-        .catch(() => caches.match("/quiztest/index.html"))
+        .catch(() => caches.match(INDEX_PATH))
     );
     return;
   }
@@ -80,7 +80,7 @@ self.addEventListener("fetch", (event) => {
           }
           return networkResponse;
         })
-        .catch(() => caches.match("/quiztest/index.html"));
+        .catch(() => caches.match(INDEX_PATH));
     })
   );
 });
