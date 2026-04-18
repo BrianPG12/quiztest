@@ -4,6 +4,24 @@
  */
 
 export function createAnsweringManager(state, elements, srsManager, queueManager, showResult, showTypingMistake, updateStats, updateBacklog, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
+  function getAcceptedRomajiSet(question) {
+    const primary = String(question.romaji || "");
+    const accepted = new Set([primary]);
+    const kana = String(question.kana || "");
+
+    if (kana === "ぢ" || kana === "ヂ") {
+      accepted.add("di");
+      accepted.add("ji");
+    }
+
+    if (kana === "づ" || kana === "ヅ") {
+      accepted.add("du");
+      accepted.add("zu");
+    }
+
+    return accepted;
+  }
+
   /**
    * Validate and process typing answer
    * Returns: { correct: boolean, answer: string }
@@ -31,7 +49,8 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
     }
 
     const correctAnswer = state.currentQuestion.romaji;
-    const correct = userRomaji === correctAnswer;
+    const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
+    const correct = acceptedAnswers.has(userRomaji);
     if (correct) {
       state.typingRightCount += 1;
       showResult(elements, "Correct!", true);

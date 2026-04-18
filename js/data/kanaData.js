@@ -68,8 +68,10 @@ export const kanaData = [
   { romaji: "zo", hiragana: "ぞ", katakana: "ゾ" },
 
   { romaji: "da", hiragana: "だ", katakana: "ダ" },
+  { romaji: "di", hiragana: "ぢ", katakana: "ヂ" },
   { romaji: "de", hiragana: "で", katakana: "デ" },
   { romaji: "do", hiragana: "ど", katakana: "ド" },
+  { romaji: "du", hiragana: "づ", katakana: "ヅ" },
 
   { romaji: "ba", hiragana: "ば", katakana: "バ" },
   { romaji: "bi", hiragana: "び", katakana: "ビ" },
@@ -141,7 +143,7 @@ export const YOON_SET = new Set([
 export const DAKUTEN_SET = new Set([
   "ga", "gi", "gu", "ge", "go",
   "za", "ji", "zu", "ze", "zo",
-  "da", "de", "do",
+  "da", "di", "de", "do", "du",
   "ba", "bi", "bu", "be", "bo",
   "pa", "pi", "pu", "pe", "po"
 ]);

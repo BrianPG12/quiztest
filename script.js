@@ -69,8 +69,10 @@
         { romaji: "ze", hiragana: "\u305C", katakana: "\u30BC" },
         { romaji: "zo", hiragana: "\u305E", katakana: "\u30BE" },
         { romaji: "da", hiragana: "\u3060", katakana: "\u30C0" },
+        { romaji: "di", hiragana: "\u3062", katakana: "\u30C2" },
         { romaji: "de", hiragana: "\u3067", katakana: "\u30C7" },
         { romaji: "do", hiragana: "\u3069", katakana: "\u30C9" },
+        { romaji: "du", hiragana: "\u3065", katakana: "\u30C5" },
         { romaji: "ba", hiragana: "\u3070", katakana: "\u30D0" },
         { romaji: "bi", hiragana: "\u3073", katakana: "\u30D3" },
         { romaji: "bu", hiragana: "\u3076", katakana: "\u30D6" },
@@ -162,8 +164,10 @@
         "ze",
         "zo",
         "da",
+        "di",
         "de",
         "do",
+        "du",
         "ba",
         "bi",
         "bu",
@@ -12304,6 +12308,20 @@
 
   // js/features/answering.js
   function createAnsweringManager(state, elements, srsManager, queueManager, showResult2, showTypingMistake2, updateStats2, updateBacklog2, addDailyAttemptFn, renderBacklogViewFn, refreshProgressViewFn, persistStateFn) {
+    function getAcceptedRomajiSet(question) {
+      const primary = String(question.romaji || "");
+      const accepted = /* @__PURE__ */ new Set([primary]);
+      const kana = String(question.kana || "");
+      if (kana === "\u3062" || kana === "\u30C2") {
+        accepted.add("di");
+        accepted.add("ji");
+      }
+      if (kana === "\u3065" || kana === "\u30C5") {
+        accepted.add("du");
+        accepted.add("zu");
+      }
+      return accepted;
+    }
     function validateTypingAnswer(romaji) {
       if (!romaji) {
         return { correct: false, answer: "", reason: "Type a romaji answer" };
@@ -12321,7 +12339,8 @@
         return { accepted: false, correct: false };
       }
       const correctAnswer = state.currentQuestion.romaji;
-      const correct = userRomaji === correctAnswer;
+      const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
+      const correct = acceptedAnswers.has(userRomaji);
       if (correct) {
         state.typingRightCount += 1;
         showResult2(elements, "Correct!", true);
