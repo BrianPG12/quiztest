@@ -48,6 +48,16 @@ function resolveTypingRomaji(item, scriptName) {
   return item.romaji;
 }
 
+function resolveDrawingRomaji(item, canvasMode) {
+  if (canvasMode === "hiragana" && item.hiragana === "を") {
+    return "o";
+  }
+  if (canvasMode === "katakana" && item.katakana === "ヲ") {
+    return "wo";
+  }
+  return item.romaji;
+}
+
 export function pickTypingQuestion({
   kanaData,
   scriptMode,
@@ -127,37 +137,40 @@ export function pickWritingQuestion({
   }
 
   if (writingMode === "hiragana") {
+    const drawingRomaji = resolveDrawingRomaji(item, "hiragana");
     return {
       kind: "drawing",
       romaji: item.romaji,
       hiragana: item.hiragana,
       katakana: item.katakana,
       canvasMode: "hiragana",
-      promptText: `${item.romaji} (Draw Hiragana)`,
+      promptText: `${drawingRomaji} (Draw Hiragana)`,
       revealText: `Answer: Hiragana ${item.hiragana} | Katakana ${item.katakana}. Mark yourself right or wrong.`
     };
   }
 
   if (writingMode === "katakana") {
+    const drawingRomaji = resolveDrawingRomaji(item, "katakana");
     return {
       kind: "drawing",
       romaji: item.romaji,
       hiragana: item.hiragana,
       katakana: item.katakana,
       canvasMode: "katakana",
-      promptText: `${item.romaji} (Draw Katakana)`,
+      promptText: `${drawingRomaji} (Draw Katakana)`,
       revealText: `Answer: Katakana ${item.katakana} | Hiragana ${item.hiragana}. Mark yourself right or wrong.`
     };
   }
 
   const useHiragana = Math.random() > 0.5;
+  const drawingRomaji = resolveDrawingRomaji(item, useHiragana ? "hiragana" : "katakana");
   return {
     kind: "drawing",
     romaji: item.romaji,
     hiragana: item.hiragana,
     katakana: item.katakana,
     canvasMode: useHiragana ? "hiragana" : "katakana",
-    promptText: `${item.romaji} (Draw ${useHiragana ? "Hiragana" : "Katakana"})`,
+    promptText: `${drawingRomaji} (Draw ${useHiragana ? "Hiragana" : "Katakana"})`,
     revealText: `Answer: ${useHiragana ? "Hiragana" : "Katakana"} ${useHiragana ? item.hiragana : item.katakana} | Other script: ${useHiragana ? item.katakana : item.hiragana}. Mark yourself right or wrong.`
   };
 }
