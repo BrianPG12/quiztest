@@ -52,7 +52,7 @@ export const kanaData = [
   { romaji: "ro", hiragana: "ろ", katakana: "ロ" },
 
   { romaji: "wa", hiragana: "わ", katakana: "ワ" },
-  { romaji: "wo", hiragana: "を", katakana: "ヲ" },
+  { romaji: "o", hiragana: "を", katakana: "ヲ" },
   { romaji: "n", hiragana: "ん", katakana: "ン" },
 
   { romaji: "ga", hiragana: "が", katakana: "ガ" },

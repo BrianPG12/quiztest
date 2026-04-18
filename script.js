@@ -56,7 +56,7 @@
         { romaji: "re", hiragana: "\u308C", katakana: "\u30EC" },
         { romaji: "ro", hiragana: "\u308D", katakana: "\u30ED" },
         { romaji: "wa", hiragana: "\u308F", katakana: "\u30EF" },
-        { romaji: "wo", hiragana: "\u3092", katakana: "\u30F2" },
+        { romaji: "o", hiragana: "\u3092", katakana: "\u30F2" },
         { romaji: "n", hiragana: "\u3093", katakana: "\u30F3" },
         { romaji: "ga", hiragana: "\u304C", katakana: "\u30AC" },
         { romaji: "gi", hiragana: "\u304E", katakana: "\u30AE" },
@@ -330,6 +330,8 @@
       nextQuestionTimer: null,
       practiceStrategy: "srs",
       recentMistakes: [],
+      recentTypingMistakes: [],
+      recentDrawingMistakes: [],
       srsByRomaji,
       audioMuted: false,
       drawGuideEnabled: true,
@@ -698,6 +700,8 @@
       savedAt,
       practiceStrategy: state.practiceStrategy,
       recentMistakes: state.recentMistakes,
+      recentTypingMistakes: state.recentTypingMistakes,
+      recentDrawingMistakes: state.recentDrawingMistakes,
       srsByRomaji: state.srsByRomaji,
       audioMuted: state.audioMuted,
       drawGuideEnabled: state.drawGuideEnabled,
@@ -718,8 +722,11 @@
       return;
     }
     state.lastSavedAt = Number(payload.savedAt || 0);
-    state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" ? payload.practiceStrategy : "srs";
-    state.recentMistakes = Array.isArray(payload.recentMistakes) ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [];
+    state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" || payload.practiceStrategy === "frequentMistakes" ? payload.practiceStrategy : "srs";
+    const legacyMistakes = Array.isArray(payload.recentMistakes) ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [];
+    state.recentTypingMistakes = Array.isArray(payload.recentTypingMistakes) ? payload.recentTypingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
+    state.recentDrawingMistakes = Array.isArray(payload.recentDrawingMistakes) ? payload.recentDrawingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
+    state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
     state.audioMuted = Boolean(payload.audioMuted);
     state.drawGuideEnabled = payload.drawGuideEnabled !== false;
     state.dailyGoal = Math.max(5, Math.min(200, Number(payload.dailyGoal || 25)));
@@ -12029,20 +12036,33 @@
 
   // js/features/srs.js
   function createSrsManager(state) {
+    function getMistakeKey(answerMode = "typing") {
+      return answerMode === "drawing" ? "recentDrawingMistakes" : "recentTypingMistakes";
+    }
     function getDueRomajiList() {
       const now = Date.now();
       return Object.entries(state.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
     }
-    function upsertRecentMistake(romaji) {
-      state.recentMistakes = [
+    function upsertRecentMistake(romaji, answerMode = "typing") {
+      const key = getMistakeKey(answerMode);
+      const source = Array.isArray(state[key]) ? state[key] : [];
+      state[key] = [
         romaji,
-        ...state.recentMistakes.filter((value) => value !== romaji)
+        ...source.filter((value) => value !== romaji)
       ].slice(0, MAX_RECENT_MISTAKES);
+      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes || [], ...state.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
     }
-    function removeRecentMistake(romaji) {
-      state.recentMistakes = state.recentMistakes.filter((value) => value !== romaji);
+    function removeRecentMistake(romaji, answerMode = "typing") {
+      const key = getMistakeKey(answerMode);
+      const source = Array.isArray(state[key]) ? state[key] : [];
+      state[key] = source.filter((value) => value !== romaji);
+      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes || [], ...state.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
     }
-    function updateSrsOnAttempt(romaji, wasCorrect) {
+    function getRecentMistakesByMode(answerMode = "typing") {
+      const key = getMistakeKey(answerMode);
+      return Array.isArray(state[key]) ? state[key] : [];
+    }
+    function updateSrsOnAttempt(romaji, wasCorrect, answerMode = "typing") {
       const current = state.srsByRomaji[romaji] || {
         dueAt: 0,
         intervalHours: 0,
@@ -12055,11 +12075,11 @@
         const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
         current.intervalHours = nextInterval;
         current.dueAt = now + nextInterval * 60 * 60 * 1e3;
-        removeRecentMistake(romaji);
+        removeRecentMistake(romaji, answerMode);
       } else {
         current.intervalHours = 0.5;
         current.dueAt = now + 30 * 60 * 1e3;
-        upsertRecentMistake(romaji);
+        upsertRecentMistake(romaji, answerMode);
       }
       current.lastSeenAt = now;
       current.lastCorrect = wasCorrect;
@@ -12070,6 +12090,7 @@
     }
     return {
       getDueRomajiList,
+      getRecentMistakesByMode,
       upsertRecentMistake,
       removeRecentMistake,
       updateSrsOnAttempt,
@@ -12085,6 +12106,50 @@
 
   // js/features/queue.js
   function createQueueManager(state, elements, srsManager, getKanaCategoryFn) {
+    function getQuestionKindForCurrentMode() {
+      const mode = elements.modeSelect.value;
+      if (mode === "romajiToKana") {
+        return "drawing";
+      }
+      if (mode === "mixedPractice") {
+        return "mixed";
+      }
+      return "typing";
+    }
+    function getMistakeEntriesForKind(questionKind = "typing") {
+      if (questionKind === "drawing") {
+        return srsManager.getRecentMistakesByMode("drawing");
+      }
+      if (questionKind === "mixed") {
+        return [
+          .../* @__PURE__ */ new Set([
+            ...srsManager.getRecentMistakesByMode("typing"),
+            ...srsManager.getRecentMistakesByMode("drawing")
+          ])
+        ];
+      }
+      return srsManager.getRecentMistakesByMode("typing");
+    }
+    function getFrequentMistakesRomajiList(questionKind = "typing") {
+      const entries = Object.values(state.backlog).map((row) => {
+        let wrong = row.typingWrong;
+        let right = row.typingRight;
+        if (questionKind === "drawing") {
+          wrong = row.drawingWrong;
+          right = row.drawingRight;
+        } else if (questionKind === "mixed") {
+          wrong = row.typingWrong + row.drawingWrong;
+          right = row.typingRight + row.drawingRight;
+        }
+        return {
+          romaji: row.romaji,
+          wrong,
+          right,
+          pressure: wrong * 2 - right
+        };
+      }).filter((item) => item.wrong >= 3 && item.pressure >= 4).sort((a, b2) => b2.pressure - a.pressure || b2.wrong - a.wrong).map((item) => item.romaji);
+      return filterRomajiForCurrentKanaSet(entries).slice(0, 40);
+    }
     function filterRomajiForCurrentKanaSet(romajiList) {
       const setMode = elements.kanaSetSelect.value;
       if (setMode === "all") {
@@ -12092,9 +12157,12 @@
       }
       return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
     }
-    function getPreferredRomajiList() {
+    function getPreferredRomajiList(questionKind = getQuestionKindForCurrentMode()) {
       if (state.practiceStrategy === "mistakeReview") {
-        return filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, 30);
+        return filterRomajiForCurrentKanaSet(getMistakeEntriesForKind(questionKind)).slice(0, 30);
+      }
+      if (state.practiceStrategy === "frequentMistakes") {
+        return getFrequentMistakesRomajiList(questionKind);
       }
       if (state.practiceStrategy === "srs") {
         return filterRomajiForCurrentKanaSet(srsManager.getDueRomajiList()).slice(0, 30);
@@ -12112,17 +12180,20 @@
         dueCount = 18;
       }
       const due = filterRomajiForCurrentKanaSet(srsManager.getDueRomajiList()).slice(0, dueCount);
-      const mistakes = filterRomajiForCurrentKanaSet(state.recentMistakes).slice(0, mistakesCount);
+      const mistakes = filterRomajiForCurrentKanaSet(getMistakeEntriesForKind(questionKind)).slice(0, mistakesCount);
       return [.../* @__PURE__ */ new Set([...mistakes, ...due])];
     }
     function updateQueueMeta() {
+      const questionKind = getQuestionKindForCurrentMode();
       const due = srsManager.getDueRomajiList().length;
-      const mistakes = state.recentMistakes.length;
-      const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
+      const mistakes = getMistakeEntriesForKind(questionKind).length;
+      const frequentMistakes = getFrequentMistakesRomajiList(questionKind).length;
+      const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "frequentMistakes" ? `Frequent mistakes: ${frequentMistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
       elements.queueMeta.textContent = strategy;
     }
     return {
       getPreferredRomajiList,
+      getFrequentMistakesRomajiList,
       updateQueueMeta,
       filterRomajiForCurrentKanaSet
     };
@@ -12232,7 +12303,7 @@
         scriptContext: state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
         answerMode: "typing"
       });
-      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct);
+      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct, "typing");
       addDailyAttemptFn(state, "typing", correct);
       updateStats2(elements, state);
       renderBacklogViewFn();
@@ -12259,7 +12330,7 @@
         scriptContext: state.currentQuestion.canvasMode,
         answerMode: "drawing"
       });
-      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
+      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect, "drawing");
       addDailyAttemptFn(state, "drawing", wasCorrect);
       updateStats2(elements, state);
       renderBacklogViewFn();
@@ -12591,9 +12662,10 @@
           state.nextQuestionTimer = null;
         }
         try {
-          const preferredRomajiList = queueManager.getPreferredRomajiList();
           const mode = elements.modeSelect.value;
-          if (mode === "kanaToRomaji") {
+          const nextQuestionKind = mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing";
+          const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
+          if (nextQuestionKind === "typing") {
             state.currentQuestion = pickTypingQuestion({
               kanaData,
               scriptMode: elements.scriptSelect.value,
@@ -12603,26 +12675,8 @@
               backlog: state.backlog,
               preferredRomajiList
             });
-          } else if (mode === "romajiToKana") {
-            state.currentQuestion = pickWritingQuestion({
-              kanaData,
-              writingMode: elements.writingScriptSelect.value,
-              kanaSet: elements.kanaSetSelect.value,
-              getKanaCategoryFn,
-              getQuestionWeightFn: getQuestionWeight,
-              backlog: state.backlog,
-              preferredRomajiList
-            });
           } else {
-            state.currentQuestion = Math.random() > 0.5 ? pickTypingQuestion({
-              kanaData,
-              scriptMode: elements.scriptSelect.value,
-              kanaSet: elements.kanaSetSelect.value,
-              getKanaCategoryFn,
-              getQuestionWeightFn: getQuestionWeight,
-              backlog: state.backlog,
-              preferredRomajiList
-            }) : pickWritingQuestion({
+            state.currentQuestion = pickWritingQuestion({
               kanaData,
               writingMode: elements.writingScriptSelect.value,
               kanaSet: elements.kanaSetSelect.value,
@@ -12693,6 +12747,8 @@
         state.drawingRightCount = 0;
         state.drawingWrongCount = 0;
         state.recentMistakes = [];
+        state.recentTypingMistakes = [];
+        state.recentDrawingMistakes = [];
         state.practiceStrategy = "srs";
         state.lastCloudSyncAt = 0;
         state.syncUserEmail = "";

@@ -45,6 +45,8 @@ export function createState(kanaData) {
     nextQuestionTimer: null,
     practiceStrategy: "srs",
     recentMistakes: [],
+    recentTypingMistakes: [],
+    recentDrawingMistakes: [],
     srsByRomaji,
     audioMuted: false,
     drawGuideEnabled: true,

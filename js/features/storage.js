@@ -19,6 +19,8 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
     savedAt,
     practiceStrategy: state.practiceStrategy,
     recentMistakes: state.recentMistakes,
+    recentTypingMistakes: state.recentTypingMistakes,
+    recentDrawingMistakes: state.recentDrawingMistakes,
     srsByRomaji: state.srsByRomaji,
     audioMuted: state.audioMuted,
     drawGuideEnabled: state.drawGuideEnabled,
@@ -41,12 +43,23 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   }
 
   state.lastSavedAt = Number(payload.savedAt || 0);
-  state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed"
+  state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" || payload.practiceStrategy === "frequentMistakes"
     ? payload.practiceStrategy
     : "srs";
-  state.recentMistakes = Array.isArray(payload.recentMistakes)
+
+  const legacyMistakes = Array.isArray(payload.recentMistakes)
     ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
     : [];
+
+  state.recentTypingMistakes = Array.isArray(payload.recentTypingMistakes)
+    ? payload.recentTypingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
+    : [...legacyMistakes];
+
+  state.recentDrawingMistakes = Array.isArray(payload.recentDrawingMistakes)
+    ? payload.recentDrawingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
+    : [...legacyMistakes];
+
+  state.recentMistakes = [...new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
   state.audioMuted = Boolean(payload.audioMuted);
   state.drawGuideEnabled = payload.drawGuideEnabled !== false;
   state.dailyGoal = Math.max(5, Math.min(200, Number(payload.dailyGoal || 25)));

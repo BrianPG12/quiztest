@@ -389,9 +389,15 @@ function newQuestion() {
   }
 
   try {
-    const preferredRomajiList = queueManager.getPreferredRomajiList();
     const mode = elements.modeSelect.value;
-    if (mode === "kanaToRomaji") {
+    const nextQuestionKind = mode === "kanaToRomaji"
+      ? "typing"
+      : mode === "romajiToKana"
+        ? "drawing"
+        : (Math.random() > 0.5 ? "typing" : "drawing");
+    const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
+
+    if (nextQuestionKind === "typing") {
       state.currentQuestion = pickTypingQuestion({
         kanaData,
         scriptMode: elements.scriptSelect.value,
@@ -401,7 +407,7 @@ function newQuestion() {
         backlog: state.backlog,
         preferredRomajiList
       });
-    } else if (mode === "romajiToKana") {
+    } else {
       state.currentQuestion = pickWritingQuestion({
         kanaData,
         writingMode: elements.writingScriptSelect.value,
@@ -411,26 +417,6 @@ function newQuestion() {
         backlog: state.backlog,
         preferredRomajiList
       });
-    } else {
-      state.currentQuestion = Math.random() > 0.5
-        ? pickTypingQuestion({
-          kanaData,
-          scriptMode: elements.scriptSelect.value,
-          kanaSet: elements.kanaSetSelect.value,
-          getKanaCategoryFn,
-          getQuestionWeightFn: getQuestionWeight,
-          backlog: state.backlog,
-          preferredRomajiList
-        })
-        : pickWritingQuestion({
-          kanaData,
-          writingMode: elements.writingScriptSelect.value,
-          kanaSet: elements.kanaSetSelect.value,
-          getKanaCategoryFn,
-          getQuestionWeightFn: getQuestionWeight,
-          backlog: state.backlog,
-          preferredRomajiList
-        });
     }
   } catch (error) {
     state.currentQuestion = null;
@@ -502,6 +488,8 @@ function resetAllData() {
   state.drawingRightCount = 0;
   state.drawingWrongCount = 0;
   state.recentMistakes = [];
+  state.recentTypingMistakes = [];
+  state.recentDrawingMistakes = [];
   state.practiceStrategy = "srs";
   state.lastCloudSyncAt = 0;
   state.syncUserEmail = "";

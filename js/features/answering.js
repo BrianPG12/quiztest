@@ -49,7 +49,7 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
       answerMode: "typing"
     });
 
-    srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct);
+    srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct, "typing");
     addDailyAttemptFn(state, "typing", correct);
     updateStats(elements, state);
     renderBacklogViewFn();
@@ -84,7 +84,7 @@ export function createAnsweringManager(state, elements, srsManager, queueManager
       answerMode: "drawing"
     });
 
-    srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect);
+    srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect, "drawing");
     addDailyAttemptFn(state, "drawing", wasCorrect);
     updateStats(elements, state);
     renderBacklogViewFn();
