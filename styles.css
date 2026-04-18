@@ -714,6 +714,11 @@ button:disabled {
   border-color: #86efac;
 }
 
+.kana-card.status-mixed {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
 .kana-card.status-bad {
   background: #fff1f2;
   border-color: #fca5a5;

@@ -9,10 +9,10 @@ function getCardStatus(stats) {
 
   const typingNetPositive = stats.typingRight > stats.typingWrong;
   const drawingNetPositive = stats.drawingRight > stats.drawingWrong;
-  const enoughCombinedCorrect = stats.typingRight + stats.drawingRight > 3;
-  if (typingNetPositive && drawingNetPositive && enoughCombinedCorrect) return "status-good";
 
-  return "status-bad";
+  if (typingNetPositive && drawingNetPositive) return "status-good";
+  if (!typingNetPositive && !drawingNetPositive) return "status-bad";
+  return "status-mixed";
 }
 
 function getTotalAttempts(stats) {
@@ -66,7 +66,7 @@ export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCatego
     if (activeFilters.status === "unseen" && attempts > 0) {
       return false;
     }
-    if (activeFilters.status === "weak" && status !== "status-bad") {
+    if (activeFilters.status === "weak" && status !== "status-bad" && status !== "status-mixed") {
       return false;
     }
     if (activeFilters.status === "strong" && status !== "status-good") {
