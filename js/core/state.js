@@ -77,6 +77,13 @@ export function createState(kanaData) {
     lastCloudSyncAt: 0,
     syncUserEmail: "",
     progressUiDayMarker: getTodayKey(),
+    progressSubtab: "overview",
+    progressCollapsedSections: {
+      overview: false,
+      trends: false,
+      compare: false,
+      sync: false
+    },
     backlog: createBacklog(kanaData)
   };
 }

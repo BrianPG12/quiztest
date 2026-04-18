@@ -226,6 +226,22 @@
       resetAllDataBtn: document.getElementById("resetAllDataBtn"),
       backlogPanel: document.getElementById("backlogPanel"),
       progressPanel: document.getElementById("progressPanel"),
+      progressOverviewTabBtn: document.getElementById("progressOverviewTabBtn"),
+      progressTrendsTabBtn: document.getElementById("progressTrendsTabBtn"),
+      progressCompareTabBtn: document.getElementById("progressCompareTabBtn"),
+      progressSyncTabBtn: document.getElementById("progressSyncTabBtn"),
+      progressOverviewSection: document.getElementById("progressOverviewSection"),
+      progressTrendsSection: document.getElementById("progressTrendsSection"),
+      progressCompareSection: document.getElementById("progressCompareSection"),
+      progressSyncSection: document.getElementById("progressSyncSection"),
+      progressOverviewBody: document.getElementById("progressOverviewBody"),
+      progressTrendsBody: document.getElementById("progressTrendsBody"),
+      progressCompareBody: document.getElementById("progressCompareBody"),
+      progressSyncBody: document.getElementById("progressSyncBody"),
+      toggleOverviewSectionBtn: document.getElementById("toggleOverviewSectionBtn"),
+      toggleTrendsSectionBtn: document.getElementById("toggleTrendsSectionBtn"),
+      toggleCompareSectionBtn: document.getElementById("toggleCompareSectionBtn"),
+      toggleSyncSectionBtn: document.getElementById("toggleSyncSectionBtn"),
       backlogStatusFilter: document.getElementById("backlogStatusFilter"),
       backlogScriptFilter: document.getElementById("backlogScriptFilter"),
       backlogWeaknessFilter: document.getElementById("backlogWeaknessFilter"),
@@ -382,6 +398,13 @@
       lastCloudSyncAt: 0,
       syncUserEmail: "",
       progressUiDayMarker: getTodayKey(),
+      progressSubtab: "overview",
+      progressCollapsedSections: {
+        overview: false,
+        trends: false,
+        compare: false,
+        sync: false
+      },
       backlog: createBacklog(kanaData2)
     };
   }
@@ -828,6 +851,19 @@
     const minAttempts = clampGoal(source.minAttempts, 0, 999, 0);
     return { status, script, weakness, minAttempts };
   }
+  function normalizeProgressSubtab(payload) {
+    const value = payload && typeof payload.progressSubtab === "string" ? payload.progressSubtab : "overview";
+    return ["overview", "trends", "compare", "sync"].includes(value) ? value : "overview";
+  }
+  function normalizeProgressCollapsedSections(payload) {
+    const source = payload && payload.progressCollapsedSections && typeof payload.progressCollapsedSections === "object" ? payload.progressCollapsedSections : {};
+    return {
+      overview: Boolean(source.overview),
+      trends: Boolean(source.trends),
+      compare: Boolean(source.compare),
+      sync: Boolean(source.sync)
+    };
+  }
   function buildProgressPayload({ state, dailyHistoryLimit }) {
     trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
     trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
@@ -845,6 +881,8 @@
       dailyGoal: state.dailyGoal,
       dailyGoals: state.dailyGoals,
       backlogFilters: state.backlogFilters,
+      progressSubtab: state.progressSubtab,
+      progressCollapsedSections: state.progressCollapsedSections,
       lastCloudSyncAt: state.lastCloudSyncAt,
       syncUserEmail: state.syncUserEmail,
       typingRightCount: state.typingRightCount,
@@ -872,6 +910,8 @@
     state.dailyGoals = normalizeDailyGoals(state, payload);
     state.dailyGoal = state.dailyGoals.total;
     state.backlogFilters = normalizeBacklogFilters(payload);
+    state.progressSubtab = normalizeProgressSubtab(payload);
+    state.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
     state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
     state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
     state.typingRightCount = Number(payload.typingRightCount || 0);
@@ -12939,6 +12979,72 @@
         renderBacklogView();
         persistState();
       }
+      function normalizeProgressLayoutState() {
+        const validSubtabs = ["overview", "trends", "compare", "sync"];
+        state.progressSubtab = validSubtabs.includes(state.progressSubtab) ? state.progressSubtab : "overview";
+        if (!state.progressCollapsedSections || typeof state.progressCollapsedSections !== "object") {
+          state.progressCollapsedSections = {
+            overview: false,
+            trends: false,
+            compare: false,
+            sync: false
+          };
+          return;
+        }
+        state.progressCollapsedSections = {
+          overview: Boolean(state.progressCollapsedSections.overview),
+          trends: Boolean(state.progressCollapsedSections.trends),
+          compare: Boolean(state.progressCollapsedSections.compare),
+          sync: Boolean(state.progressCollapsedSections.sync)
+        };
+      }
+      function renderProgressSubtabUi() {
+        normalizeProgressLayoutState();
+        const tabMap = {
+          overview: elements.progressOverviewTabBtn,
+          trends: elements.progressTrendsTabBtn,
+          compare: elements.progressCompareTabBtn,
+          sync: elements.progressSyncTabBtn
+        };
+        const panelMap = {
+          overview: elements.progressOverviewSection,
+          trends: elements.progressTrendsSection,
+          compare: elements.progressCompareSection,
+          sync: elements.progressSyncSection
+        };
+        const bodyMap = {
+          overview: elements.progressOverviewBody,
+          trends: elements.progressTrendsBody,
+          compare: elements.progressCompareBody,
+          sync: elements.progressSyncBody
+        };
+        const toggleMap = {
+          overview: elements.toggleOverviewSectionBtn,
+          trends: elements.toggleTrendsSectionBtn,
+          compare: elements.toggleCompareSectionBtn,
+          sync: elements.toggleSyncSectionBtn
+        };
+        Object.keys(tabMap).forEach((key) => {
+          const isActive = state.progressSubtab === key;
+          tabMap[key].classList.toggle("active", isActive);
+          tabMap[key].setAttribute("aria-selected", String(isActive));
+          panelMap[key].classList.toggle("hidden", !isActive);
+          const isCollapsed = Boolean(state.progressCollapsedSections[key]);
+          bodyMap[key].classList.toggle("hidden", isCollapsed);
+          toggleMap[key].textContent = isCollapsed ? "Show" : "Hide";
+          toggleMap[key].setAttribute("aria-expanded", String(!isCollapsed));
+        });
+      }
+      function setActiveProgressSubtab(subtabName) {
+        state.progressSubtab = subtabName;
+        renderProgressSubtabUi();
+      }
+      function toggleProgressSection(sectionName) {
+        normalizeProgressLayoutState();
+        state.progressCollapsedSections[sectionName] = !state.progressCollapsedSections[sectionName];
+        renderProgressSubtabUi();
+        persistState();
+      }
       function downloadTextFile(filename, content, mimeType) {
         const blob = new Blob([content], { type: mimeType });
         const url = URL.createObjectURL(blob);
@@ -13181,6 +13287,7 @@
       }
       function refreshProgressView() {
         renderDailyProgress({ elements, state, setActiveProgressTab });
+        renderProgressSubtabUi();
       }
       function ensureTodayEntry() {
         const todayKey = getTodayKey();
@@ -13371,6 +13478,13 @@
         };
         state.dailyGoal = 25;
         resetBacklogFilters();
+        state.progressSubtab = "overview";
+        state.progressCollapsedSections = {
+          overview: false,
+          trends: false,
+          compare: false,
+          sync: false
+        };
         Object.keys(state.srsByRomaji).forEach((romaji) => {
           state.srsByRomaji[romaji] = {
             dueAt: 0,
@@ -13450,6 +13564,8 @@
         elements.dailyProgressTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "daily"));
         elements.openSyncBtn.addEventListener("click", () => {
           setActiveProgressTab(elements, "daily");
+          state.progressCollapsedSections.sync = false;
+          setActiveProgressSubtab("sync");
           elements.syncCard.scrollIntoView({ behavior: "smooth", block: "start" });
           elements.syncEmail.focus();
         });
@@ -13480,6 +13596,26 @@
           renderBacklogView();
           persistState();
         });
+        elements.progressOverviewTabBtn.addEventListener("click", () => {
+          setActiveProgressSubtab("overview");
+          persistState();
+        });
+        elements.progressTrendsTabBtn.addEventListener("click", () => {
+          setActiveProgressSubtab("trends");
+          persistState();
+        });
+        elements.progressCompareTabBtn.addEventListener("click", () => {
+          setActiveProgressSubtab("compare");
+          persistState();
+        });
+        elements.progressSyncTabBtn.addEventListener("click", () => {
+          setActiveProgressSubtab("sync");
+          persistState();
+        });
+        elements.toggleOverviewSectionBtn.addEventListener("click", () => toggleProgressSection("overview"));
+        elements.toggleTrendsSectionBtn.addEventListener("click", () => toggleProgressSection("trends"));
+        elements.toggleCompareSectionBtn.addEventListener("click", () => toggleProgressSection("compare"));
+        elements.toggleSyncSectionBtn.addEventListener("click", () => toggleProgressSection("sync"));
         elements.exportDataBtn.addEventListener("click", exportLocalProgress);
         elements.importDataBtn.addEventListener("click", () => {
           elements.importDataInput.click();
@@ -13601,8 +13737,10 @@
         elements.practiceStrategySelect.value = state.practiceStrategy;
         elements.drawGuideToggle.checked = state.drawGuideEnabled;
         normalizeDailyGoalsFromState();
+        normalizeProgressLayoutState();
         renderDailyGoalInputs();
         renderBacklogFilterInputs();
+        renderProgressSubtabUi();
         drawingFeature.setGuideEnabled(state.drawGuideEnabled);
         audioManager.refreshAudioButton();
         queueManager.updateQueueMeta();

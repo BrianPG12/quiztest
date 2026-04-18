@@ -47,6 +47,24 @@ function normalizeBacklogFilters(payload) {
   return { status, script, weakness, minAttempts };
 }
 
+function normalizeProgressSubtab(payload) {
+  const value = payload && typeof payload.progressSubtab === "string" ? payload.progressSubtab : "overview";
+  return ["overview", "trends", "compare", "sync"].includes(value) ? value : "overview";
+}
+
+function normalizeProgressCollapsedSections(payload) {
+  const source = payload && payload.progressCollapsedSections && typeof payload.progressCollapsedSections === "object"
+    ? payload.progressCollapsedSections
+    : {};
+
+  return {
+    overview: Boolean(source.overview),
+    trends: Boolean(source.trends),
+    compare: Boolean(source.compare),
+    sync: Boolean(source.sync)
+  };
+}
+
 export function buildProgressPayload({ state, dailyHistoryLimit }) {
   trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
   trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
@@ -66,6 +84,8 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
     dailyGoal: state.dailyGoal,
     dailyGoals: state.dailyGoals,
     backlogFilters: state.backlogFilters,
+    progressSubtab: state.progressSubtab,
+    progressCollapsedSections: state.progressCollapsedSections,
     lastCloudSyncAt: state.lastCloudSyncAt,
     syncUserEmail: state.syncUserEmail,
     typingRightCount: state.typingRightCount,
@@ -107,6 +127,8 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   state.dailyGoals = normalizeDailyGoals(state, payload);
   state.dailyGoal = state.dailyGoals.total;
   state.backlogFilters = normalizeBacklogFilters(payload);
+  state.progressSubtab = normalizeProgressSubtab(payload);
+  state.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
   state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
   state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
   state.typingRightCount = Number(payload.typingRightCount || 0);

@@ -887,6 +887,48 @@ button:disabled {
   margin-top: 4px;
 }
 
+.progress-subtabs {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.progress-subtabs .tab-btn {
+  border-radius: 10px;
+  padding: 7px 14px;
+}
+
+.progress-subpanel {
+  margin-top: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px;
+  background: var(--surface);
+}
+
+.progress-subpanel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.progress-subpanel-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.progress-toggle-btn {
+  min-width: 72px;
+}
+
+.progress-subpanel-body {
+  display: grid;
+  gap: 10px;
+}
+
 .sync-card h3 {
   margin: 0 0 4px;
   font-size: 1rem;
@@ -1212,6 +1254,10 @@ button:disabled {
 
   .sync-controls {
     grid-template-columns: 1fr;
+  }
+
+  .progress-subtabs .tab-btn {
+    flex: 1 1 calc(50% - 4px);
   }
 
   .daily-goal-controls {
