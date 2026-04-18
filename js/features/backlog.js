@@ -11,24 +11,28 @@ function getCardStatus(stats) {
   const typingAttempts = stats.typingRight + stats.typingWrong;
   const drawingAttempts = stats.drawingRight + stats.drawingWrong;
 
-  // A mode counts as "positive" only if it has been played AND more right than wrong.
-  // An unattempted mode (0/0) is treated as neutral — it doesn't drag down a good mode.
   const typingPositive = typingAttempts > 0 && stats.typingRight > stats.typingWrong;
   const drawingPositive = drawingAttempts > 0 && stats.drawingRight > stats.drawingWrong;
   const typingNegative = typingAttempts > 0 && stats.typingRight <= stats.typingWrong;
   const drawingNegative = drawingAttempts > 0 && stats.drawingRight <= stats.drawingWrong;
+  const bothAttempted = typingAttempts > 0 && drawingAttempts > 0;
 
-  // Every played mode is positive → green
-  if ((typingPositive || typingAttempts === 0) && (drawingPositive || drawingAttempts === 0)
-      && (typingPositive || drawingPositive)) {
+  // Green only when both modes have been played and both are net-positive.
+  if (bothAttempted && typingPositive && drawingPositive) {
     return "status-good";
   }
-  // Every played mode is negative → red
-  if ((typingNegative || typingAttempts === 0) && (drawingNegative || drawingAttempts === 0)
-      && (typingNegative || drawingNegative)) {
+
+  // With one untouched mode, a net-positive attempted mode is "in progress" (yellow).
+  if (!bothAttempted && (typingPositive || drawingPositive)) {
+    return "status-mixed";
+  }
+
+  // Red when both attempted modes are net-negative, or when single attempted mode is not positive.
+  if ((bothAttempted && typingNegative && drawingNegative) || (!bothAttempted && (typingNegative || drawingNegative))) {
     return "status-bad";
   }
-  // One mode positive, one mode negative → yellow
+
+  // Mixed outcomes (one positive, one negative) are yellow.
   return "status-mixed";
 }
 

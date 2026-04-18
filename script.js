@@ -481,10 +481,14 @@
     const drawingPositive = drawingAttempts > 0 && stats.drawingRight > stats.drawingWrong;
     const typingNegative = typingAttempts > 0 && stats.typingRight <= stats.typingWrong;
     const drawingNegative = drawingAttempts > 0 && stats.drawingRight <= stats.drawingWrong;
-    if ((typingPositive || typingAttempts === 0) && (drawingPositive || drawingAttempts === 0) && (typingPositive || drawingPositive)) {
+    const bothAttempted = typingAttempts > 0 && drawingAttempts > 0;
+    if (bothAttempted && typingPositive && drawingPositive) {
       return "status-good";
     }
-    if ((typingNegative || typingAttempts === 0) && (drawingNegative || drawingAttempts === 0) && (typingNegative || drawingNegative)) {
+    if (!bothAttempted && (typingPositive || drawingPositive)) {
+      return "status-mixed";
+    }
+    if (bothAttempted && typingNegative && drawingNegative || !bothAttempted && (typingNegative || drawingNegative)) {
       return "status-bad";
     }
     return "status-mixed";
