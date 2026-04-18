@@ -1,3 +1,11 @@
+export function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
 export function createProgressPreferencesManager({
   state,
   elements,
@@ -6,13 +14,6 @@ export function createProgressPreferencesManager({
   renderBacklogView,
   showResult
 }) {
-  function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-      return fallback;
-    }
-    return Math.max(min, Math.min(max, Math.round(parsed)));
-  }
 
   function normalizeDailyGoalsFromState() {
     const current = state.dailyGoals || {};

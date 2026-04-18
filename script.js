@@ -12791,6 +12791,13 @@
   });
 
   // js/features/progressPreferences.js
+  function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+    return Math.max(min, Math.min(max, Math.round(parsed)));
+  }
   function createProgressPreferencesManager({
     state,
     elements,
@@ -12799,13 +12806,6 @@
     renderBacklogView,
     showResult: showResult2
   }) {
-    function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
-      const parsed = Number(value);
-      if (!Number.isFinite(parsed)) {
-        return fallback;
-      }
-      return Math.max(min, Math.min(max, Math.round(parsed)));
-    }
     function normalizeDailyGoalsFromState() {
       const current = state.dailyGoals || {};
       const next = {
@@ -12886,6 +12886,366 @@
     }
   });
 
+  // js/features/backup.js
+  function createBackupManager({
+    state,
+    kanaData: kanaData2,
+    MAX_DRAWINGS_PER_KANA: MAX_DRAWINGS_PER_KANA2,
+    DAILY_HISTORY_LIMIT: DAILY_HISTORY_LIMIT2,
+    showResultFn,
+    buildProgressPayload: buildProgressPayload2,
+    applyProgressPayload: applyProgressPayload2,
+    onImportComplete
+  }) {
+    function toSafeCount(value) {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return 0;
+      }
+      return parsed;
+    }
+    function mergeSrsEntry(localEntry, importedEntry) {
+      const localDueAt = toSafeCount(localEntry && localEntry.dueAt);
+      const importDueAt = toSafeCount(importedEntry && importedEntry.dueAt);
+      const dueCandidates = [localDueAt, importDueAt].filter((value) => value > 0);
+      const dueAt = dueCandidates.length > 0 ? Math.min(...dueCandidates) : 0;
+      const localSeenAt = toSafeCount(localEntry && localEntry.lastSeenAt);
+      const importSeenAt = toSafeCount(importedEntry && importedEntry.lastSeenAt);
+      return {
+        dueAt,
+        intervalHours: Math.max(
+          toSafeCount(localEntry && localEntry.intervalHours),
+          toSafeCount(importedEntry && importedEntry.intervalHours)
+        ),
+        lastSeenAt: Math.max(localSeenAt, importSeenAt),
+        lastCorrect: importSeenAt >= localSeenAt ? Boolean(importedEntry && importedEntry.lastCorrect) : Boolean(localEntry && localEntry.lastCorrect)
+      };
+    }
+    function mergeBacklogRow(targetRow, incomingRow) {
+      if (!incomingRow || typeof incomingRow !== "object") {
+        return;
+      }
+      const numericKeys = [
+        "right",
+        "wrong",
+        "typingRight",
+        "typingWrong",
+        "drawingRight",
+        "drawingWrong",
+        "hiraganaTypingRight",
+        "hiraganaTypingWrong",
+        "hiraganaDrawingRight",
+        "hiraganaDrawingWrong",
+        "hiraganaRight",
+        "hiraganaWrong",
+        "katakanaTypingRight",
+        "katakanaTypingWrong",
+        "katakanaDrawingRight",
+        "katakanaDrawingWrong",
+        "katakanaRight",
+        "katakanaWrong"
+      ];
+      numericKeys.forEach((key) => {
+        targetRow[key] = toSafeCount(targetRow[key]) + toSafeCount(incomingRow[key]);
+      });
+    }
+    function mergeDailyStats(localDailyStats, incomingDailyStats) {
+      if (!incomingDailyStats || typeof incomingDailyStats !== "object") {
+        return;
+      }
+      Object.keys(incomingDailyStats).forEach((dateKey) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+          return;
+        }
+        const incoming = incomingDailyStats[dateKey];
+        if (!incoming || typeof incoming !== "object") {
+          return;
+        }
+        if (!localDailyStats[dateKey]) {
+          localDailyStats[dateKey] = {
+            typingRight: 0,
+            typingWrong: 0,
+            drawingRight: 0,
+            drawingWrong: 0
+          };
+        }
+        localDailyStats[dateKey].typingRight += toSafeCount(incoming.typingRight);
+        localDailyStats[dateKey].typingWrong += toSafeCount(incoming.typingWrong);
+        localDailyStats[dateKey].drawingRight += toSafeCount(incoming.drawingRight);
+        localDailyStats[dateKey].drawingWrong += toSafeCount(incoming.drawingWrong);
+      });
+    }
+    function mergeDailyCategoryStats(localDailyCategoryStats, incomingDailyCategoryStats) {
+      if (!incomingDailyCategoryStats || typeof incomingDailyCategoryStats !== "object") {
+        return;
+      }
+      Object.keys(incomingDailyCategoryStats).forEach((dateKey) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+          return;
+        }
+        const incoming = incomingDailyCategoryStats[dateKey];
+        if (!incoming || typeof incoming !== "object") {
+          return;
+        }
+        if (!localDailyCategoryStats[dateKey]) {
+          localDailyCategoryStats[dateKey] = { normal: 0, dakuten: 0, yoon: 0 };
+        }
+        localDailyCategoryStats[dateKey].normal += toSafeCount(incoming.normal);
+        localDailyCategoryStats[dateKey].dakuten += toSafeCount(incoming.dakuten);
+        localDailyCategoryStats[dateKey].yoon += toSafeCount(incoming.yoon);
+      });
+    }
+    function mergeProgressPayload(importedPayload) {
+      if (!importedPayload || typeof importedPayload !== "object") {
+        return;
+      }
+      const localPayload = buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      state.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
+      state.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
+      state.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
+      state.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
+      Object.keys(state.srsByRomaji).forEach((romaji) => {
+        const localEntry = localPayload.srsByRomaji && localPayload.srsByRomaji[romaji];
+        const incomingEntry = importedPayload.srsByRomaji && importedPayload.srsByRomaji[romaji];
+        state.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
+      });
+      Object.keys(state.backlog).forEach((romaji) => {
+        const incomingRow = importedPayload.backlog && importedPayload.backlog[romaji];
+        mergeBacklogRow(state.backlog[romaji], incomingRow);
+      });
+      mergeDailyStats(state.dailyStats, importedPayload.dailyStats);
+      mergeDailyCategoryStats(state.dailyCategoryStats, importedPayload.dailyCategoryStats);
+      const combinedTypingMistakes = [
+        ...Array.isArray(importedPayload.recentTypingMistakes) ? importedPayload.recentTypingMistakes : [],
+        ...Array.isArray(localPayload.recentTypingMistakes) ? localPayload.recentTypingMistakes : []
+      ].filter((value) => typeof value === "string");
+      const combinedDrawingMistakes = [
+        ...Array.isArray(importedPayload.recentDrawingMistakes) ? importedPayload.recentDrawingMistakes : [],
+        ...Array.isArray(localPayload.recentDrawingMistakes) ? localPayload.recentDrawingMistakes : []
+      ].filter((value) => typeof value === "string");
+      state.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
+      state.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
+      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
+      if (importedPayload.drawingsByKana && typeof importedPayload.drawingsByKana === "object") {
+        Object.keys(importedPayload.drawingsByKana).forEach((kanaChar) => {
+          const localList = Array.isArray(state.drawingsByKana[kanaChar]) ? state.drawingsByKana[kanaChar] : [];
+          const incomingList = Array.isArray(importedPayload.drawingsByKana[kanaChar]) ? importedPayload.drawingsByKana[kanaChar].filter((value) => typeof value === "string") : [];
+          state.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA2);
+        });
+      }
+      const localGoals = localPayload.dailyGoals && typeof localPayload.dailyGoals === "object" ? localPayload.dailyGoals : { total: localPayload.dailyGoal };
+      const incomingGoals = importedPayload.dailyGoals && typeof importedPayload.dailyGoals === "object" ? importedPayload.dailyGoals : { total: importedPayload.dailyGoal };
+      const localTotalGoal = clampDailyGoal(localGoals.total, 5, 200, 25);
+      const importedTotalGoal = clampDailyGoal(incomingGoals.total, 5, 200, 25);
+      const shouldUseImportedGoals = localTotalGoal === 25 && importedTotalGoal !== 25;
+      state.dailyGoals = {
+        total: shouldUseImportedGoals ? importedTotalGoal : localTotalGoal,
+        typing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.typing, 0, 200, 12) : clampDailyGoal(localGoals.typing, 0, 200, 12),
+        drawing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.drawing, 0, 200, 8) : clampDailyGoal(localGoals.drawing, 0, 200, 8),
+        normal: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.normal, 0, 200, 10) : clampDailyGoal(localGoals.normal, 0, 200, 10),
+        dakuten: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.dakuten, 0, 200, 6) : clampDailyGoal(localGoals.dakuten, 0, 200, 6),
+        yoon: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.yoon, 0, 200, 6) : clampDailyGoal(localGoals.yoon, 0, 200, 6)
+      };
+      state.dailyGoal = state.dailyGoals.total;
+      state.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
+    }
+    function downloadTextFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+    function exportLocalProgress() {
+      const payload = buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      const now = /* @__PURE__ */ new Date();
+      const timestamp = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+        "-",
+        String(now.getHours()).padStart(2, "0"),
+        String(now.getMinutes()).padStart(2, "0"),
+        String(now.getSeconds()).padStart(2, "0")
+      ].join("");
+      const filename = `kana-quiz-backup-${timestamp}.json`;
+      downloadTextFile(filename, JSON.stringify(payload, null, 2), "application/json");
+      showResultFn("Backup exported to JSON.", true);
+    }
+    async function importLocalProgressFromFile(file) {
+      if (!file) {
+        return;
+      }
+      let payload = null;
+      try {
+        const raw = await file.text();
+        payload = JSON.parse(raw);
+      } catch (e) {
+        showResultFn("Import failed: invalid JSON file.", false);
+        return;
+      }
+      if (!payload || typeof payload !== "object") {
+        showResultFn("Import failed: backup format is not valid.", false);
+        return;
+      }
+      const shouldMerge = window.confirm(
+        "Merge imported progress into current local progress? Click OK to merge, or Cancel to choose replace/cancel."
+      );
+      if (shouldMerge) {
+        mergeProgressPayload(payload);
+      } else {
+        const shouldReplace = window.confirm("Replace current local progress with imported data?");
+        if (!shouldReplace) {
+          return;
+        }
+        applyProgressPayload2({
+          payload,
+          state,
+          kanaData: kanaData2,
+          maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA2,
+          dailyHistoryLimit: DAILY_HISTORY_LIMIT2
+        });
+      }
+      onImportComplete();
+      showResultFn(
+        shouldMerge ? "Backup merged into local progress." : "Backup imported and local progress restored.",
+        true
+      );
+    }
+    function getLocalPayload() {
+      return buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+    }
+    function applyRemotePayload(payload) {
+      applyProgressPayload2({
+        payload,
+        state,
+        kanaData: kanaData2,
+        maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA2,
+        dailyHistoryLimit: DAILY_HISTORY_LIMIT2
+      });
+    }
+    return {
+      exportLocalProgress,
+      importLocalProgressFromFile,
+      getLocalPayload,
+      applyRemotePayload
+    };
+  }
+  var init_backup = __esm({
+    "js/features/backup.js"() {
+      init_progressPreferences();
+    }
+  });
+
+  // js/features/distractors.js
+  function createDistractorRenderer({ elements, state, kanaData: kanaData2 }) {
+    function getLastVowel(romaji) {
+      const match = String(romaji).match(/[aiueo](?!.*[aiueo])/);
+      return match ? match[0] : "";
+    }
+    function getStem(romaji) {
+      return String(romaji).replace(/[aiueo]$/, "");
+    }
+    function getLevenshteinDistance(a, b2) {
+      const s = String(a);
+      const t = String(b2);
+      const rows = s.length + 1;
+      const cols = t.length + 1;
+      const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+      for (let i = 0; i < rows; i++) {
+        dp[i][0] = i;
+      }
+      for (let j2 = 0; j2 < cols; j2++) {
+        dp[0][j2] = j2;
+      }
+      for (let i = 1; i < rows; i++) {
+        for (let j2 = 1; j2 < cols; j2++) {
+          const cost = s[i - 1] === t[j2 - 1] ? 0 : 1;
+          dp[i][j2] = Math.min(
+            dp[i - 1][j2] + 1,
+            dp[i][j2 - 1] + 1,
+            dp[i - 1][j2 - 1] + cost
+          );
+        }
+      }
+      return dp[s.length][t.length];
+    }
+    function scoreDistractorSimilarity(correct, candidate) {
+      let score = 0;
+      const correctStr = String(correct);
+      const candidateStr = String(candidate);
+      if (candidateStr[0] === correctStr[0]) {
+        score += 4;
+      }
+      if (candidateStr.slice(0, 2) === correctStr.slice(0, 2)) {
+        score += 3;
+      }
+      if (getLastVowel(candidateStr) === getLastVowel(correctStr)) {
+        score += 2;
+      }
+      if (getStem(candidateStr) === getStem(correctStr)) {
+        score += 3;
+      }
+      if (candidateStr.includes("y") && correctStr.includes("y") || candidateStr.includes("sh") && correctStr.includes("sh")) {
+        score += 1;
+      }
+      score -= getLevenshteinDistance(correctStr, candidateStr);
+      return score;
+    }
+    function shuffleArray(values) {
+      const arr = [...values];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j2 = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j2]] = [arr[j2], arr[i]];
+      }
+      return arr;
+    }
+    function pickRandomDistinct(source, count, excluded = /* @__PURE__ */ new Set()) {
+      const filtered = source.filter((item) => !excluded.has(item));
+      const shuffled = shuffleArray(filtered);
+      return shuffled.slice(0, count);
+    }
+    function renderQuickAnswerOptions() {
+      if (!elements.quickAnswerOptions) {
+        return;
+      }
+      if (!state.currentQuestion || state.currentQuestion.kind !== "typing") {
+        elements.quickAnswerOptions.innerHTML = "";
+        elements.quickAnswerOptions.classList.add("hidden");
+        return;
+      }
+      const correct = state.currentQuestion.romaji;
+      const allRomaji = kanaData2.map((item) => item.romaji).filter((romaji) => romaji !== correct);
+      const ranked = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score);
+      let similarPool = ranked.filter((item) => item.score >= 3).map((item) => item.romaji);
+      if (similarPool.length < 6) {
+        similarPool = ranked.slice(0, 12).map((item) => item.romaji);
+      }
+      const distractorSet = /* @__PURE__ */ new Set();
+      pickRandomDistinct(similarPool, 2).forEach((romaji) => distractorSet.add(romaji));
+      pickRandomDistinct(allRomaji, 1, distractorSet).forEach((romaji) => distractorSet.add(romaji));
+      if (distractorSet.size < 3) {
+        pickRandomDistinct(allRomaji, 3 - distractorSet.size, distractorSet).forEach(
+          (romaji) => distractorSet.add(romaji)
+        );
+      }
+      const options = shuffleArray([correct, ...distractorSet].slice(0, 4));
+      elements.quickAnswerOptions.innerHTML = options.map(
+        (romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`
+      ).join("");
+      elements.quickAnswerOptions.classList.remove("hidden");
+    }
+    return { renderQuickAnswerOptions };
+  }
+  var init_distractors = __esm({
+    "js/features/distractors.js"() {
+    }
+  });
+
   // js/app.js
   var require_app = __commonJS({
     "js/app.js"() {
@@ -12906,6 +13266,8 @@
       init_answering();
       init_progressLayout();
       init_progressPreferences();
+      init_backup();
+      init_distractors();
       var elements = getElements();
       var state = createState(kanaData);
       var drawingFeature = createDrawingFeature({
@@ -12938,6 +13300,8 @@
       } };
       var progressLayoutManager = null;
       var progressPreferencesManager = null;
+      var backupManager = null;
+      var distractorRenderer = null;
       var deferredInstallPrompt = null;
       var isCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
       function getAnswerInputValue() {
@@ -12958,98 +13322,6 @@
       }
       function shouldAutoFocusAnswer() {
         return !isCoarsePointer;
-      }
-      function getLastVowel(romaji) {
-        const match = String(romaji).match(/[aiueo](?!.*[aiueo])/);
-        return match ? match[0] : "";
-      }
-      function getStem(romaji) {
-        return String(romaji).replace(/[aiueo]$/, "");
-      }
-      function getLevenshteinDistance(a, b2) {
-        const s = String(a);
-        const t = String(b2);
-        const rows = s.length + 1;
-        const cols = t.length + 1;
-        const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
-        for (let i = 0; i < rows; i++) {
-          dp[i][0] = i;
-        }
-        for (let j2 = 0; j2 < cols; j2++) {
-          dp[0][j2] = j2;
-        }
-        for (let i = 1; i < rows; i++) {
-          for (let j2 = 1; j2 < cols; j2++) {
-            const cost = s[i - 1] === t[j2 - 1] ? 0 : 1;
-            dp[i][j2] = Math.min(
-              dp[i - 1][j2] + 1,
-              dp[i][j2 - 1] + 1,
-              dp[i - 1][j2 - 1] + cost
-            );
-          }
-        }
-        return dp[s.length][t.length];
-      }
-      function scoreDistractorSimilarity(correct, candidate) {
-        let score = 0;
-        const correctStr = String(correct);
-        const candidateStr = String(candidate);
-        if (candidateStr[0] === correctStr[0]) {
-          score += 4;
-        }
-        if (candidateStr.slice(0, 2) === correctStr.slice(0, 2)) {
-          score += 3;
-        }
-        if (getLastVowel(candidateStr) === getLastVowel(correctStr)) {
-          score += 2;
-        }
-        if (getStem(candidateStr) === getStem(correctStr)) {
-          score += 3;
-        }
-        if (candidateStr.includes("y") && correctStr.includes("y") || candidateStr.includes("sh") && correctStr.includes("sh")) {
-          score += 1;
-        }
-        score -= getLevenshteinDistance(correctStr, candidateStr);
-        return score;
-      }
-      function shuffleArray(values) {
-        const arr = [...values];
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j2 = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j2]] = [arr[j2], arr[i]];
-        }
-        return arr;
-      }
-      function pickRandomDistinct(source, count, excluded = /* @__PURE__ */ new Set()) {
-        const filtered = source.filter((item) => !excluded.has(item));
-        const shuffled = shuffleArray(filtered);
-        return shuffled.slice(0, count);
-      }
-      function renderQuickAnswerOptions() {
-        if (!elements.quickAnswerOptions) {
-          return;
-        }
-        if (!state.currentQuestion || state.currentQuestion.kind !== "typing") {
-          elements.quickAnswerOptions.innerHTML = "";
-          elements.quickAnswerOptions.classList.add("hidden");
-          return;
-        }
-        const correct = state.currentQuestion.romaji;
-        const allRomaji = kanaData.map((item) => item.romaji).filter((romaji) => romaji !== correct);
-        const ranked = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score);
-        let similarPool = ranked.filter((item) => item.score >= 3).map((item) => item.romaji);
-        if (similarPool.length < 6) {
-          similarPool = ranked.slice(0, 12).map((item) => item.romaji);
-        }
-        const distractorSet = /* @__PURE__ */ new Set();
-        pickRandomDistinct(similarPool, 2).forEach((romaji) => distractorSet.add(romaji));
-        pickRandomDistinct(allRomaji, 1, distractorSet).forEach((romaji) => distractorSet.add(romaji));
-        if (distractorSet.size < 3) {
-          pickRandomDistinct(allRomaji, 3 - distractorSet.size, distractorSet).forEach((romaji) => distractorSet.add(romaji));
-        }
-        const options = shuffleArray([correct, ...distractorSet].slice(0, 4));
-        elements.quickAnswerOptions.innerHTML = options.map((romaji) => `<button type="button" class="quick-answer-btn" data-answer="${romaji}">${romaji}</button>`).join("");
-        elements.quickAnswerOptions.classList.remove("hidden");
       }
       function ensureAudioButtonsAboveKanaBox() {
         const playAudioBtn = document.getElementById("playAudioBtn");
@@ -13109,13 +13381,6 @@
         });
         cloudSync.queueUpload();
       }
-      function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
-        const parsed = Number(value);
-        if (!Number.isFinite(parsed)) {
-          return fallback;
-        }
-        return Math.max(min, Math.min(max, Math.round(parsed)));
-      }
       function normalizeDailyGoalsFromState() {
         progressPreferencesManager.normalizeDailyGoalsFromState();
       }
@@ -13146,245 +13411,17 @@
       function toggleProgressSection(sectionName) {
         progressLayoutManager.toggleSection(sectionName);
       }
-      function downloadTextFile(filename, content, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-      }
       function exportLocalProgress() {
-        const payload = buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
-        const now = /* @__PURE__ */ new Date();
-        const timestamp = [
-          now.getFullYear(),
-          String(now.getMonth() + 1).padStart(2, "0"),
-          String(now.getDate()).padStart(2, "0"),
-          "-",
-          String(now.getHours()).padStart(2, "0"),
-          String(now.getMinutes()).padStart(2, "0"),
-          String(now.getSeconds()).padStart(2, "0")
-        ].join("");
-        const filename = `kana-quiz-backup-${timestamp}.json`;
-        downloadTextFile(filename, JSON.stringify(payload, null, 2), "application/json");
-        showResult(elements, "Backup exported to JSON.", true);
-      }
-      function toSafeCount(value) {
-        const parsed = Number(value);
-        if (!Number.isFinite(parsed) || parsed < 0) {
-          return 0;
-        }
-        return parsed;
-      }
-      function mergeSrsEntry(localEntry, importedEntry) {
-        const localDueAt = toSafeCount(localEntry && localEntry.dueAt);
-        const importDueAt = toSafeCount(importedEntry && importedEntry.dueAt);
-        const dueCandidates = [localDueAt, importDueAt].filter((value) => value > 0);
-        const dueAt = dueCandidates.length > 0 ? Math.min(...dueCandidates) : 0;
-        const localSeenAt = toSafeCount(localEntry && localEntry.lastSeenAt);
-        const importSeenAt = toSafeCount(importedEntry && importedEntry.lastSeenAt);
-        return {
-          dueAt,
-          intervalHours: Math.max(toSafeCount(localEntry && localEntry.intervalHours), toSafeCount(importedEntry && importedEntry.intervalHours)),
-          lastSeenAt: Math.max(localSeenAt, importSeenAt),
-          lastCorrect: importSeenAt >= localSeenAt ? Boolean(importedEntry && importedEntry.lastCorrect) : Boolean(localEntry && localEntry.lastCorrect)
-        };
-      }
-      function mergeBacklogRow(targetRow, incomingRow) {
-        if (!incomingRow || typeof incomingRow !== "object") {
-          return;
-        }
-        const numericKeys = [
-          "right",
-          "wrong",
-          "typingRight",
-          "typingWrong",
-          "drawingRight",
-          "drawingWrong",
-          "hiraganaTypingRight",
-          "hiraganaTypingWrong",
-          "hiraganaDrawingRight",
-          "hiraganaDrawingWrong",
-          "hiraganaRight",
-          "hiraganaWrong",
-          "katakanaTypingRight",
-          "katakanaTypingWrong",
-          "katakanaDrawingRight",
-          "katakanaDrawingWrong",
-          "katakanaRight",
-          "katakanaWrong"
-        ];
-        numericKeys.forEach((key) => {
-          targetRow[key] = toSafeCount(targetRow[key]) + toSafeCount(incomingRow[key]);
-        });
-      }
-      function mergeDailyStats(localDailyStats, incomingDailyStats) {
-        if (!incomingDailyStats || typeof incomingDailyStats !== "object") {
-          return;
-        }
-        Object.keys(incomingDailyStats).forEach((dateKey) => {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-            return;
-          }
-          const incoming = incomingDailyStats[dateKey];
-          if (!incoming || typeof incoming !== "object") {
-            return;
-          }
-          if (!localDailyStats[dateKey]) {
-            localDailyStats[dateKey] = {
-              typingRight: 0,
-              typingWrong: 0,
-              drawingRight: 0,
-              drawingWrong: 0
-            };
-          }
-          localDailyStats[dateKey].typingRight += toSafeCount(incoming.typingRight);
-          localDailyStats[dateKey].typingWrong += toSafeCount(incoming.typingWrong);
-          localDailyStats[dateKey].drawingRight += toSafeCount(incoming.drawingRight);
-          localDailyStats[dateKey].drawingWrong += toSafeCount(incoming.drawingWrong);
-        });
-      }
-      function mergeDailyCategoryStats(localDailyCategoryStats, incomingDailyCategoryStats) {
-        if (!incomingDailyCategoryStats || typeof incomingDailyCategoryStats !== "object") {
-          return;
-        }
-        Object.keys(incomingDailyCategoryStats).forEach((dateKey) => {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-            return;
-          }
-          const incoming = incomingDailyCategoryStats[dateKey];
-          if (!incoming || typeof incoming !== "object") {
-            return;
-          }
-          if (!localDailyCategoryStats[dateKey]) {
-            localDailyCategoryStats[dateKey] = {
-              normal: 0,
-              dakuten: 0,
-              yoon: 0
-            };
-          }
-          localDailyCategoryStats[dateKey].normal += toSafeCount(incoming.normal);
-          localDailyCategoryStats[dateKey].dakuten += toSafeCount(incoming.dakuten);
-          localDailyCategoryStats[dateKey].yoon += toSafeCount(incoming.yoon);
-        });
-      }
-      function mergeProgressPayload(importedPayload) {
-        if (!importedPayload || typeof importedPayload !== "object") {
-          return;
-        }
-        const localPayload = buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
-        state.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
-        state.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
-        state.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
-        state.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
-        Object.keys(state.srsByRomaji).forEach((romaji) => {
-          const localEntry = localPayload.srsByRomaji && localPayload.srsByRomaji[romaji];
-          const incomingEntry = importedPayload.srsByRomaji && importedPayload.srsByRomaji[romaji];
-          state.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
-        });
-        Object.keys(state.backlog).forEach((romaji) => {
-          const incomingRow = importedPayload.backlog && importedPayload.backlog[romaji];
-          mergeBacklogRow(state.backlog[romaji], incomingRow);
-        });
-        mergeDailyStats(state.dailyStats, importedPayload.dailyStats);
-        mergeDailyCategoryStats(state.dailyCategoryStats, importedPayload.dailyCategoryStats);
-        const combinedTypingMistakes = [
-          ...Array.isArray(importedPayload.recentTypingMistakes) ? importedPayload.recentTypingMistakes : [],
-          ...Array.isArray(localPayload.recentTypingMistakes) ? localPayload.recentTypingMistakes : []
-        ].filter((value) => typeof value === "string");
-        const combinedDrawingMistakes = [
-          ...Array.isArray(importedPayload.recentDrawingMistakes) ? importedPayload.recentDrawingMistakes : [],
-          ...Array.isArray(localPayload.recentDrawingMistakes) ? localPayload.recentDrawingMistakes : []
-        ].filter((value) => typeof value === "string");
-        state.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
-        state.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
-        state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
-        if (importedPayload.drawingsByKana && typeof importedPayload.drawingsByKana === "object") {
-          Object.keys(importedPayload.drawingsByKana).forEach((kanaChar) => {
-            const localList = Array.isArray(state.drawingsByKana[kanaChar]) ? state.drawingsByKana[kanaChar] : [];
-            const incomingList = Array.isArray(importedPayload.drawingsByKana[kanaChar]) ? importedPayload.drawingsByKana[kanaChar].filter((value) => typeof value === "string") : [];
-            state.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA);
-          });
-        }
-        const localGoals = localPayload.dailyGoals && typeof localPayload.dailyGoals === "object" ? localPayload.dailyGoals : { total: localPayload.dailyGoal };
-        const incomingGoals = importedPayload.dailyGoals && typeof importedPayload.dailyGoals === "object" ? importedPayload.dailyGoals : { total: importedPayload.dailyGoal };
-        const localTotalGoal = clampDailyGoal(localGoals.total, 5, 200, 25);
-        const importedTotalGoal = clampDailyGoal(incomingGoals.total, 5, 200, 25);
-        const shouldUseImportedGoals = localTotalGoal === 25 && importedTotalGoal !== 25;
-        state.dailyGoals = {
-          total: shouldUseImportedGoals ? importedTotalGoal : localTotalGoal,
-          typing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.typing, 0, 200, 12) : clampDailyGoal(localGoals.typing, 0, 200, 12),
-          drawing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.drawing, 0, 200, 8) : clampDailyGoal(localGoals.drawing, 0, 200, 8),
-          normal: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.normal, 0, 200, 10) : clampDailyGoal(localGoals.normal, 0, 200, 10),
-          dakuten: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.dakuten, 0, 200, 6) : clampDailyGoal(localGoals.dakuten, 0, 200, 6),
-          yoon: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.yoon, 0, 200, 6) : clampDailyGoal(localGoals.yoon, 0, 200, 6)
-        };
-        state.dailyGoal = state.dailyGoals.total;
-        state.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
+        backupManager.exportLocalProgress();
       }
       async function importLocalProgressFromFile(file) {
-        if (!file) {
-          return;
-        }
-        let payload = null;
-        try {
-          const raw = await file.text();
-          payload = JSON.parse(raw);
-        } catch (e) {
-          showResult(elements, "Import failed: invalid JSON file.", false);
-          return;
-        }
-        if (!payload || typeof payload !== "object") {
-          showResult(elements, "Import failed: backup format is not valid.", false);
-          return;
-        }
-        const shouldMerge = window.confirm(
-          "Merge imported progress into current local progress? Click OK to merge, or Cancel to choose replace/cancel."
-        );
-        if (shouldMerge) {
-          mergeProgressPayload(payload);
-        } else {
-          const shouldReplace = window.confirm("Replace current local progress with imported data?");
-          if (!shouldReplace) {
-            return;
-          }
-          applyProgressPayload({
-            payload,
-            state,
-            kanaData,
-            maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
-            dailyHistoryLimit: DAILY_HISTORY_LIMIT
-          });
-        }
-        ensureTodayEntry();
-        elements.practiceStrategySelect.value = state.practiceStrategy;
-        elements.drawGuideToggle.checked = state.drawGuideEnabled;
-        renderDailyGoalInputs();
-        renderBacklogFilterInputs();
-        drawingFeature.setGuideEnabled(state.drawGuideEnabled);
-        audioManager.refreshAudioButton();
-        updateStats(elements, state);
-        renderBacklogView();
-        refreshProgressView();
-        queueManager.updateQueueMeta();
-        persistState();
-        showResult(elements, shouldMerge ? "Backup merged into local progress." : "Backup imported and local progress restored.", true);
+        await backupManager.importLocalProgressFromFile(file);
       }
       function getLocalPayload() {
-        return buildProgressPayload({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+        return backupManager.getLocalPayload();
       }
       function applyRemotePayload(payload) {
-        applyProgressPayload({
-          payload,
-          state,
-          kanaData,
-          maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
-          dailyHistoryLimit: DAILY_HISTORY_LIMIT
-        });
+        backupManager.applyRemotePayload(payload);
       }
       function refreshProgressView() {
         renderDailyProgress({ elements, state, setActiveProgressTab });
@@ -13522,7 +13559,7 @@
           drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
           elements.promptElement.textContent = state.currentQuestion.promptText;
         }
-        renderQuickAnswerOptions();
+        distractorRenderer.renderQuickAnswerOptions();
         queueManager.updateQueueMeta();
       }
       function checkTypingAnswer(forcedAnswer = null) {
@@ -13820,6 +13857,30 @@
           elements,
           persistState
         });
+        backupManager = createBackupManager({
+          state,
+          kanaData,
+          MAX_DRAWINGS_PER_KANA,
+          DAILY_HISTORY_LIMIT,
+          showResultFn: (message, success) => showResult(elements, message, success),
+          buildProgressPayload,
+          applyProgressPayload,
+          onImportComplete() {
+            ensureTodayEntry();
+            elements.practiceStrategySelect.value = state.practiceStrategy;
+            elements.drawGuideToggle.checked = state.drawGuideEnabled;
+            renderDailyGoalInputs();
+            renderBacklogFilterInputs();
+            drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+            audioManager.refreshAudioButton();
+            updateStats(elements, state);
+            renderBacklogView();
+            refreshProgressView();
+            queueManager.updateQueueMeta();
+            persistState();
+          }
+        });
+        distractorRenderer = createDistractorRenderer({ elements, state, kanaData });
         ensureTodayEntry();
         setupCloudSync({
           elements,
