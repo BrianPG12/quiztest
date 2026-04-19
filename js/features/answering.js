@@ -1,22 +1,30 @@
 /**
  * Answer Validation & Processing
- * Handles answer checking, result display, and state updates
+ *
+ * Single responsibility: validate answers, update data state, and emit events.
+ * Does NOT call render or persist functions — those are side effects owned by
+ * bootstrap.js which subscribes to 'answer:correct' / 'answer:wrong'.
+ *
+ * Interface Segregation: deps trimmed to only what this module truly needs.
+ * Dependency Inversion: depends on eventBus abstraction, not concrete callbacks.
  */
+
+import { getTodayKey } from "../core/utils.js";
 
 export function createAnsweringManager({
   state,
   elements,
   srsManager,
   queueManager,
+  hintsManager,
   showResult,
   showTypingMistake,
-  updateStats,
   updateBacklog,
   addDailyAttemptFn,
-  renderBacklogViewFn,
-  refreshProgressViewFn,
-  persistStateFn
+  eventBus
 }) {
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
   function getAcceptedRomajiSet(question) {
     const primary = String(question.romaji || "");
     const accepted = new Set([primary]);
@@ -35,10 +43,18 @@ export function createAnsweringManager({
     return accepted;
   }
 
-  /**
-   * Validate and process typing answer
-   * Returns: { correct: boolean, answer: string }
-   */
+  /** Track per-day per-romaji outcomes for the drill-down view (Phase 3). */
+  function recordDailyDetail(romaji, wasCorrect) {
+    if (!state.dailyDetailStats) state.dailyDetailStats = {};
+    const todayKey = getTodayKey();
+    if (!state.dailyDetailStats[todayKey]) state.dailyDetailStats[todayKey] = {};
+    const entry = state.dailyDetailStats[todayKey][romaji] || { right: 0, wrong: 0 };
+    if (wasCorrect) { entry.right += 1; } else { entry.wrong += 1; }
+    state.dailyDetailStats[todayKey][romaji] = entry;
+  }
+
+  // ─── Validate ───────────────────────────────────────────────────────────────
+
   function validateTypingAnswer(romaji) {
     if (!romaji) {
       return { correct: false, answer: "", reason: "Type a romaji answer" };
@@ -46,9 +62,8 @@ export function createAnsweringManager({
     return { correct: true, answer: romaji };
   }
 
-  /**
-   * Process a typing answer and update all related state
-   */
+  // ─── Process typing ─────────────────────────────────────────────────────────
+
   function processTypingAnswer(userRomaji) {
     if (!state.currentQuestion) {
       showResult(elements, "Create a question first.", false);
@@ -65,15 +80,24 @@ export function createAnsweringManager({
     const trackingRomaji = state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
     const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
     const correct = acceptedAnswers.has(userRomaji);
+    const hintUsed = hintsManager && hintsManager.getHintsUsed() > 0;
+
     if (correct) {
       state.typingRightCount += 1;
       showResult(elements, "Correct!", true);
     } else {
       state.typingWrongCount += 1;
       showTypingMistake(elements, userRomaji, correctAnswer);
+
+      if (userRomaji) {
+        if (!state.confusionPairs[trackingRomaji]) {
+          state.confusionPairs[trackingRomaji] = {};
+        }
+        state.confusionPairs[trackingRomaji][userRomaji] =
+          (state.confusionPairs[trackingRomaji][userRomaji] || 0) + 1;
+      }
     }
 
-    // Update all tracking systems
     updateBacklog({
       backlog: state.backlog,
       romaji: trackingRomaji,
@@ -82,19 +106,17 @@ export function createAnsweringManager({
       answerMode: "typing"
     });
 
-    srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing");
+    srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing", hintUsed);
     addDailyAttemptFn(state, "typing", correct, trackingRomaji);
-    updateStats(elements, state);
-    renderBacklogViewFn();
-    refreshProgressViewFn();
+    recordDailyDetail(trackingRomaji, correct);
     queueManager.updateQueueMeta();
-    persistStateFn();
+
+    eventBus.emit(correct ? "answer:correct" : "answer:wrong", { romaji: trackingRomaji, mode: "typing", userInput: userRomaji });
     return { accepted: true, correct, correctAnswer };
   }
 
-  /**
-   * Process a drawing answer and update all related state
-   */
+  // ─── Process drawing ────────────────────────────────────────────────────────
+
   function processDrawingResult(wasCorrect, saveDrawingFn) {
     if (!state.currentQuestion) {
       showResult(elements, "Create a question first.", false);
@@ -108,23 +130,17 @@ export function createAnsweringManager({
       state.drawingWrongCount += 1;
     }
 
-    // Update all tracking systems
-    updateBacklog({
-      backlog: state.backlog,
-      romaji: state.currentQuestion.romaji,
-      wasCorrect,
-      scriptContext: state.currentQuestion.canvasMode,
-      answerMode: "drawing"
-    });
+    const romaji = state.currentQuestion.romaji;
 
-    srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect, "drawing");
-    addDailyAttemptFn(state, "drawing", wasCorrect, state.currentQuestion.romaji);
-    updateStats(elements, state);
-    renderBacklogViewFn();
-    refreshProgressViewFn();
+    updateBacklog({ backlog: state.backlog, romaji, wasCorrect, scriptContext: state.currentQuestion.canvasMode, answerMode: "drawing" });
+    srsManager.updateSrsOnAttempt(romaji, wasCorrect, "drawing", false);
+    addDailyAttemptFn(state, "drawing", wasCorrect, romaji);
+    recordDailyDetail(romaji, wasCorrect);
     queueManager.updateQueueMeta();
-    persistStateFn();
+    eventBus.emit(wasCorrect ? "answer:correct" : "answer:wrong", { romaji, mode: "drawing" });
   }
+
+  // ─── Public API ─────────────────────────────────────────────────────────────
 
   return {
     validateTypingAnswer,

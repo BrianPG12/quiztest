@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=38" />
+  <link rel="stylesheet" href="styles.css?v=39" />
 </head>
 <body>
   <form autocomplete="on" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
@@ -93,6 +93,7 @@
         <label for="answerInput">Type romaji</label>
         <div class="input-row">
           <input id="answerInput" type="text" name="kana_practice_value" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="latin" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="e.g. ka" />
+          <button id="hintBtn" class="btn-secondary hint-btn" type="button">Hint</button>
           <button id="checkBtn" class="btn-primary">Check</button>
         </div>
         <div id="quickAnswerOptions" class="quick-options hidden" aria-label="Quick answer options"></div>
@@ -126,7 +127,10 @@
       <div class="stats">
         <span>Typing: <strong id="typingRightCount">0</strong> right / <strong id="typingWrongCount">0</strong> wrong</span>
         <span>Drawing: <strong id="drawingRightCount">0</strong> right / <strong id="drawingWrongCount">0</strong> wrong</span>
+        <span id="streakDisplay" class="streak-display"></span>
       </div>
+
+      <div id="goalProgressBar" class="goal-progress-bar" aria-live="polite"></div>
     </section>
 
     <section class="backlog card">
@@ -176,6 +180,10 @@
             <div class="control-group">
               <label for="backlogMinAttemptsFilter">Min Attempts</label>
               <input id="backlogMinAttemptsFilter" type="number" min="0" max="999" step="1" inputmode="numeric" value="0" />
+            </div>
+            <div class="control-group compact-toggle-wrap">
+              <label for="backlogCompactToggle">Card Density</label>
+              <label class="compact-toggle-label"><input id="backlogCompactToggle" type="checkbox" /> Compact</label>
             </div>
             <button id="resetBacklogFiltersBtn" class="btn-secondary" type="button">Reset Filters</button>
           </div>
@@ -273,6 +281,10 @@
                 <div class="graph-head">Accuracy Trend (recent days)</div>
                 <canvas id="dailyProgressGraph" class="progress-graph" width="860" height="260" aria-label="Daily progress graph"></canvas>
               </div>
+              <div class="progress-graph-wrap">
+                <div class="graph-head">SRS Due Schedule (next 7 days)</div>
+                <div id="srsScheduleGraph"></div>
+              </div>
             </div>
           </section>
 
@@ -338,7 +350,7 @@
       // Load only the pre-built bundle in every environment.
       // This avoids browser differences with module graphs and cache behavior.
       var bundle = document.createElement("script");
-      bundle.src = "script.js?v=38";
+      bundle.src = "script.js?v=39";
       document.body.appendChild(bundle);
     })();
   </script>

@@ -1,11 +1,36 @@
 (() => {
+  var __create = Object.create;
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getProtoOf = Object.getPrototypeOf;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __esm = (fn, res) => function __init() {
     return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
   };
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
+  var __export = (target, all) => {
+    for (var name4 in all)
+      __defProp(target, name4, { get: all[name4], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+    // If the importer is in node compatibility mode or this is not an ESM
+    // file that has been converted to a CommonJS file using a Babel-
+    // compatible transform (i.e. "__esModule" has not been set), then set
+    // "default" to the CommonJS "module.exports" for node compatibility.
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+    mod
+  ));
 
   // js/data/kanaData.js
   var kanaData, YOON_SET, DAKUTEN_SET, STORAGE_KEY, MAX_DRAWINGS_PER_KANA, DAILY_HISTORY_LIMIT;
@@ -246,6 +271,7 @@
       backlogScriptFilter: document.getElementById("backlogScriptFilter"),
       backlogWeaknessFilter: document.getElementById("backlogWeaknessFilter"),
       backlogMinAttemptsFilter: document.getElementById("backlogMinAttemptsFilter"),
+      backlogCompactToggle: document.getElementById("backlogCompactToggle"),
       resetBacklogFiltersBtn: document.getElementById("resetBacklogFiltersBtn"),
       compareDayASelect: document.getElementById("compareDayASelect"),
       compareDayBSelect: document.getElementById("compareDayBSelect"),
@@ -281,7 +307,11 @@
       canvasKatakana,
       ctxHiragana: canvasHiragana.getContext("2d"),
       ctxKatakana: canvasKatakana.getContext("2d"),
-      dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d")
+      dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d"),
+      goalProgressBar: document.getElementById("goalProgressBar"),
+      hintBtn: document.getElementById("hintBtn"),
+      streakDisplay: document.getElementById("streakDisplay"),
+      srsScheduleGraph: document.getElementById("srsScheduleGraph")
     };
   }
   var init_elements = __esm({
@@ -384,7 +414,8 @@
         status: "all",
         script: "all",
         weakness: "all",
-        minAttempts: 0
+        minAttempts: 0,
+        compact: false
       },
       installPromptSeen: false,
       typingRightCount: 0,
@@ -407,6 +438,24 @@
       },
       backlog: createBacklog(kanaData2)
     };
+    const extensions = {
+      // Phase 2: smarter distractors — tracks which romaji the user has confused together.
+      // Shape: { [correctRomaji]: { [wrongInput]: count } }
+      confusionPairs: {},
+      // Phase 2: adaptive SRS — rolling window of last 10 attempt outcomes per romaji.
+      // Shape: { [romaji]: boolean[] }  (true = correct)
+      srsAccuracyWindow: {},
+      // Phase 3: per-day per-romaji detail for drill-down view.
+      // Shape: { [dateKey]: { [romaji]: { right: number, wrong: number } } }
+      dailyDetailStats: {},
+      // Phase 3: streak tracking.
+      streakData: { current: 0, best: 0, lastPracticeDate: "" }
+    };
+    Object.assign(state, extensions);
+    state.mutate = function mutate(patch) {
+      Object.assign(this, patch);
+    };
+    return state;
   }
   var init_state = __esm({
     "js/core/state.js"() {
@@ -414,12 +463,101 @@
     }
   });
 
+  // js/core/eventBus.js
+  var EVENT_NAMES, _handlers, eventBus;
+  var init_eventBus = __esm({
+    "js/core/eventBus.js"() {
+      EVENT_NAMES = Object.freeze({
+        ANSWER_CORRECT: "answer:correct",
+        ANSWER_WRONG: "answer:wrong",
+        QUESTION_NEW: "question:new",
+        SYNC_CONFLICT_APPLIED: "sync:conflictApplied",
+        QUIZ_REQUEST_NEW: "quiz:requestNewQuestion",
+        QUIZ_MODE_CHANGED: "quiz:modeChanged",
+        QUIZ_KANA_SET_CHANGED: "quiz:kanaSetChanged",
+        QUIZ_STRATEGY_CHANGED: "quiz:strategyChanged",
+        QUIZ_WRITING_SCRIPT_CHANGED: "quiz:writingScriptChanged",
+        QUIZ_CHECK_ANSWER: "quiz:checkAnswer",
+        QUIZ_QUICK_ANSWER: "quiz:quickAnswer",
+        QUIZ_REVEAL_DRAWING: "quiz:revealDrawing",
+        QUIZ_CLEAR_CANVAS: "quiz:clearCanvas",
+        QUIZ_MARK_RIGHT: "quiz:markRight",
+        QUIZ_MARK_WRONG: "quiz:markWrong",
+        QUIZ_RESET_ALL: "quiz:resetAll",
+        TAB_BACKLOG: "tab:backlog",
+        TAB_PROGRESS: "tab:progress",
+        TAB_SYNC: "tab:sync",
+        PROGRESS_TAB_CHANGED: "progress:tabChanged",
+        PROGRESS_SECTION_TOGGLED: "progress:sectionToggled",
+        BACKLOG_FILTER_CHANGED: "backlog:filterChanged",
+        BACKLOG_FILTER_RESET: "backlog:filterReset",
+        SETTINGS_SAVE_GOAL: "settings:saveGoal",
+        SETTINGS_DRAW_GUIDE_CHANGED: "settings:drawGuideChanged",
+        DATA_EXPORT: "data:export",
+        DATA_IMPORT: "data:import",
+        AUDIO_PLAY: "audio:play",
+        AUDIO_TOGGLE_MUTE: "audio:toggleMute",
+        GALLERY_OPEN: "gallery:open",
+        GALLERY_CLOSE: "gallery:close",
+        UI_RESIZE: "ui:resize",
+        UI_VISIBLE: "ui:visible",
+        STATE_CHANGED: "state:changed"
+      });
+      _handlers = /* @__PURE__ */ new Map();
+      eventBus = {
+        /**
+         * Subscribe to an event. Returns an unsubscribe function.
+         * @param {string} event
+         * @param {function} handler
+         * @returns {function} unsubscribe
+         */
+        on(event, handler) {
+          if (!_handlers.has(event)) {
+            _handlers.set(event, /* @__PURE__ */ new Set());
+          }
+          _handlers.get(event).add(handler);
+          return () => this.off(event, handler);
+        },
+        /**
+         * Unsubscribe a specific handler from an event.
+         * @param {string} event
+         * @param {function} handler
+         */
+        off(event, handler) {
+          const set = _handlers.get(event);
+          if (set) {
+            set.delete(handler);
+          }
+        },
+        /**
+         * Emit an event, invoking all registered handlers.
+         * Errors in individual handlers are caught and logged without stopping other handlers.
+         * @param {string} event
+         * @param {*} data
+         */
+        emit(event, data) {
+          const set = _handlers.get(event);
+          if (!set || set.size === 0) {
+            return;
+          }
+          set.forEach((handler) => {
+            try {
+              handler(data);
+            } catch (err) {
+              console.error(`[eventBus] Error in handler for "${event}":`, err);
+            }
+          });
+        }
+      };
+    }
+  });
+
   // js/core/ui.js
-  function updateStats(elements, state) {
-    elements.typingRightCountElement.textContent = String(state.typingRightCount);
-    elements.typingWrongCountElement.textContent = String(state.typingWrongCount);
-    elements.drawingRightCountElement.textContent = String(state.drawingRightCount);
-    elements.drawingWrongCountElement.textContent = String(state.drawingWrongCount);
+  function updateStats(elements, state2) {
+    elements.typingRightCountElement.textContent = String(state2.typingRightCount);
+    elements.typingWrongCountElement.textContent = String(state2.typingWrongCount);
+    elements.drawingRightCountElement.textContent = String(state2.drawingRightCount);
+    elements.drawingWrongCountElement.textContent = String(state2.drawingWrongCount);
   }
   function resetResult(elements) {
     elements.resultElement.textContent = "";
@@ -521,12 +659,13 @@
     }
     return item.romaji;
   }
-  function renderBacklog({ kanaData: kanaData2, backlog, drawingsByKana, getKanaCategoryFn, filters }) {
+  function renderBacklog({ kanaData: kanaData2, backlog, drawingsByKana, getKanaCategoryFn, filters, srsByRomaji }) {
     const activeFilters = filters || {
       status: "all",
       script: "all",
       weakness: "all",
-      minAttempts: 0
+      minAttempts: 0,
+      compact: false
     };
     function passesFilters(stats) {
       const attempts = getTotalAttempts(stats);
@@ -559,9 +698,31 @@
       }
       const status = getCardStatus(stats);
       const drawingsCount = (drawingsByKana[kanaChar] || []).length;
-      return `<div class="kana-card ${status}">
+      const srsEntry = srsByRomaji && srsByRomaji[romaji];
+      const dueAt = srsEntry ? Number(srsEntry.dueAt || 0) : 0;
+      const intervalHours = srsEntry ? Number(srsEntry.intervalHours || 0) : 0;
+      let srsBadge = "";
+      if (dueAt > 0) {
+        const now = Date.now();
+        if (dueAt <= now) {
+          srsBadge = `<span class="kana-srs-badge srs-due">due now</span>`;
+        } else {
+          const hoursLeft = Math.ceil((dueAt - now) / 36e5);
+          if (hoursLeft < 24) {
+            srsBadge = `<span class="kana-srs-badge srs-soon">due ${hoursLeft}h</span>`;
+          } else {
+            const daysLeft = Math.ceil(hoursLeft / 24);
+            srsBadge = `<span class="kana-srs-badge srs-later">due ${daysLeft}d</span>`;
+          }
+        }
+      } else if (intervalHours >= 1) {
+        srsBadge = `<span class="kana-srs-badge srs-ok">\u2713</span>`;
+      }
+      const compactClass = activeFilters.compact ? " compact" : "";
+      return `<div class="kana-card ${status}${compactClass}">
       <div class="kana-char">${kanaChar}</div>
       <div class="kana-romaji">${romaji}</div>
+      ${srsBadge}
       <div class="kana-stats">
         <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">\u2713${stats.typingRight}</span><span class="k-wrong">\u2717${stats.typingWrong}</span></div>
         <div class="mode-row"><span class="mode-tag">D</span><span class="k-right">\u2713${stats.drawingRight}</span><span class="k-wrong">\u2717${stats.drawingWrong}</span></div>
@@ -587,6 +748,26 @@
     fillSection("normal", "normal");
     fillSection("dakuten", "dakuten");
     fillSection("yoon", "yoon");
+    const grids = document.querySelectorAll(
+      "#normalHiraganaGrid, #normalKatakanaGrid, #dakutenHiraganaGrid, #dakutenKatakanaGrid, #yoonHiraganaGrid, #yoonKatakanaGrid"
+    );
+    const allEmpty = Array.from(grids).every((g2) => {
+      const cards = g2.querySelectorAll(".kana-card:not(.empty-card)");
+      return cards.length === 0;
+    });
+    const existingMsg = document.getElementById("backlogEmptyState");
+    if (allEmpty) {
+      if (!existingMsg) {
+        const msg = document.createElement("div");
+        msg.id = "backlogEmptyState";
+        msg.className = "backlog-empty-state";
+        msg.textContent = "No kana match your current filters. Try adjusting the filters above.";
+        const panel = document.getElementById("backlogPanel");
+        if (panel) panel.appendChild(msg);
+      }
+    } else {
+      if (existingMsg) existingMsg.remove();
+    }
   }
   function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answerMode }) {
     const row = backlog[romaji];
@@ -694,7 +875,7 @@
       throw new Error("No kana available for the current settings.");
     }
     const weights = pool.map((item) => getQuestionWeightFn(backlog, item));
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const totalWeight = weights.reduce((sum2, weight) => sum2 + weight, 0);
     let rand = Math.random() * totalWeight;
     for (let i = 0; i < pool.length; i++) {
       rand -= weights[i];
@@ -841,12 +1022,12 @@
   });
 
   // js/features/storage.js
-  function trimDailyStatsToLimit(dailyStats, limit) {
+  function trimDailyStatsToLimit(dailyStats, limit2) {
     const sorted = Object.keys(dailyStats).sort((a, b2) => b2.localeCompare(a));
-    if (sorted.length <= limit) {
+    if (sorted.length <= limit2) {
       return;
     }
-    sorted.slice(limit).forEach((dateKey) => {
+    sorted.slice(limit2).forEach((dateKey) => {
       delete dailyStats[dateKey];
     });
   }
@@ -857,17 +1038,17 @@
     }
     return Math.max(min, Math.min(max, Math.round(parsed)));
   }
-  function normalizeDailyGoals(state, payload) {
+  function normalizeDailyGoals(state2, payload) {
     const legacyTotal = clampGoal(payload && payload.dailyGoal, 5, 200, 25);
     const source = payload && payload.dailyGoals && typeof payload.dailyGoals === "object" ? payload.dailyGoals : {};
     const total = clampGoal(source.total, 5, 200, legacyTotal);
     return {
       total,
-      typing: clampGoal(source.typing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.typing, 0, 200, 12)),
-      drawing: clampGoal(source.drawing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.drawing, 0, 200, 8)),
-      normal: clampGoal(source.normal, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.normal, 0, 200, 10)),
-      dakuten: clampGoal(source.dakuten, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.dakuten, 0, 200, 6)),
-      yoon: clampGoal(source.yoon, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.yoon, 0, 200, 6))
+      typing: clampGoal(source.typing, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.typing, 0, 200, 12)),
+      drawing: clampGoal(source.drawing, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.drawing, 0, 200, 8)),
+      normal: clampGoal(source.normal, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.normal, 0, 200, 10)),
+      dakuten: clampGoal(source.dakuten, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.dakuten, 0, 200, 6)),
+      yoon: clampGoal(source.yoon, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.yoon, 0, 200, 6))
     };
   }
   function normalizeBacklogFilters(payload) {
@@ -891,72 +1072,72 @@
       sync: Boolean(source.sync)
     };
   }
-  function buildProgressPayload({ state, dailyHistoryLimit }) {
-    trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
-    trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
+  function buildProgressPayload({ state: state2, dailyHistoryLimit }) {
+    trimDailyStatsToLimit(state2.dailyStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state2.dailyCategoryStats, dailyHistoryLimit);
     const savedAt = Date.now();
-    state.lastSavedAt = savedAt;
+    state2.lastSavedAt = savedAt;
     return {
       savedAt,
-      practiceStrategy: state.practiceStrategy,
-      recentMistakes: state.recentMistakes,
-      recentTypingMistakes: state.recentTypingMistakes,
-      recentDrawingMistakes: state.recentDrawingMistakes,
-      srsByRomaji: state.srsByRomaji,
-      audioMuted: state.audioMuted,
-      drawGuideEnabled: state.drawGuideEnabled,
-      dailyGoal: state.dailyGoal,
-      dailyGoals: state.dailyGoals,
-      backlogFilters: state.backlogFilters,
-      progressSubtab: state.progressSubtab,
-      progressCollapsedSections: state.progressCollapsedSections,
-      lastCloudSyncAt: state.lastCloudSyncAt,
-      syncUserEmail: state.syncUserEmail,
-      typingRightCount: state.typingRightCount,
-      typingWrongCount: state.typingWrongCount,
-      drawingRightCount: state.drawingRightCount,
-      drawingWrongCount: state.drawingWrongCount,
-      backlog: state.backlog,
-      drawingsByKana: state.drawingsByKana,
-      dailyStats: state.dailyStats,
-      dailyCategoryStats: state.dailyCategoryStats
+      practiceStrategy: state2.practiceStrategy,
+      recentMistakes: state2.recentMistakes,
+      recentTypingMistakes: state2.recentTypingMistakes,
+      recentDrawingMistakes: state2.recentDrawingMistakes,
+      srsByRomaji: state2.srsByRomaji,
+      audioMuted: state2.audioMuted,
+      drawGuideEnabled: state2.drawGuideEnabled,
+      dailyGoal: state2.dailyGoal,
+      dailyGoals: state2.dailyGoals,
+      backlogFilters: state2.backlogFilters,
+      progressSubtab: state2.progressSubtab,
+      progressCollapsedSections: state2.progressCollapsedSections,
+      lastCloudSyncAt: state2.lastCloudSyncAt,
+      syncUserEmail: state2.syncUserEmail,
+      typingRightCount: state2.typingRightCount,
+      typingWrongCount: state2.typingWrongCount,
+      drawingRightCount: state2.drawingRightCount,
+      drawingWrongCount: state2.drawingWrongCount,
+      backlog: state2.backlog,
+      drawingsByKana: state2.drawingsByKana,
+      dailyStats: state2.dailyStats,
+      dailyCategoryStats: state2.dailyCategoryStats
     };
   }
-  function applyProgressPayload({ payload, state, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
+  function applyProgressPayload({ payload, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
     if (!payload || typeof payload !== "object") {
       return;
     }
-    state.lastSavedAt = Number(payload.savedAt || 0);
-    state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" || payload.practiceStrategy === "frequentMistakes" ? payload.practiceStrategy : "srs";
+    state2.lastSavedAt = Number(payload.savedAt || 0);
+    state2.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" || payload.practiceStrategy === "frequentMistakes" ? payload.practiceStrategy : "srs";
     const legacyMistakes = Array.isArray(payload.recentMistakes) ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [];
-    state.recentTypingMistakes = Array.isArray(payload.recentTypingMistakes) ? payload.recentTypingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
-    state.recentDrawingMistakes = Array.isArray(payload.recentDrawingMistakes) ? payload.recentDrawingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
-    state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
-    state.audioMuted = Boolean(payload.audioMuted);
-    state.drawGuideEnabled = payload.drawGuideEnabled !== false;
-    state.dailyGoals = normalizeDailyGoals(state, payload);
-    state.dailyGoal = state.dailyGoals.total;
-    state.backlogFilters = normalizeBacklogFilters(payload);
-    state.progressSubtab = normalizeProgressSubtab(payload);
-    state.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
-    state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
-    state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
-    state.typingRightCount = Number(payload.typingRightCount || 0);
-    state.typingWrongCount = Number(payload.typingWrongCount || 0);
-    state.drawingRightCount = Number(payload.drawingRightCount || 0);
-    state.drawingWrongCount = Number(payload.drawingWrongCount || 0);
-    Object.keys(state.drawingsByKana).forEach((kanaChar) => {
-      delete state.drawingsByKana[kanaChar];
+    state2.recentTypingMistakes = Array.isArray(payload.recentTypingMistakes) ? payload.recentTypingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
+    state2.recentDrawingMistakes = Array.isArray(payload.recentDrawingMistakes) ? payload.recentDrawingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
+    state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes, ...state2.recentDrawingMistakes])].slice(0, 120);
+    state2.audioMuted = Boolean(payload.audioMuted);
+    state2.drawGuideEnabled = payload.drawGuideEnabled !== false;
+    state2.dailyGoals = normalizeDailyGoals(state2, payload);
+    state2.dailyGoal = state2.dailyGoals.total;
+    state2.backlogFilters = normalizeBacklogFilters(payload);
+    state2.progressSubtab = normalizeProgressSubtab(payload);
+    state2.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
+    state2.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
+    state2.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
+    state2.typingRightCount = Number(payload.typingRightCount || 0);
+    state2.typingWrongCount = Number(payload.typingWrongCount || 0);
+    state2.drawingRightCount = Number(payload.drawingRightCount || 0);
+    state2.drawingWrongCount = Number(payload.drawingWrongCount || 0);
+    Object.keys(state2.drawingsByKana).forEach((kanaChar) => {
+      delete state2.drawingsByKana[kanaChar];
     });
-    Object.keys(state.dailyStats).forEach((dateKey) => {
-      delete state.dailyStats[dateKey];
+    Object.keys(state2.dailyStats).forEach((dateKey) => {
+      delete state2.dailyStats[dateKey];
     });
-    Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
-      delete state.dailyCategoryStats[dateKey];
+    Object.keys(state2.dailyCategoryStats).forEach((dateKey) => {
+      delete state2.dailyCategoryStats[dateKey];
     });
     kanaData2.forEach((item) => {
       const savedSrs = payload.srsByRomaji && payload.srsByRomaji[item.romaji];
-      state.srsByRomaji[item.romaji] = {
+      state2.srsByRomaji[item.romaji] = {
         dueAt: Number(savedSrs && savedSrs.dueAt || 0),
         intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
         lastSeenAt: Number(savedSrs && savedSrs.lastSeenAt || 0),
@@ -969,7 +1150,7 @@
         if (!saved || typeof saved !== "object") {
           return;
         }
-        const target = state.backlog[item.romaji];
+        const target = state2.backlog[item.romaji];
         target.right = Number(saved.right || 0);
         target.wrong = Number(saved.wrong || 0);
         target.typingRight = Number(saved.typingRight || 0);
@@ -994,7 +1175,7 @@
       Object.keys(payload.drawingsByKana).forEach((kanaChar) => {
         const savedList = payload.drawingsByKana[kanaChar];
         if (Array.isArray(savedList)) {
-          state.drawingsByKana[kanaChar] = savedList.filter((value) => typeof value === "string").slice(0, maxDrawingsPerKana);
+          state2.drawingsByKana[kanaChar] = savedList.filter((value) => typeof value === "string").slice(0, maxDrawingsPerKana);
         }
       });
     }
@@ -1007,7 +1188,7 @@
         if (!saved || typeof saved !== "object") {
           return;
         }
-        state.dailyStats[dateKey] = {
+        state2.dailyStats[dateKey] = {
           typingRight: Number(saved.typingRight || 0),
           typingWrong: Number(saved.typingWrong || 0),
           drawingRight: Number(saved.drawingRight || 0),
@@ -1024,29 +1205,29 @@
         if (!saved || typeof saved !== "object") {
           return;
         }
-        state.dailyCategoryStats[dateKey] = {
+        state2.dailyCategoryStats[dateKey] = {
           normal: Number(saved.normal || 0),
           dakuten: Number(saved.dakuten || 0),
           yoon: Number(saved.yoon || 0)
         };
       });
     }
-    trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
-    trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state2.dailyStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state2.dailyCategoryStats, dailyHistoryLimit);
   }
-  function saveProgress({ storageKey, state, dailyHistoryLimit }) {
-    const payload = buildProgressPayload({ state, dailyHistoryLimit });
+  function saveProgress({ storageKey, state: state2, dailyHistoryLimit }) {
+    const payload = buildProgressPayload({ state: state2, dailyHistoryLimit });
     try {
       localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch (e) {
+    } catch {
     }
     return payload;
   }
-  function loadProgress({ storageKey, state, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
+  function loadProgress({ storageKey, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
     let parsed = null;
     try {
       parsed = JSON.parse(localStorage.getItem(storageKey) || "null");
-    } catch (e) {
+    } catch {
       parsed = null;
     }
     if (!parsed || typeof parsed !== "object") {
@@ -1054,7 +1235,7 @@
     }
     applyProgressPayload({
       payload: parsed,
-      state,
+      state: state2,
       kanaData: kanaData2,
       maxDrawingsPerKana,
       dailyHistoryLimit
@@ -1149,9 +1330,9 @@
       ctx.fillText(`${100 - i * 25}%`, 8, y2 + 4);
     }
     function getPoint(index, ratio) {
-      const x = left + index * width / (dateKeys.length - 1);
+      const x2 = left + index * width / (dateKeys.length - 1);
       const y2 = bottom - ratio * height;
-      return { x, y: y2 };
+      return { x: x2, y: y2 };
     }
     const typingPoints = [];
     const drawingPoints = [];
@@ -1249,7 +1430,7 @@
     </div>
   `;
   }
-  function renderDailyHistoryTable(elements, dailyStats) {
+  function renderDailyHistoryTable(elements, dailyStats, dailyDetailStats = {}) {
     const dateKeys = getSortedDateKeys(dailyStats);
     if (dateKeys.length === 0) {
       elements.dailyHistoryTable.innerHTML = '<div class="compare-empty">No daily history yet. Start practicing to populate this table.</div>';
@@ -1270,47 +1451,68 @@
       const day = dailyStats[dateKey];
       const totals = getDayTotals(day);
       return `
-            <tr>
+            <tr class="history-day-row" data-date="${dateKey}">
               <td>${formatDateLabel(dateKey)}</td>
               <td>${day.typingRight}/${totals.typingTotal} (${asPercent(day.typingRight, totals.typingTotal)})</td>
               <td>${day.drawingRight}/${totals.drawingTotal} (${asPercent(day.drawingRight, totals.drawingTotal)})</td>
               <td>${totals.allRight}/${totals.allTotal} (${asPercent(totals.allRight, totals.allTotal)})</td>
+            </tr>
+            <tr class="history-detail-row hidden" data-date-detail="${dateKey}">
+              <td colspan="4"><div class="drill-down-panel"></div></td>
             </tr>
           `;
     }).join("")}
       </tbody>
     </table>
   `;
+    const rows = elements.dailyHistoryTable.querySelectorAll(".history-day-row");
+    rows.forEach((row) => {
+      row.addEventListener("click", () => {
+        const dateKey = row.dataset.date;
+        const detailRow = elements.dailyHistoryTable.querySelector(`[data-date-detail="${dateKey}"]`);
+        if (!detailRow) return;
+        const panel = detailRow.querySelector(".drill-down-panel");
+        const details = dailyDetailStats[dateKey] || {};
+        if (!detailRow.classList.contains("hidden")) {
+          detailRow.classList.add("hidden");
+          panel.innerHTML = "";
+          return;
+        }
+        const detailItems = Object.entries(details).map(([romaji, entry]) => ({ romaji, right: Number(entry.right || 0), wrong: Number(entry.wrong || 0) })).sort((a, b2) => b2.right + b2.wrong - (a.right + a.wrong));
+        panel.innerHTML = detailItems.length ? `<strong>Attempt breakdown:</strong> ${detailItems.map((d2) => `${d2.romaji} (\u2713${d2.right}/\u2717${d2.wrong})`).join(", ")}` : "No detailed per-kana stats stored for this day yet.";
+        detailRow.classList.remove("hidden");
+      });
+    });
   }
-  function renderInsights(elements, state) {
+  function renderInsights(elements, state2) {
     if (!elements.insightsGrid) {
       return;
     }
     const now = Date.now();
-    const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
-    const mistakesCount = (state.recentMistakes || []).length;
-    const today = state.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
-    const todayCategory = getCategoryTotals(state.dailyCategoryStats && state.dailyCategoryStats[getTodayKey()]);
+    const dueCount = Object.values(state2.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
+    const mistakesCount = (state2.recentMistakes || []).length;
+    const today = state2.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+    const todayCategory = getCategoryTotals(state2.dailyCategoryStats && state2.dailyCategoryStats[getTodayKey()]);
     const todayDone = today.typingRight + today.typingWrong + today.drawingRight + today.drawingWrong;
-    const goals = state.dailyGoals || {
-      total: Number(state.dailyGoal || 25),
+    const goals = state2.dailyGoals || {
+      total: Number(state2.dailyGoal || 25),
       typing: 12,
       drawing: 8,
       normal: 10,
       dakuten: 6,
       yoon: 6
     };
-    const weakRows = Object.values(state.backlog || {}).map((row) => {
+    const weakRows = Object.values(state2.backlog || {}).map((row) => {
       const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
       const right = row.typingRight + row.drawingRight;
       const accuracy = attempts ? Math.round(right / attempts * 100) : 100;
       return { romaji: row.romaji, attempts, accuracy };
     }).filter((row) => row.attempts >= 4).sort((a, b2) => a.accuracy - b2.accuracy).slice(0, 3);
-    const recentDateKeys = getSortedDateKeys(state.dailyStats).slice(0, 7);
+    const recentDateKeys = getSortedDateKeys(state2.dailyStats).slice(0, 7);
     let weekRight = 0;
     let weekTotal = 0;
     recentDateKeys.forEach((dateKey) => {
-      const day = state.dailyStats[dateKey];
+      const day = state2.dailyStats[dateKey];
       weekRight += day.typingRight + day.drawingRight;
       weekTotal += day.typingRight + day.typingWrong + day.drawingRight + day.drawingWrong;
     });
@@ -1367,7 +1569,7 @@
     }
     return value[0] || "other";
   }
-  function renderScriptHeatmap(elements, state) {
+  function renderScriptHeatmap(elements, state2) {
     if (!elements.scriptHeatmap) {
       return;
     }
@@ -1397,7 +1599,7 @@
       };
       return acc;
     }, {});
-    Object.values(state.backlog || {}).forEach((row) => {
+    Object.values(state2.backlog || {}).forEach((row) => {
       const key = getRomajiRowGroup(row.romaji);
       if (!metrics[key]) {
         return;
@@ -1439,24 +1641,89 @@
     }).join("")}
   `;
   }
-  function addDailyAttempt(state, mode, wasCorrect, category = null) {
+  function renderGoalProgress(elements, state2) {
+    const container = elements.goalProgressBar;
+    if (!container) return;
     const todayKey = getTodayKey();
-    if (!state.dailyStats[todayKey]) {
-      state.dailyStats[todayKey] = {
+    const today = state2.dailyStats[todayKey] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+    const todayCategory = state2.dailyCategoryStats && state2.dailyCategoryStats[todayKey] || { normal: 0, dakuten: 0, yoon: 0 };
+    const goals = state2.dailyGoals || {
+      total: Number(state2.dailyGoal || 25),
+      typing: 12,
+      drawing: 8,
+      normal: 10,
+      dakuten: 6,
+      yoon: 6
+    };
+    const typingDone = today.typingRight + today.typingWrong;
+    const drawingDone = today.drawingRight + today.drawingWrong;
+    const totalDone = typingDone + drawingDone;
+    function bar(label, done, goal) {
+      const safeGoal = Number(goal || 1);
+      const pct = Math.min(100, Math.round(done / safeGoal * 100));
+      const met = done >= safeGoal;
+      return `
+      <div class="goal-bar-wrap${met ? " goal-met" : ""}">
+        <span class="goal-bar-label">${label}</span>
+        <div class="goal-bar-track"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
+        <span class="goal-bar-count">${done}/${safeGoal}</span>
+      </div>`;
+    }
+    container.innerHTML = bar("Total", totalDone, goals.total) + bar("Typing", typingDone, goals.typing) + bar("Drawing", drawingDone, goals.drawing) + bar("Normal", todayCategory.normal || 0, goals.normal) + bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) + bar("Yoon", todayCategory.yoon || 0, goals.yoon);
+  }
+  function renderStreakDisplay(elements, state2) {
+    const container = elements.streakDisplay;
+    if (!container) return;
+    const streak = state2.streakData || { current: 0, best: 0, lastPracticeDate: "" };
+    container.innerHTML = `<span class="streak-badge" title="Current streak">\u{1F525} ${streak.current} day${streak.current !== 1 ? "s" : ""}</span>` + (streak.best > 1 ? `<span class="streak-best">Best: ${streak.best}</span>` : "");
+  }
+  function renderSrsScheduleGraph(elements, state2) {
+    const container = elements.srsScheduleGraph;
+    if (!container) return;
+    const now = Date.now();
+    const buckets = Array.from({ length: 7 }, (_, i) => {
+      const start = now + i * 864e5;
+      const end = start + 864e5;
+      return { label: i === 0 ? "Today" : i === 1 ? "Tmrw" : `+${i}d`, start, end, count: 0 };
+    });
+    Object.values(state2.srsByRomaji || {}).forEach((entry) => {
+      const due = Number(entry.dueAt || 0);
+      if (due <= 0) return;
+      const bucket = buckets.find((b2) => due >= b2.start && due < b2.end);
+      if (bucket) bucket.count += 1;
+    });
+    const max = Math.max(1, ...buckets.map((b2) => b2.count));
+    container.innerHTML = `
+    <div class="srs-schedule-graph">
+      ${buckets.map((b2) => {
+      const height = Math.round(b2.count / max * 80);
+      return `
+          <div class="srs-bar-col">
+            <span class="srs-bar-val">${b2.count}</span>
+            <div class="srs-bar" style="height:${height}px"></div>
+            <span class="srs-bar-label">${b2.label}</span>
+          </div>`;
+    }).join("")}
+    </div>`;
+  }
+  function addDailyAttempt(state2, mode, wasCorrect, category = null) {
+    const todayKey = getTodayKey();
+    if (!state2.dailyStats[todayKey]) {
+      state2.dailyStats[todayKey] = {
         typingRight: 0,
         typingWrong: 0,
         drawingRight: 0,
         drawingWrong: 0
       };
     }
-    if (!state.dailyCategoryStats[todayKey]) {
-      state.dailyCategoryStats[todayKey] = {
+    if (!state2.dailyCategoryStats[todayKey]) {
+      state2.dailyCategoryStats[todayKey] = {
         normal: 0,
         dakuten: 0,
         yoon: 0
       };
     }
-    const entry = state.dailyStats[todayKey];
+    const entry = state2.dailyStats[todayKey];
     if (mode === "typing") {
       if (wasCorrect) {
         entry.typingRight += 1;
@@ -1470,31 +1737,33 @@
         entry.drawingWrong += 1;
       }
     }
-    if (category && state.dailyCategoryStats[todayKey][category] !== void 0) {
-      state.dailyCategoryStats[todayKey][category] += 1;
+    if (category && state2.dailyCategoryStats[todayKey][category] !== void 0) {
+      state2.dailyCategoryStats[todayKey][category] += 1;
     }
   }
-  function renderDailyProgress({ elements, state, setActiveProgressTab: setActiveProgressTab2 }) {
+  function renderDailyProgress({ elements, state: state2, setActiveProgressTab: setActiveProgressTab2 }) {
     const todayKey = getTodayKey();
-    const hasNewDay = todayKey !== state.progressUiDayMarker;
-    state.progressUiDayMarker = todayKey;
-    buildDayOptions(elements, state.dailyStats);
+    const hasNewDay = todayKey !== state2.progressUiDayMarker;
+    state2.progressUiDayMarker = todayKey;
+    buildDayOptions(elements, state2.dailyStats);
     if (hasNewDay) {
-      resetProgressTabForNewDay(elements, state.dailyStats);
+      resetProgressTabForNewDay(elements, state2.dailyStats);
       setActiveProgressTab2(elements, "backlog");
     }
-    renderDailyProgressGraph(elements, state.dailyStats);
-    renderDayComparison(elements, state.dailyStats);
-    renderDailyHistoryTable(elements, state.dailyStats);
-    renderInsights(elements, state);
-    renderScriptHeatmap(elements, state);
+    renderDailyProgressGraph(elements, state2.dailyStats);
+    renderDayComparison(elements, state2.dailyStats);
+    renderDailyHistoryTable(elements, state2.dailyStats, state2.dailyDetailStats || {});
+    renderInsights(elements, state2);
+    renderScriptHeatmap(elements, state2);
+    renderStreakDisplay(elements, state2);
+    renderSrsScheduleGraph(elements, state2);
   }
-  function bindProgressCompareSelectors(elements, state) {
-    elements.compareDayASelect.addEventListener("change", () => renderDayComparison(elements, state.dailyStats));
-    elements.compareDayBSelect.addEventListener("change", () => renderDayComparison(elements, state.dailyStats));
+  function bindProgressCompareSelectors(elements, state2) {
+    elements.compareDayASelect.addEventListener("change", () => renderDayComparison(elements, state2.dailyStats));
+    elements.compareDayBSelect.addEventListener("change", () => renderDayComparison(elements, state2.dailyStats));
   }
-  function redrawProgressGraph(elements, state) {
-    renderDailyProgressGraph(elements, state.dailyStats);
+  function redrawProgressGraph(elements, state2) {
+    renderDailyProgressGraph(elements, state2.dailyStats);
   }
   var init_progress = __esm({
     "js/features/progress.js"() {
@@ -1503,10 +1772,10 @@
   });
 
   // js/features/drawing.js
-  function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
+  function createDrawingFeature({ elements, state: state2, maxDrawingsPerKana, eventBus: eventBus2, EVENT_NAMES: EVENT_NAMES2 }) {
     let drawing = false;
     let activeCanvas = null;
-    let drawGuideEnabled = state.drawGuideEnabled !== false;
+    let drawGuideEnabled = state2.drawGuideEnabled !== false;
     const canvases = [
       { canvas: elements.canvasHiragana, ctx: elements.ctxHiragana },
       { canvas: elements.canvasKatakana, ctx: elements.ctxKatakana }
@@ -1514,6 +1783,9 @@
     function setDrawingMarkButtonsEnabled(enabled) {
       elements.markRightBtn.disabled = !enabled;
       elements.markWrongBtn.disabled = !enabled;
+    }
+    function setRevealEnabled(enabled) {
+      elements.revealBtn.disabled = !enabled;
     }
     function setDrawingCanvasVisibility(mode) {
       const showHiragana = mode === "both" || mode === "hiragana";
@@ -1544,6 +1816,7 @@
     }
     function clearAllCanvases() {
       canvases.forEach(({ canvas, ctx }) => clearCanvas(canvas, ctx));
+      setRevealEnabled(false);
     }
     function setGuideEnabled(enabled) {
       drawGuideEnabled = Boolean(enabled);
@@ -1581,6 +1854,12 @@
     function endDraw() {
       drawing = false;
       activeCanvas = null;
+      const visibleCanvases = canvases.filter(({ canvas }) => {
+        const pane = canvas.closest(".draw-pane");
+        return pane && !pane.classList.contains("hidden");
+      });
+      const anyInk = visibleCanvases.some(({ canvas, ctx }) => hasInk(canvas, ctx));
+      setRevealEnabled(anyInk);
     }
     function hasInk(canvas, ctx) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -1595,41 +1874,60 @@
       if (!hasInk(canvas, ctx)) {
         return;
       }
-      const existing = state.drawingsByKana[kanaChar] || [];
+      const existing = state2.drawingsByKana[kanaChar] || [];
       existing.unshift(canvas.toDataURL("image/png"));
       if (existing.length > maxDrawingsPerKana) {
         existing.length = maxDrawingsPerKana;
       }
-      state.drawingsByKana[kanaChar] = existing;
+      state2.drawingsByKana[kanaChar] = existing;
     }
     function saveCurrentDrawingIfCorrect() {
-      if (!state.currentQuestion || state.currentQuestion.kind !== "drawing") {
+      if (!state2.currentQuestion || state2.currentQuestion.kind !== "drawing") {
         return;
       }
-      if (state.currentQuestion.canvasMode === "both") {
-        addDrawingSnapshot(state.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
-        addDrawingSnapshot(state.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
+      if (state2.currentQuestion.canvasMode === "both") {
+        addDrawingSnapshot(state2.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
+        addDrawingSnapshot(state2.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
         return;
       }
-      if (state.currentQuestion.canvasMode === "hiragana") {
-        addDrawingSnapshot(state.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
+      if (state2.currentQuestion.canvasMode === "hiragana") {
+        addDrawingSnapshot(state2.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
         return;
       }
-      addDrawingSnapshot(state.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
+      addDrawingSnapshot(state2.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
     }
     function openDrawingGallery(kanaChar) {
-      const drawings = state.drawingsByKana[kanaChar] || [];
+      const drawings = state2.drawingsByKana[kanaChar] || [];
       elements.galleryTitle.textContent = `Saved Drawings: ${kanaChar}`;
       if (drawings.length === 0) {
         elements.galleryBody.innerHTML = '<div class="gallery-empty">No saved drawings yet for this kana.</div>';
       } else {
-        elements.galleryBody.innerHTML = drawings.map((imageData, index) => `
-          <div class="gallery-item">
-            <img src="${imageData}" alt="Saved drawing ${index + 1} for ${kanaChar}" />
-          </div>
-        `).join("");
+        renderGalleryItems(kanaChar);
       }
       elements.drawingGalleryDialog.showModal();
+    }
+    function renderGalleryItems(kanaChar) {
+      const drawings = state2.drawingsByKana[kanaChar] || [];
+      if (drawings.length === 0) {
+        elements.galleryBody.innerHTML = '<div class="gallery-empty">No saved drawings yet for this kana.</div>';
+        return;
+      }
+      elements.galleryBody.innerHTML = drawings.map((imageData, index) => `
+        <div class="gallery-item">
+          <img src="${imageData}" alt="Saved drawing ${index + 1} for ${kanaChar}" />
+          <button type="button" class="btn-danger gallery-delete-btn" data-index="${index}" data-kana="${kanaChar}" aria-label="Delete drawing ${index + 1}">\u2715</button>
+        </div>
+      `).join("");
+      elements.galleryBody.querySelectorAll(".gallery-delete-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.index);
+          const kana = btn.dataset.kana;
+          if (!state2.drawingsByKana[kana]) return;
+          state2.drawingsByKana[kana].splice(idx, 1);
+          if (state2.drawingsByKana[kana].length === 0) delete state2.drawingsByKana[kana];
+          renderGalleryItems(kana);
+        });
+      });
     }
     function bindCanvasEvents() {
       canvases.forEach(({ canvas }) => {
@@ -1638,6 +1936,9 @@
         canvas.addEventListener("pointerup", endDraw);
         canvas.addEventListener("pointerleave", endDraw);
       });
+      if (eventBus2 && EVENT_NAMES2) {
+        eventBus2.on(EVENT_NAMES2.QUESTION_NEW, () => setRevealEnabled(false));
+      }
     }
     return {
       setDrawingMarkButtonsEnabled,
@@ -1646,7 +1947,8 @@
       clearAllCanvases,
       saveCurrentDrawingIfCorrect,
       openDrawingGallery,
-      bindCanvasEvents
+      bindCanvasEvents,
+      setRevealEnabled
     };
   }
   var init_drawing = __esm({
@@ -1731,6 +2033,12 @@
     return typeof window !== "undefined" && // @ts-ignore Setting up an broadly applicable index signature for Window
     // just to deal with this case would probably be a bad idea.
     !!(window["cordova"] || window["phonegap"] || window["PhoneGap"]) && /ios|iphone|ipod|ipad|android|blackberry|iemobile/i.test(getUA());
+  }
+  function isBrowser() {
+    return typeof window !== "undefined" || isWebWorker();
+  }
+  function isWebWorker() {
+    return typeof WorkerGlobalScope !== "undefined" && typeof self !== "undefined" && self instanceof WorkerGlobalScope;
   }
   function isBrowserExtension() {
     const runtime = typeof chrome === "object" ? chrome.runtime : typeof browser === "object" ? browser.runtime : void 0;
@@ -2686,6 +2994,50 @@
   });
 
   // node_modules/@firebase/logger/dist/esm/index.esm2017.js
+  function setLogLevel(level) {
+    instances.forEach((inst) => {
+      inst.setLogLevel(level);
+    });
+  }
+  function setUserLogHandler(logCallback, options) {
+    for (const instance of instances) {
+      let customLogLevel = null;
+      if (options && options.level) {
+        customLogLevel = levelStringToEnum[options.level];
+      }
+      if (logCallback === null) {
+        instance.userLogHandler = null;
+      } else {
+        instance.userLogHandler = (instance2, level, ...args) => {
+          const message = args.map((arg) => {
+            if (arg == null) {
+              return null;
+            } else if (typeof arg === "string") {
+              return arg;
+            } else if (typeof arg === "number" || typeof arg === "boolean") {
+              return arg.toString();
+            } else if (arg instanceof Error) {
+              return arg.message;
+            } else {
+              try {
+                return JSON.stringify(arg);
+              } catch (ignored) {
+                return null;
+              }
+            }
+          }).filter((arg) => arg).join(" ");
+          if (level >= (customLogLevel !== null && customLogLevel !== void 0 ? customLogLevel : instance2.logLevel)) {
+            logCallback({
+              level: LogLevel[level].toLowerCase(),
+              message,
+              args,
+              type: instance2.name
+            });
+          }
+        };
+      }
+    }
+  }
   var instances, LogLevel, levelStringToEnum, defaultLogLevel, ConsoleMethod, defaultLogHandler, Logger;
   var init_index_esm20173 = __esm({
     "node_modules/@firebase/logger/dist/esm/index.esm2017.js"() {
@@ -3024,6 +3376,9 @@
       logger.debug(`Component ${component.name} failed to register with FirebaseApp ${app.name}`, e);
     }
   }
+  function _addOrOverwriteComponent(app, component) {
+    app.container.addOrOverwriteComponent(component);
+  }
   function _registerComponent(component) {
     const componentName = component.name;
     if (_components.has(componentName)) {
@@ -3046,8 +3401,17 @@
     }
     return app.container.getProvider(name4);
   }
+  function _removeServiceInstance(app, name4, instanceIdentifier = DEFAULT_ENTRY_NAME2) {
+    _getProvider(app, name4).clearInstance(instanceIdentifier);
+  }
+  function _isFirebaseApp(obj) {
+    return obj.options !== void 0;
+  }
   function _isFirebaseServerApp(obj) {
     return obj.settings !== void 0;
+  }
+  function _clearComponents() {
+    _components.clear();
   }
   function initializeApp(_options, rawConfig = {}) {
     let options = _options;
@@ -3085,6 +3449,48 @@
     _apps.set(name4, newApp);
     return newApp;
   }
+  function initializeServerApp(_options, _serverAppConfig) {
+    if (isBrowser() && !isWebWorker()) {
+      throw ERROR_FACTORY.create(
+        "invalid-server-app-environment"
+        /* AppError.INVALID_SERVER_APP_ENVIRONMENT */
+      );
+    }
+    if (_serverAppConfig.automaticDataCollectionEnabled === void 0) {
+      _serverAppConfig.automaticDataCollectionEnabled = false;
+    }
+    let appOptions;
+    if (_isFirebaseApp(_options)) {
+      appOptions = _options.options;
+    } else {
+      appOptions = _options;
+    }
+    const nameObj = Object.assign(Object.assign({}, _serverAppConfig), appOptions);
+    if (nameObj.releaseOnDeref !== void 0) {
+      delete nameObj.releaseOnDeref;
+    }
+    const hashCode = (s) => {
+      return [...s].reduce((hash, c) => Math.imul(31, hash) + c.charCodeAt(0) | 0, 0);
+    };
+    if (_serverAppConfig.releaseOnDeref !== void 0) {
+      if (typeof FinalizationRegistry === "undefined") {
+        throw ERROR_FACTORY.create("finalization-registry-not-supported", {});
+      }
+    }
+    const nameString = "" + hashCode(JSON.stringify(nameObj));
+    const existingApp = _serverApps.get(nameString);
+    if (existingApp) {
+      existingApp.incRefCount(_serverAppConfig.releaseOnDeref);
+      return existingApp;
+    }
+    const container = new ComponentContainer(nameString);
+    for (const component of _components.values()) {
+      container.addComponent(component);
+    }
+    const newApp = new FirebaseServerAppImpl(appOptions, _serverAppConfig, nameString, container);
+    _serverApps.set(nameString, newApp);
+    return newApp;
+  }
   function getApp(name4 = DEFAULT_ENTRY_NAME2) {
     const app = _apps.get(name4);
     if (!app && name4 === DEFAULT_ENTRY_NAME2 && getDefaultAppConfig()) {
@@ -3097,6 +3503,24 @@
   }
   function getApps() {
     return Array.from(_apps.values());
+  }
+  async function deleteApp(app) {
+    let cleanupProviders = false;
+    const name4 = app.name;
+    if (_apps.has(name4)) {
+      cleanupProviders = true;
+      _apps.delete(name4);
+    } else if (_serverApps.has(name4)) {
+      const firebaseServerApp = app;
+      if (firebaseServerApp.decRefCount() <= 0) {
+        _serverApps.delete(name4);
+        cleanupProviders = true;
+      }
+    }
+    if (cleanupProviders) {
+      await Promise.all(app.container.getProviders().map((provider) => provider.delete()));
+      app.isDeleted = true;
+    }
   }
   function registerVersion(libraryKeyOrName, version4, variant) {
     var _a;
@@ -3128,6 +3552,18 @@
       "VERSION"
       /* ComponentType.VERSION */
     ));
+  }
+  function onLog(logCallback, options) {
+    if (logCallback !== null && typeof logCallback !== "function") {
+      throw ERROR_FACTORY.create(
+        "invalid-log-argument"
+        /* AppError.INVALID_LOG_ARGUMENT */
+      );
+    }
+    setUserLogHandler(logCallback, options);
+  }
+  function setLogLevel2(logLevel) {
+    setLogLevel(logLevel);
   }
   function getDbPromise() {
     if (!dbPromise) {
@@ -3244,7 +3680,7 @@
     registerVersion(name$p, version$1, "esm2017");
     registerVersion("fire-js", "");
   }
-  var PlatformLoggerServiceImpl, name$p, version$1, logger, name$o, name$n, name$m, name$l, name$k, name$j, name$i, name$h, name$g, name$f, name$e, name$d, name$c, name$b, name$a, name$9, name$8, name$7, name$6, name$5, name$4, name$3, name$2, name$1, name, version, DEFAULT_ENTRY_NAME2, PLATFORM_LOG_STRING, _apps, _serverApps, _components, ERRORS, ERROR_FACTORY, FirebaseAppImpl, SDK_VERSION, DB_NAME, DB_VERSION, STORE_NAME, dbPromise, MAX_HEADER_BYTES, STORED_HEARTBEAT_RETENTION_MAX_MILLIS, HeartbeatServiceImpl, HeartbeatStorageImpl;
+  var PlatformLoggerServiceImpl, name$p, version$1, logger, name$o, name$n, name$m, name$l, name$k, name$j, name$i, name$h, name$g, name$f, name$e, name$d, name$c, name$b, name$a, name$9, name$8, name$7, name$6, name$5, name$4, name$3, name$2, name$1, name, version, DEFAULT_ENTRY_NAME2, PLATFORM_LOG_STRING, _apps, _serverApps, _components, ERRORS, ERROR_FACTORY, FirebaseAppImpl, FirebaseServerAppImpl, SDK_VERSION, DB_NAME, DB_VERSION, STORE_NAME, dbPromise, MAX_HEADER_BYTES, STORED_HEARTBEAT_RETENTION_MAX_MILLIS, HeartbeatServiceImpl, HeartbeatStorageImpl;
   var init_index_esm20174 = __esm({
     "node_modules/@firebase/app/dist/esm/index.esm2017.js"() {
       init_index_esm20172();
@@ -3445,6 +3881,79 @@
           }
         }
       };
+      FirebaseServerAppImpl = class extends FirebaseAppImpl {
+        constructor(options, serverConfig, name4, container) {
+          const automaticDataCollectionEnabled = serverConfig.automaticDataCollectionEnabled !== void 0 ? serverConfig.automaticDataCollectionEnabled : false;
+          const config = {
+            name: name4,
+            automaticDataCollectionEnabled
+          };
+          if (options.apiKey !== void 0) {
+            super(options, config, container);
+          } else {
+            const appImpl = options;
+            super(appImpl.options, config, container);
+          }
+          this._serverConfig = Object.assign({ automaticDataCollectionEnabled }, serverConfig);
+          this._finalizationRegistry = null;
+          if (typeof FinalizationRegistry !== "undefined") {
+            this._finalizationRegistry = new FinalizationRegistry(() => {
+              this.automaticCleanup();
+            });
+          }
+          this._refCount = 0;
+          this.incRefCount(this._serverConfig.releaseOnDeref);
+          this._serverConfig.releaseOnDeref = void 0;
+          serverConfig.releaseOnDeref = void 0;
+          registerVersion(name$p, version$1, "serverapp");
+        }
+        toJSON() {
+          return void 0;
+        }
+        get refCount() {
+          return this._refCount;
+        }
+        // Increment the reference count of this server app. If an object is provided, register it
+        // with the finalization registry.
+        incRefCount(obj) {
+          if (this.isDeleted) {
+            return;
+          }
+          this._refCount++;
+          if (obj !== void 0 && this._finalizationRegistry !== null) {
+            this._finalizationRegistry.register(obj, this);
+          }
+        }
+        // Decrement the reference count.
+        decRefCount() {
+          if (this.isDeleted) {
+            return 0;
+          }
+          return --this._refCount;
+        }
+        // Invoked by the FinalizationRegistry callback to note that this app should go through its
+        // reference counts and delete itself if no reference count remain. The coordinating logic that
+        // handles this is in deleteApp(...).
+        automaticCleanup() {
+          void deleteApp(this);
+        }
+        get settings() {
+          this.checkDestroyed();
+          return this._serverConfig;
+        }
+        /**
+         * This function will throw an Error if the App has already been deleted -
+         * use before performing API actions on the App.
+         */
+        checkDestroyed() {
+          if (this.isDeleted) {
+            throw ERROR_FACTORY.create(
+              "server-app-deleted"
+              /* AppError.SERVER_APP_DELETED */
+            );
+          }
+        }
+      };
       SDK_VERSION = version;
       DB_NAME = "firebase-heartbeat-database";
       DB_VERSION = 1;
@@ -3587,6 +4096,31 @@
   });
 
   // node_modules/firebase/app/dist/esm/index.esm.js
+  var index_esm_exports = {};
+  __export(index_esm_exports, {
+    FirebaseError: () => FirebaseError,
+    SDK_VERSION: () => SDK_VERSION,
+    _DEFAULT_ENTRY_NAME: () => DEFAULT_ENTRY_NAME2,
+    _addComponent: () => _addComponent,
+    _addOrOverwriteComponent: () => _addOrOverwriteComponent,
+    _apps: () => _apps,
+    _clearComponents: () => _clearComponents,
+    _components: () => _components,
+    _getProvider: () => _getProvider,
+    _isFirebaseApp: () => _isFirebaseApp,
+    _isFirebaseServerApp: () => _isFirebaseServerApp,
+    _registerComponent: () => _registerComponent,
+    _removeServiceInstance: () => _removeServiceInstance,
+    _serverApps: () => _serverApps,
+    deleteApp: () => deleteApp,
+    getApp: () => getApp,
+    getApps: () => getApps,
+    initializeApp: () => initializeApp,
+    initializeServerApp: () => initializeServerApp,
+    onLog: () => onLog,
+    registerVersion: () => registerVersion,
+    setLogLevel: () => setLogLevel2
+  });
   var name2, version2;
   var init_index_esm = __esm({
     "node_modules/firebase/app/dist/esm/index.esm.js"() {
@@ -3616,6 +4150,438 @@
   });
 
   // node_modules/@firebase/auth/dist/esm2017/index-21205181.js
+  function _debugErrorMap() {
+    return {
+      [
+        "admin-restricted-operation"
+        /* AuthErrorCode.ADMIN_ONLY_OPERATION */
+      ]: "This operation is restricted to administrators only.",
+      [
+        "argument-error"
+        /* AuthErrorCode.ARGUMENT_ERROR */
+      ]: "",
+      [
+        "app-not-authorized"
+        /* AuthErrorCode.APP_NOT_AUTHORIZED */
+      ]: "This app, identified by the domain where it's hosted, is not authorized to use Firebase Authentication with the provided API key. Review your key configuration in the Google API console.",
+      [
+        "app-not-installed"
+        /* AuthErrorCode.APP_NOT_INSTALLED */
+      ]: "The requested mobile application corresponding to the identifier (Android package name or iOS bundle ID) provided is not installed on this device.",
+      [
+        "captcha-check-failed"
+        /* AuthErrorCode.CAPTCHA_CHECK_FAILED */
+      ]: "The reCAPTCHA response token provided is either invalid, expired, already used or the domain associated with it does not match the list of whitelisted domains.",
+      [
+        "code-expired"
+        /* AuthErrorCode.CODE_EXPIRED */
+      ]: "The SMS code has expired. Please re-send the verification code to try again.",
+      [
+        "cordova-not-ready"
+        /* AuthErrorCode.CORDOVA_NOT_READY */
+      ]: "Cordova framework is not ready.",
+      [
+        "cors-unsupported"
+        /* AuthErrorCode.CORS_UNSUPPORTED */
+      ]: "This browser is not supported.",
+      [
+        "credential-already-in-use"
+        /* AuthErrorCode.CREDENTIAL_ALREADY_IN_USE */
+      ]: "This credential is already associated with a different user account.",
+      [
+        "custom-token-mismatch"
+        /* AuthErrorCode.CREDENTIAL_MISMATCH */
+      ]: "The custom token corresponds to a different audience.",
+      [
+        "requires-recent-login"
+        /* AuthErrorCode.CREDENTIAL_TOO_OLD_LOGIN_AGAIN */
+      ]: "This operation is sensitive and requires recent authentication. Log in again before retrying this request.",
+      [
+        "dependent-sdk-initialized-before-auth"
+        /* AuthErrorCode.DEPENDENT_SDK_INIT_BEFORE_AUTH */
+      ]: "Another Firebase SDK was initialized and is trying to use Auth before Auth is initialized. Please be sure to call `initializeAuth` or `getAuth` before starting any other Firebase SDK.",
+      [
+        "dynamic-link-not-activated"
+        /* AuthErrorCode.DYNAMIC_LINK_NOT_ACTIVATED */
+      ]: "Please activate Dynamic Links in the Firebase Console and agree to the terms and conditions.",
+      [
+        "email-change-needs-verification"
+        /* AuthErrorCode.EMAIL_CHANGE_NEEDS_VERIFICATION */
+      ]: "Multi-factor users must always have a verified email.",
+      [
+        "email-already-in-use"
+        /* AuthErrorCode.EMAIL_EXISTS */
+      ]: "The email address is already in use by another account.",
+      [
+        "emulator-config-failed"
+        /* AuthErrorCode.EMULATOR_CONFIG_FAILED */
+      ]: 'Auth instance has already been used to make a network call. Auth can no longer be configured to use the emulator. Try calling "connectAuthEmulator()" sooner.',
+      [
+        "expired-action-code"
+        /* AuthErrorCode.EXPIRED_OOB_CODE */
+      ]: "The action code has expired.",
+      [
+        "cancelled-popup-request"
+        /* AuthErrorCode.EXPIRED_POPUP_REQUEST */
+      ]: "This operation has been cancelled due to another conflicting popup being opened.",
+      [
+        "internal-error"
+        /* AuthErrorCode.INTERNAL_ERROR */
+      ]: "An internal AuthError has occurred.",
+      [
+        "invalid-app-credential"
+        /* AuthErrorCode.INVALID_APP_CREDENTIAL */
+      ]: "The phone verification request contains an invalid application verifier. The reCAPTCHA token response is either invalid or expired.",
+      [
+        "invalid-app-id"
+        /* AuthErrorCode.INVALID_APP_ID */
+      ]: "The mobile app identifier is not registered for the current project.",
+      [
+        "invalid-user-token"
+        /* AuthErrorCode.INVALID_AUTH */
+      ]: "This user's credential isn't valid for this project. This can happen if the user's token has been tampered with, or if the user isn't for the project associated with this API key.",
+      [
+        "invalid-auth-event"
+        /* AuthErrorCode.INVALID_AUTH_EVENT */
+      ]: "An internal AuthError has occurred.",
+      [
+        "invalid-verification-code"
+        /* AuthErrorCode.INVALID_CODE */
+      ]: "The SMS verification code used to create the phone auth credential is invalid. Please resend the verification code sms and be sure to use the verification code provided by the user.",
+      [
+        "invalid-continue-uri"
+        /* AuthErrorCode.INVALID_CONTINUE_URI */
+      ]: "The continue URL provided in the request is invalid.",
+      [
+        "invalid-cordova-configuration"
+        /* AuthErrorCode.INVALID_CORDOVA_CONFIGURATION */
+      ]: "The following Cordova plugins must be installed to enable OAuth sign-in: cordova-plugin-buildinfo, cordova-universal-links-plugin, cordova-plugin-browsertab, cordova-plugin-inappbrowser and cordova-plugin-customurlscheme.",
+      [
+        "invalid-custom-token"
+        /* AuthErrorCode.INVALID_CUSTOM_TOKEN */
+      ]: "The custom token format is incorrect. Please check the documentation.",
+      [
+        "invalid-dynamic-link-domain"
+        /* AuthErrorCode.INVALID_DYNAMIC_LINK_DOMAIN */
+      ]: "The provided dynamic link domain is not configured or authorized for the current project.",
+      [
+        "invalid-email"
+        /* AuthErrorCode.INVALID_EMAIL */
+      ]: "The email address is badly formatted.",
+      [
+        "invalid-emulator-scheme"
+        /* AuthErrorCode.INVALID_EMULATOR_SCHEME */
+      ]: "Emulator URL must start with a valid scheme (http:// or https://).",
+      [
+        "invalid-api-key"
+        /* AuthErrorCode.INVALID_API_KEY */
+      ]: "Your API key is invalid, please check you have copied it correctly.",
+      [
+        "invalid-cert-hash"
+        /* AuthErrorCode.INVALID_CERT_HASH */
+      ]: "The SHA-1 certificate hash provided is invalid.",
+      [
+        "invalid-credential"
+        /* AuthErrorCode.INVALID_CREDENTIAL */
+      ]: "The supplied auth credential is incorrect, malformed or has expired.",
+      [
+        "invalid-message-payload"
+        /* AuthErrorCode.INVALID_MESSAGE_PAYLOAD */
+      ]: "The email template corresponding to this action contains invalid characters in its message. Please fix by going to the Auth email templates section in the Firebase Console.",
+      [
+        "invalid-multi-factor-session"
+        /* AuthErrorCode.INVALID_MFA_SESSION */
+      ]: "The request does not contain a valid proof of first factor successful sign-in.",
+      [
+        "invalid-oauth-provider"
+        /* AuthErrorCode.INVALID_OAUTH_PROVIDER */
+      ]: "EmailAuthProvider is not supported for this operation. This operation only supports OAuth providers.",
+      [
+        "invalid-oauth-client-id"
+        /* AuthErrorCode.INVALID_OAUTH_CLIENT_ID */
+      ]: "The OAuth client ID provided is either invalid or does not match the specified API key.",
+      [
+        "unauthorized-domain"
+        /* AuthErrorCode.INVALID_ORIGIN */
+      ]: "This domain is not authorized for OAuth operations for your Firebase project. Edit the list of authorized domains from the Firebase console.",
+      [
+        "invalid-action-code"
+        /* AuthErrorCode.INVALID_OOB_CODE */
+      ]: "The action code is invalid. This can happen if the code is malformed, expired, or has already been used.",
+      [
+        "wrong-password"
+        /* AuthErrorCode.INVALID_PASSWORD */
+      ]: "The password is invalid or the user does not have a password.",
+      [
+        "invalid-persistence-type"
+        /* AuthErrorCode.INVALID_PERSISTENCE */
+      ]: "The specified persistence type is invalid. It can only be local, session or none.",
+      [
+        "invalid-phone-number"
+        /* AuthErrorCode.INVALID_PHONE_NUMBER */
+      ]: "The format of the phone number provided is incorrect. Please enter the phone number in a format that can be parsed into E.164 format. E.164 phone numbers are written in the format [+][country code][subscriber number including area code].",
+      [
+        "invalid-provider-id"
+        /* AuthErrorCode.INVALID_PROVIDER_ID */
+      ]: "The specified provider ID is invalid.",
+      [
+        "invalid-recipient-email"
+        /* AuthErrorCode.INVALID_RECIPIENT_EMAIL */
+      ]: "The email corresponding to this action failed to send as the provided recipient email address is invalid.",
+      [
+        "invalid-sender"
+        /* AuthErrorCode.INVALID_SENDER */
+      ]: "The email template corresponding to this action contains an invalid sender email or name. Please fix by going to the Auth email templates section in the Firebase Console.",
+      [
+        "invalid-verification-id"
+        /* AuthErrorCode.INVALID_SESSION_INFO */
+      ]: "The verification ID used to create the phone auth credential is invalid.",
+      [
+        "invalid-tenant-id"
+        /* AuthErrorCode.INVALID_TENANT_ID */
+      ]: "The Auth instance's tenant ID is invalid.",
+      [
+        "login-blocked"
+        /* AuthErrorCode.LOGIN_BLOCKED */
+      ]: "Login blocked by user-provided method: {$originalMessage}",
+      [
+        "missing-android-pkg-name"
+        /* AuthErrorCode.MISSING_ANDROID_PACKAGE_NAME */
+      ]: "An Android Package Name must be provided if the Android App is required to be installed.",
+      [
+        "auth-domain-config-required"
+        /* AuthErrorCode.MISSING_AUTH_DOMAIN */
+      ]: "Be sure to include authDomain when calling firebase.initializeApp(), by following the instructions in the Firebase console.",
+      [
+        "missing-app-credential"
+        /* AuthErrorCode.MISSING_APP_CREDENTIAL */
+      ]: "The phone verification request is missing an application verifier assertion. A reCAPTCHA response token needs to be provided.",
+      [
+        "missing-verification-code"
+        /* AuthErrorCode.MISSING_CODE */
+      ]: "The phone auth credential was created with an empty SMS verification code.",
+      [
+        "missing-continue-uri"
+        /* AuthErrorCode.MISSING_CONTINUE_URI */
+      ]: "A continue URL must be provided in the request.",
+      [
+        "missing-iframe-start"
+        /* AuthErrorCode.MISSING_IFRAME_START */
+      ]: "An internal AuthError has occurred.",
+      [
+        "missing-ios-bundle-id"
+        /* AuthErrorCode.MISSING_IOS_BUNDLE_ID */
+      ]: "An iOS Bundle ID must be provided if an App Store ID is provided.",
+      [
+        "missing-or-invalid-nonce"
+        /* AuthErrorCode.MISSING_OR_INVALID_NONCE */
+      ]: "The request does not contain a valid nonce. This can occur if the SHA-256 hash of the provided raw nonce does not match the hashed nonce in the ID token payload.",
+      [
+        "missing-password"
+        /* AuthErrorCode.MISSING_PASSWORD */
+      ]: "A non-empty password must be provided",
+      [
+        "missing-multi-factor-info"
+        /* AuthErrorCode.MISSING_MFA_INFO */
+      ]: "No second factor identifier is provided.",
+      [
+        "missing-multi-factor-session"
+        /* AuthErrorCode.MISSING_MFA_SESSION */
+      ]: "The request is missing proof of first factor successful sign-in.",
+      [
+        "missing-phone-number"
+        /* AuthErrorCode.MISSING_PHONE_NUMBER */
+      ]: "To send verification codes, provide a phone number for the recipient.",
+      [
+        "missing-verification-id"
+        /* AuthErrorCode.MISSING_SESSION_INFO */
+      ]: "The phone auth credential was created with an empty verification ID.",
+      [
+        "app-deleted"
+        /* AuthErrorCode.MODULE_DESTROYED */
+      ]: "This instance of FirebaseApp has been deleted.",
+      [
+        "multi-factor-info-not-found"
+        /* AuthErrorCode.MFA_INFO_NOT_FOUND */
+      ]: "The user does not have a second factor matching the identifier provided.",
+      [
+        "multi-factor-auth-required"
+        /* AuthErrorCode.MFA_REQUIRED */
+      ]: "Proof of ownership of a second factor is required to complete sign-in.",
+      [
+        "account-exists-with-different-credential"
+        /* AuthErrorCode.NEED_CONFIRMATION */
+      ]: "An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address.",
+      [
+        "network-request-failed"
+        /* AuthErrorCode.NETWORK_REQUEST_FAILED */
+      ]: "A network AuthError (such as timeout, interrupted connection or unreachable host) has occurred.",
+      [
+        "no-auth-event"
+        /* AuthErrorCode.NO_AUTH_EVENT */
+      ]: "An internal AuthError has occurred.",
+      [
+        "no-such-provider"
+        /* AuthErrorCode.NO_SUCH_PROVIDER */
+      ]: "User was not linked to an account with the given provider.",
+      [
+        "null-user"
+        /* AuthErrorCode.NULL_USER */
+      ]: "A null user object was provided as the argument for an operation which requires a non-null user object.",
+      [
+        "operation-not-allowed"
+        /* AuthErrorCode.OPERATION_NOT_ALLOWED */
+      ]: "The given sign-in provider is disabled for this Firebase project. Enable it in the Firebase console, under the sign-in method tab of the Auth section.",
+      [
+        "operation-not-supported-in-this-environment"
+        /* AuthErrorCode.OPERATION_NOT_SUPPORTED */
+      ]: 'This operation is not supported in the environment this application is running on. "location.protocol" must be http, https or chrome-extension and web storage must be enabled.',
+      [
+        "popup-blocked"
+        /* AuthErrorCode.POPUP_BLOCKED */
+      ]: "Unable to establish a connection with the popup. It may have been blocked by the browser.",
+      [
+        "popup-closed-by-user"
+        /* AuthErrorCode.POPUP_CLOSED_BY_USER */
+      ]: "The popup has been closed by the user before finalizing the operation.",
+      [
+        "provider-already-linked"
+        /* AuthErrorCode.PROVIDER_ALREADY_LINKED */
+      ]: "User can only be linked to one identity for the given provider.",
+      [
+        "quota-exceeded"
+        /* AuthErrorCode.QUOTA_EXCEEDED */
+      ]: "The project's quota for this operation has been exceeded.",
+      [
+        "redirect-cancelled-by-user"
+        /* AuthErrorCode.REDIRECT_CANCELLED_BY_USER */
+      ]: "The redirect operation has been cancelled by the user before finalizing.",
+      [
+        "redirect-operation-pending"
+        /* AuthErrorCode.REDIRECT_OPERATION_PENDING */
+      ]: "A redirect sign-in operation is already pending.",
+      [
+        "rejected-credential"
+        /* AuthErrorCode.REJECTED_CREDENTIAL */
+      ]: "The request contains malformed or mismatching credentials.",
+      [
+        "second-factor-already-in-use"
+        /* AuthErrorCode.SECOND_FACTOR_ALREADY_ENROLLED */
+      ]: "The second factor is already enrolled on this account.",
+      [
+        "maximum-second-factor-count-exceeded"
+        /* AuthErrorCode.SECOND_FACTOR_LIMIT_EXCEEDED */
+      ]: "The maximum allowed number of second factors on a user has been exceeded.",
+      [
+        "tenant-id-mismatch"
+        /* AuthErrorCode.TENANT_ID_MISMATCH */
+      ]: "The provided tenant ID does not match the Auth instance's tenant ID",
+      [
+        "timeout"
+        /* AuthErrorCode.TIMEOUT */
+      ]: "The operation has timed out.",
+      [
+        "user-token-expired"
+        /* AuthErrorCode.TOKEN_EXPIRED */
+      ]: "The user's credential is no longer valid. The user must sign in again.",
+      [
+        "too-many-requests"
+        /* AuthErrorCode.TOO_MANY_ATTEMPTS_TRY_LATER */
+      ]: "We have blocked all requests from this device due to unusual activity. Try again later.",
+      [
+        "unauthorized-continue-uri"
+        /* AuthErrorCode.UNAUTHORIZED_DOMAIN */
+      ]: "The domain of the continue URL is not whitelisted.  Please whitelist the domain in the Firebase console.",
+      [
+        "unsupported-first-factor"
+        /* AuthErrorCode.UNSUPPORTED_FIRST_FACTOR */
+      ]: "Enrolling a second factor or signing in with a multi-factor account requires sign-in with a supported first factor.",
+      [
+        "unsupported-persistence-type"
+        /* AuthErrorCode.UNSUPPORTED_PERSISTENCE */
+      ]: "The current environment does not support the specified persistence type.",
+      [
+        "unsupported-tenant-operation"
+        /* AuthErrorCode.UNSUPPORTED_TENANT_OPERATION */
+      ]: "This operation is not supported in a multi-tenant context.",
+      [
+        "unverified-email"
+        /* AuthErrorCode.UNVERIFIED_EMAIL */
+      ]: "The operation requires a verified email.",
+      [
+        "user-cancelled"
+        /* AuthErrorCode.USER_CANCELLED */
+      ]: "The user did not grant your application the permissions it requested.",
+      [
+        "user-not-found"
+        /* AuthErrorCode.USER_DELETED */
+      ]: "There is no user record corresponding to this identifier. The user may have been deleted.",
+      [
+        "user-disabled"
+        /* AuthErrorCode.USER_DISABLED */
+      ]: "The user account has been disabled by an administrator.",
+      [
+        "user-mismatch"
+        /* AuthErrorCode.USER_MISMATCH */
+      ]: "The supplied credentials do not correspond to the previously signed in user.",
+      [
+        "user-signed-out"
+        /* AuthErrorCode.USER_SIGNED_OUT */
+      ]: "",
+      [
+        "weak-password"
+        /* AuthErrorCode.WEAK_PASSWORD */
+      ]: "The password must be 6 characters long or more.",
+      [
+        "web-storage-unsupported"
+        /* AuthErrorCode.WEB_STORAGE_UNSUPPORTED */
+      ]: "This browser is not supported or 3rd party cookies and data may be disabled.",
+      [
+        "already-initialized"
+        /* AuthErrorCode.ALREADY_INITIALIZED */
+      ]: "initializeAuth() has already been called with different options. To avoid this error, call initializeAuth() with the same options as when it was originally called, or call getAuth() to return the already initialized instance.",
+      [
+        "missing-recaptcha-token"
+        /* AuthErrorCode.MISSING_RECAPTCHA_TOKEN */
+      ]: "The reCAPTCHA token is missing when sending request to the backend.",
+      [
+        "invalid-recaptcha-token"
+        /* AuthErrorCode.INVALID_RECAPTCHA_TOKEN */
+      ]: "The reCAPTCHA token is invalid when sending request to the backend.",
+      [
+        "invalid-recaptcha-action"
+        /* AuthErrorCode.INVALID_RECAPTCHA_ACTION */
+      ]: "The reCAPTCHA action is invalid when sending request to the backend.",
+      [
+        "recaptcha-not-enabled"
+        /* AuthErrorCode.RECAPTCHA_NOT_ENABLED */
+      ]: "reCAPTCHA Enterprise integration is not enabled for this project.",
+      [
+        "missing-client-type"
+        /* AuthErrorCode.MISSING_CLIENT_TYPE */
+      ]: "The reCAPTCHA client type is missing when sending request to the backend.",
+      [
+        "missing-recaptcha-version"
+        /* AuthErrorCode.MISSING_RECAPTCHA_VERSION */
+      ]: "The reCAPTCHA version is missing when sending request to the backend.",
+      [
+        "invalid-req-type"
+        /* AuthErrorCode.INVALID_REQ_TYPE */
+      ]: "Invalid request parameters.",
+      [
+        "invalid-recaptcha-version"
+        /* AuthErrorCode.INVALID_RECAPTCHA_VERSION */
+      ]: "The reCAPTCHA version is invalid when sending request to the backend.",
+      [
+        "unsupported-password-policy-schema-version"
+        /* AuthErrorCode.UNSUPPORTED_PASSWORD_POLICY_SCHEMA_VERSION */
+      ]: "The password policy received from the backend uses a schema version that is not supported by this version of the Firebase SDK.",
+      [
+        "password-does-not-meet-requirements"
+        /* AuthErrorCode.PASSWORD_DOES_NOT_MEET_REQUIREMENTS */
+      ]: "The password does not meet the requirements."
+    };
+  }
   function _prodErrorMap() {
     return {
       [
@@ -3649,6 +4615,19 @@
   }
   function _serverAppCurrentUserOperationNotSupportedError(auth) {
     return _errorWithCustomMessage(auth, "operation-not-supported-in-this-environment", "Operations that alter the current user are not supported in conjunction with FirebaseServerApp");
+  }
+  function _assertInstanceOf(auth, object, instance) {
+    const constructorInstance = instance;
+    if (!(object instanceof constructorInstance)) {
+      if (constructorInstance.name !== object.constructor.name) {
+        _fail(
+          auth,
+          "argument-error"
+          /* AuthErrorCode.ARGUMENT_ERROR */
+        );
+      }
+      throw _errorWithCustomMessage(auth, "argument-error", `Type of ${object.constructor.name} does not match expected instance.Did you pass a reference from a different Auth SDK?`);
+    }
   }
   function createErrorInternal(authOrCode, ...rest) {
     if (typeof authOrCode !== "string") {
@@ -3738,7 +4717,7 @@
           };
         }
       }
-      const query = querystring(Object.assign({ key: auth.config.apiKey }, params)).slice(1);
+      const query2 = querystring(Object.assign({ key: auth.config.apiKey }, params)).slice(1);
       const headers = await auth._getAdditionalHeaders();
       headers[
         "Content-Type"
@@ -3750,7 +4729,7 @@
           /* HttpHeader.X_FIREBASE_LOCALE */
         ] = auth.languageCode;
       }
-      return FetchProvider.fetch()(_getFinalTarget(auth, auth.config.apiHost, path, query), Object.assign({
+      return FetchProvider.fetch()(_getFinalTarget(auth, auth.config.apiHost, path, query2), Object.assign({
         method,
         headers,
         referrerPolicy: "no-referrer"
@@ -3806,8 +4785,8 @@
     }
     return serverResponse;
   }
-  function _getFinalTarget(auth, host, path, query) {
-    const base = `${host}${path}?${query}`;
+  function _getFinalTarget(auth, host, path, query2) {
+    const base = `${host}${path}?${query2}`;
     if (!auth.config.emulator) {
       return `${auth.config.apiScheme}://${base}`;
     }
@@ -3839,14 +4818,28 @@
     error.customData._tokenResponse = response;
     return error;
   }
+  function isV2(grecaptcha) {
+    return grecaptcha !== void 0 && grecaptcha.getResponse !== void 0;
+  }
   function isEnterprise(grecaptcha) {
     return grecaptcha !== void 0 && grecaptcha.enterprise !== void 0;
+  }
+  async function getRecaptchaParams(auth) {
+    return (await _performApiRequest(
+      auth,
+      "GET",
+      "/v1/recaptchaParams"
+      /* Endpoint.GET_RECAPTCHA_PARAM */
+    )).recaptchaSiteKey || "";
   }
   async function getRecaptchaConfig(auth, request) {
     return _performApiRequest(auth, "GET", "/v2/recaptchaConfig", _addTidIfNecessary(auth, request));
   }
   async function deleteAccount(auth, request) {
     return _performApiRequest(auth, "POST", "/v1/accounts:delete", request);
+  }
+  async function deleteLinkedAccounts(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:update", request);
   }
   async function getAccountInfo(auth, request) {
     return _performApiRequest(auth, "POST", "/v1/accounts:lookup", request);
@@ -3863,6 +4856,9 @@
     } catch (e) {
     }
     return void 0;
+  }
+  function getIdToken(user, forceRefresh = false) {
+    return getModularInstance(user).getIdToken(forceRefresh);
   }
   async function getIdTokenResult(user, forceRefresh = false) {
     const userInternal = getModularInstance(user);
@@ -4146,6 +5142,9 @@
   function _loadJS(url) {
     return externalJSProvider.loadJS(url);
   }
+  function _recaptchaV2ScriptUrl() {
+    return externalJSProvider.recaptchaV2Script;
+  }
   function _recaptchaEnterpriseScriptUrl() {
     return externalJSProvider.recaptchaEnterpriseScript;
   }
@@ -4209,6 +5208,27 @@
           return Promise.reject(error);
         }
       });
+    }
+  }
+  async function _initializeRecaptchaConfig(auth) {
+    const authInternal = _castAuth(auth);
+    const response = await getRecaptchaConfig(authInternal, {
+      clientType: "CLIENT_TYPE_WEB",
+      version: "RECAPTCHA_ENTERPRISE"
+      /* RecaptchaVersion.ENTERPRISE */
+    });
+    const config = new RecaptchaConfig(response);
+    if (authInternal.tenantId == null) {
+      authInternal._agentRecaptchaConfig = config;
+    } else {
+      authInternal._tenantRecaptchaConfigs[authInternal.tenantId] = config;
+    }
+    if (config.isProviderEnabled(
+      "EMAIL_PASSWORD_PROVIDER"
+      /* RecaptchaProvider.EMAIL_PASSWORD_PROVIDER */
+    )) {
+      const verifier = new RecaptchaEnterpriseVerifier(authInternal);
+      void verifier.verify();
     }
   }
   function initializeAuth(app, deps) {
@@ -4326,8 +5346,17 @@
       }
     }
   }
+  async function resetPassword(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:resetPassword", _addTidIfNecessary(auth, request));
+  }
+  async function updateEmailPassword(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:update", request);
+  }
   async function linkEmailPassword(auth, request) {
     return _performApiRequest(auth, "POST", "/v1/accounts:signUp", request);
+  }
+  async function applyActionCode$1(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:update", _addTidIfNecessary(auth, request));
   }
   async function signInWithPassword(auth, request) {
     return _performSignInRequest(auth, "POST", "/v1/accounts:signInWithPassword", _addTidIfNecessary(auth, request));
@@ -4335,7 +5364,16 @@
   async function sendOobCode(auth, request) {
     return _performApiRequest(auth, "POST", "/v1/accounts:sendOobCode", _addTidIfNecessary(auth, request));
   }
+  async function sendEmailVerification$1(auth, request) {
+    return sendOobCode(auth, request);
+  }
   async function sendPasswordResetEmail$1(auth, request) {
+    return sendOobCode(auth, request);
+  }
+  async function sendSignInLinkToEmail$1(auth, request) {
+    return sendOobCode(auth, request);
+  }
+  async function verifyAndChangeEmail(auth, request) {
     return sendOobCode(auth, request);
   }
   async function signInWithEmailLink$1(auth, request) {
@@ -4389,6 +5427,9 @@
     const iOSDoubleDeepLink = iOSDeepLink ? querystringDecode(extractQuerystring(iOSDeepLink))["link"] : null;
     return iOSDoubleDeepLink || iOSDeepLink || doubleDeepLink || link || url;
   }
+  function parseActionCodeURL(link) {
+    return ActionCodeURL.parseLink(link);
+  }
   async function signUp(auth, request) {
     return _performSignInRequest(auth, "POST", "/v1/accounts:signUp", _addTidIfNecessary(auth, request));
   }
@@ -4401,6 +5442,28 @@
     }
     return null;
   }
+  async function signInAnonymously(auth) {
+    var _a;
+    if (_isFirebaseServerApp(auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth));
+    }
+    const authInternal = _castAuth(auth);
+    await authInternal._initializationPromise;
+    if ((_a = authInternal.currentUser) === null || _a === void 0 ? void 0 : _a.isAnonymous) {
+      return new UserCredentialImpl({
+        user: authInternal.currentUser,
+        providerId: null,
+        operationType: "signIn"
+        /* OperationType.SIGN_IN */
+      });
+    }
+    const response = await signUp(authInternal, {
+      returnSecureToken: true
+    });
+    const userCredential = await UserCredentialImpl._fromIdTokenResponse(authInternal, "signIn", response, true);
+    await authInternal._updateCurrentUser(userCredential.user);
+    return userCredential;
+  }
   function _processCredentialSavingMfaContextIfNecessary(auth, operationType, credential, user) {
     const idTokenProvider = operationType === "reauthenticate" ? credential._getReauthenticationResolver(auth) : credential._getIdTokenResponse(auth);
     return idTokenProvider.catch((error) => {
@@ -4410,9 +5473,36 @@
       throw error;
     });
   }
+  function providerDataAsNames(providerData) {
+    return new Set(providerData.map(({ providerId }) => providerId).filter((pid) => !!pid));
+  }
+  async function unlink(user, providerId) {
+    const userInternal = getModularInstance(user);
+    await _assertLinkedStatus(true, userInternal, providerId);
+    const { providerUserInfo } = await deleteLinkedAccounts(userInternal.auth, {
+      idToken: await userInternal.getIdToken(),
+      deleteProvider: [providerId]
+    });
+    const providersLeft = providerDataAsNames(providerUserInfo || []);
+    userInternal.providerData = userInternal.providerData.filter((pd) => providersLeft.has(pd.providerId));
+    if (!providersLeft.has(
+      "phone"
+      /* ProviderId.PHONE */
+    )) {
+      userInternal.phoneNumber = null;
+    }
+    await userInternal.auth._persistUserIfCurrent(userInternal);
+    return userInternal;
+  }
   async function _link$1(user, credential, bypassAuthState = false) {
     const response = await _logoutIfInvalidated(user, credential._linkToIdToken(user.auth, await user.getIdToken()), bypassAuthState);
     return UserCredentialImpl._forOperation(user, "link", response);
+  }
+  async function _assertLinkedStatus(expected, user, provider) {
+    await _reloadWithoutSaving(user);
+    const providerIds = providerDataAsNames(user.providerData);
+    const code = expected === false ? "provider-already-linked" : "no-such-provider";
+    _assert(providerIds.has(provider) === expected, user.auth, code);
   }
   async function _reauthenticate(user, credential, bypassAuthState = false) {
     const { auth } = user;
@@ -4468,6 +5558,30 @@
   }
   async function signInWithCredential(auth, credential) {
     return _signInWithCredential(_castAuth(auth), credential);
+  }
+  async function linkWithCredential(user, credential) {
+    const userInternal = getModularInstance(user);
+    await _assertLinkedStatus(false, userInternal, credential.providerId);
+    return _link$1(userInternal, credential);
+  }
+  async function reauthenticateWithCredential(user, credential) {
+    return _reauthenticate(getModularInstance(user), credential);
+  }
+  async function signInWithCustomToken$1(auth, request) {
+    return _performSignInRequest(auth, "POST", "/v1/accounts:signInWithCustomToken", _addTidIfNecessary(auth, request));
+  }
+  async function signInWithCustomToken(auth, customToken) {
+    if (_isFirebaseServerApp(auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth));
+    }
+    const authInternal = _castAuth(auth);
+    const response = await signInWithCustomToken$1(authInternal, {
+      token: customToken,
+      returnSecureToken: true
+    });
+    const cred = await UserCredentialImpl._fromIdTokenResponse(authInternal, "signIn", response);
+    await authInternal._updateCurrentUser(cred.user);
+    return cred;
   }
   function _setActionCodeSettingsOnRequest(auth, request, actionCodeSettings) {
     var _a;
@@ -4526,6 +5640,74 @@
     }
     await handleRecaptchaFlow(authInternal, request, "getOobCode", sendPasswordResetEmail$1);
   }
+  async function confirmPasswordReset(auth, oobCode, newPassword) {
+    await resetPassword(getModularInstance(auth), {
+      oobCode,
+      newPassword
+    }).catch(async (error) => {
+      if (error.code === `auth/${"password-does-not-meet-requirements"}`) {
+        void recachePasswordPolicy(auth);
+      }
+      throw error;
+    });
+  }
+  async function applyActionCode(auth, oobCode) {
+    await applyActionCode$1(getModularInstance(auth), { oobCode });
+  }
+  async function checkActionCode(auth, oobCode) {
+    const authModular = getModularInstance(auth);
+    const response = await resetPassword(authModular, { oobCode });
+    const operation = response.requestType;
+    _assert(
+      operation,
+      authModular,
+      "internal-error"
+      /* AuthErrorCode.INTERNAL_ERROR */
+    );
+    switch (operation) {
+      case "EMAIL_SIGNIN":
+        break;
+      case "VERIFY_AND_CHANGE_EMAIL":
+        _assert(
+          response.newEmail,
+          authModular,
+          "internal-error"
+          /* AuthErrorCode.INTERNAL_ERROR */
+        );
+        break;
+      case "REVERT_SECOND_FACTOR_ADDITION":
+        _assert(
+          response.mfaInfo,
+          authModular,
+          "internal-error"
+          /* AuthErrorCode.INTERNAL_ERROR */
+        );
+      // fall through
+      default:
+        _assert(
+          response.email,
+          authModular,
+          "internal-error"
+          /* AuthErrorCode.INTERNAL_ERROR */
+        );
+    }
+    let multiFactorInfo = null;
+    if (response.mfaInfo) {
+      multiFactorInfo = MultiFactorInfoImpl._fromServerResponse(_castAuth(authModular), response.mfaInfo);
+    }
+    return {
+      data: {
+        email: (response.requestType === "VERIFY_AND_CHANGE_EMAIL" ? response.newEmail : response.email) || null,
+        previousEmail: (response.requestType === "VERIFY_AND_CHANGE_EMAIL" ? response.email : response.newEmail) || null,
+        multiFactorInfo
+      },
+      operation
+    };
+  }
+  async function verifyPasswordResetCode(auth, code) {
+    const { data } = await checkActionCode(getModularInstance(auth), code);
+    return data.email;
+  }
   async function createUserWithEmailAndPassword(auth, email, password) {
     if (_isFirebaseServerApp(auth.app)) {
       return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth));
@@ -4560,8 +5742,201 @@
       throw error;
     });
   }
+  async function sendSignInLinkToEmail(auth, email, actionCodeSettings) {
+    const authInternal = _castAuth(auth);
+    const request = {
+      requestType: "EMAIL_SIGNIN",
+      email,
+      clientType: "CLIENT_TYPE_WEB"
+      /* RecaptchaClientType.WEB */
+    };
+    function setActionCodeSettings(request2, actionCodeSettings2) {
+      _assert(
+        actionCodeSettings2.handleCodeInApp,
+        authInternal,
+        "argument-error"
+        /* AuthErrorCode.ARGUMENT_ERROR */
+      );
+      if (actionCodeSettings2) {
+        _setActionCodeSettingsOnRequest(authInternal, request2, actionCodeSettings2);
+      }
+    }
+    setActionCodeSettings(request, actionCodeSettings);
+    await handleRecaptchaFlow(authInternal, request, "getOobCode", sendSignInLinkToEmail$1);
+  }
+  function isSignInWithEmailLink(auth, emailLink) {
+    const actionCodeUrl = ActionCodeURL.parseLink(emailLink);
+    return (actionCodeUrl === null || actionCodeUrl === void 0 ? void 0 : actionCodeUrl.operation) === "EMAIL_SIGNIN";
+  }
+  async function signInWithEmailLink(auth, email, emailLink) {
+    if (_isFirebaseServerApp(auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth));
+    }
+    const authModular = getModularInstance(auth);
+    const credential = EmailAuthProvider.credentialWithLink(email, emailLink || _getCurrentUrl());
+    _assert(
+      credential._tenantId === (authModular.tenantId || null),
+      authModular,
+      "tenant-id-mismatch"
+      /* AuthErrorCode.TENANT_ID_MISMATCH */
+    );
+    return signInWithCredential(authModular, credential);
+  }
+  async function createAuthUri(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:createAuthUri", _addTidIfNecessary(auth, request));
+  }
+  async function fetchSignInMethodsForEmail(auth, email) {
+    const continueUri = _isHttpOrHttps() ? _getCurrentUrl() : "http://localhost";
+    const request = {
+      identifier: email,
+      continueUri
+    };
+    const { signinMethods } = await createAuthUri(getModularInstance(auth), request);
+    return signinMethods || [];
+  }
+  async function sendEmailVerification(user, actionCodeSettings) {
+    const userInternal = getModularInstance(user);
+    const idToken = await user.getIdToken();
+    const request = {
+      requestType: "VERIFY_EMAIL",
+      idToken
+    };
+    if (actionCodeSettings) {
+      _setActionCodeSettingsOnRequest(userInternal.auth, request, actionCodeSettings);
+    }
+    const { email } = await sendEmailVerification$1(userInternal.auth, request);
+    if (email !== user.email) {
+      await user.reload();
+    }
+  }
+  async function verifyBeforeUpdateEmail(user, newEmail, actionCodeSettings) {
+    const userInternal = getModularInstance(user);
+    const idToken = await user.getIdToken();
+    const request = {
+      requestType: "VERIFY_AND_CHANGE_EMAIL",
+      idToken,
+      newEmail
+    };
+    if (actionCodeSettings) {
+      _setActionCodeSettingsOnRequest(userInternal.auth, request, actionCodeSettings);
+    }
+    const { email } = await verifyAndChangeEmail(userInternal.auth, request);
+    if (email !== user.email) {
+      await user.reload();
+    }
+  }
+  async function updateProfile$1(auth, request) {
+    return _performApiRequest(auth, "POST", "/v1/accounts:update", request);
+  }
+  async function updateProfile(user, { displayName, photoURL: photoUrl }) {
+    if (displayName === void 0 && photoUrl === void 0) {
+      return;
+    }
+    const userInternal = getModularInstance(user);
+    const idToken = await userInternal.getIdToken();
+    const profileRequest = {
+      idToken,
+      displayName,
+      photoUrl,
+      returnSecureToken: true
+    };
+    const response = await _logoutIfInvalidated(userInternal, updateProfile$1(userInternal.auth, profileRequest));
+    userInternal.displayName = response.displayName || null;
+    userInternal.photoURL = response.photoUrl || null;
+    const passwordProvider = userInternal.providerData.find(
+      ({ providerId }) => providerId === "password"
+      /* ProviderId.PASSWORD */
+    );
+    if (passwordProvider) {
+      passwordProvider.displayName = userInternal.displayName;
+      passwordProvider.photoURL = userInternal.photoURL;
+    }
+    await userInternal._updateTokensIfNecessary(response);
+  }
+  function updateEmail(user, newEmail) {
+    const userInternal = getModularInstance(user);
+    if (_isFirebaseServerApp(userInternal.auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(userInternal.auth));
+    }
+    return updateEmailOrPassword(userInternal, newEmail, null);
+  }
+  function updatePassword(user, newPassword) {
+    return updateEmailOrPassword(getModularInstance(user), null, newPassword);
+  }
+  async function updateEmailOrPassword(user, email, password) {
+    const { auth } = user;
+    const idToken = await user.getIdToken();
+    const request = {
+      idToken,
+      returnSecureToken: true
+    };
+    if (email) {
+      request.email = email;
+    }
+    if (password) {
+      request.password = password;
+    }
+    const response = await _logoutIfInvalidated(user, updateEmailPassword(auth, request));
+    await user._updateTokensIfNecessary(
+      response,
+      /* reload */
+      true
+    );
+  }
+  function _fromIdTokenResponse(idTokenResponse) {
+    var _a, _b;
+    if (!idTokenResponse) {
+      return null;
+    }
+    const { providerId } = idTokenResponse;
+    const profile = idTokenResponse.rawUserInfo ? JSON.parse(idTokenResponse.rawUserInfo) : {};
+    const isNewUser = idTokenResponse.isNewUser || idTokenResponse.kind === "identitytoolkit#SignupNewUserResponse";
+    if (!providerId && (idTokenResponse === null || idTokenResponse === void 0 ? void 0 : idTokenResponse.idToken)) {
+      const signInProvider = (_b = (_a = _parseToken(idTokenResponse.idToken)) === null || _a === void 0 ? void 0 : _a.firebase) === null || _b === void 0 ? void 0 : _b["sign_in_provider"];
+      if (signInProvider) {
+        const filteredProviderId = signInProvider !== "anonymous" && signInProvider !== "custom" ? signInProvider : null;
+        return new GenericAdditionalUserInfo(isNewUser, filteredProviderId);
+      }
+    }
+    if (!providerId) {
+      return null;
+    }
+    switch (providerId) {
+      case "facebook.com":
+        return new FacebookAdditionalUserInfo(isNewUser, profile);
+      case "github.com":
+        return new GithubAdditionalUserInfo(isNewUser, profile);
+      case "google.com":
+        return new GoogleAdditionalUserInfo(isNewUser, profile);
+      case "twitter.com":
+        return new TwitterAdditionalUserInfo(isNewUser, profile, idTokenResponse.screenName || null);
+      case "custom":
+      case "anonymous":
+        return new GenericAdditionalUserInfo(isNewUser, null);
+      default:
+        return new GenericAdditionalUserInfo(isNewUser, providerId, profile);
+    }
+  }
+  function getAdditionalUserInfo(userCredential) {
+    const { user, _tokenResponse } = userCredential;
+    if (user.isAnonymous && !_tokenResponse) {
+      return {
+        providerId: null,
+        isNewUser: false,
+        profile: null
+      };
+    }
+    return _fromIdTokenResponse(_tokenResponse);
+  }
   function setPersistence(auth, persistence) {
     return getModularInstance(auth).setPersistence(persistence);
+  }
+  function initializeRecaptchaConfig(auth) {
+    return _initializeRecaptchaConfig(auth);
+  }
+  async function validatePassword(auth, password) {
+    const authInternal = _castAuth(auth);
+    return authInternal.validatePassword(password);
   }
   function onIdTokenChanged(auth, nextOrObserver, error, completed) {
     return getModularInstance(auth).onIdTokenChanged(nextOrObserver, error, completed);
@@ -4572,8 +5947,39 @@
   function onAuthStateChanged(auth, nextOrObserver, error, completed) {
     return getModularInstance(auth).onAuthStateChanged(nextOrObserver, error, completed);
   }
+  function useDeviceLanguage(auth) {
+    getModularInstance(auth).useDeviceLanguage();
+  }
+  function updateCurrentUser(auth, user) {
+    return getModularInstance(auth).updateCurrentUser(user);
+  }
   function signOut(auth) {
     return getModularInstance(auth).signOut();
+  }
+  function revokeAccessToken(auth, token) {
+    const authInternal = _castAuth(auth);
+    return authInternal.revokeAccessToken(token);
+  }
+  async function deleteUser(user) {
+    return getModularInstance(user).delete();
+  }
+  function getMultiFactorResolver(auth, error) {
+    var _a;
+    const authModular = getModularInstance(auth);
+    const errorInternal = error;
+    _assert(
+      error.customData.operationType,
+      authModular,
+      "argument-error"
+      /* AuthErrorCode.ARGUMENT_ERROR */
+    );
+    _assert(
+      (_a = errorInternal.customData._serverResponse) === null || _a === void 0 ? void 0 : _a.mfaPendingCredential,
+      authModular,
+      "argument-error"
+      /* AuthErrorCode.ARGUMENT_ERROR */
+    );
+    return MultiFactorResolverImpl._fromError(authModular, errorInternal);
   }
   function startEnrollPhoneMfa(auth, request) {
     return _performApiRequest(auth, "POST", "/v2/accounts/mfaEnrollment:start", _addTidIfNecessary(auth, request));
@@ -4586,6 +5992,16 @@
   }
   function finalizeEnrollTotpMfa(auth, request) {
     return _performApiRequest(auth, "POST", "/v2/accounts/mfaEnrollment:finalize", _addTidIfNecessary(auth, request));
+  }
+  function withdrawMfa(auth, request) {
+    return _performApiRequest(auth, "POST", "/v2/accounts/mfaEnrollment:withdraw", _addTidIfNecessary(auth, request));
+  }
+  function multiFactor(user) {
+    const userModular = getModularInstance(user);
+    if (!multiFactorUserCache.has(userModular)) {
+      multiFactorUserCache.set(userModular, MultiFactorUserImpl._fromUser(userModular));
+    }
+    return multiFactorUserCache.get(userModular);
   }
   function _iframeCannotSyncWebStorage() {
     const ua = getUA();
@@ -4699,6 +6115,60 @@
   function finalizeSignInTotpMfa(auth, request) {
     return _performApiRequest(auth, "POST", "/v2/accounts/mfaSignIn:finalize", _addTidIfNecessary(auth, request));
   }
+  function generateRandomAlphaNumericString(len) {
+    const chars = [];
+    const allowedChars = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    for (let i = 0; i < len; i++) {
+      chars.push(allowedChars.charAt(Math.floor(Math.random() * allowedChars.length)));
+    }
+    return chars.join("");
+  }
+  function isHostLanguageValid(hl) {
+    return hl.length <= 6 && /^\s*[a-zA-Z0-9\-]*\s*$/.test(hl);
+  }
+  function domReady() {
+    let resolver = null;
+    return new Promise((resolve) => {
+      if (document.readyState === "complete") {
+        resolve();
+        return;
+      }
+      resolver = () => resolve();
+      window.addEventListener("load", resolver);
+    }).catch((e) => {
+      if (resolver) {
+        window.removeEventListener("load", resolver);
+      }
+      throw e;
+    });
+  }
+  async function signInWithPhoneNumber(auth, phoneNumber, appVerifier) {
+    if (_isFirebaseServerApp(auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth));
+    }
+    const authInternal = _castAuth(auth);
+    const verificationId = await _verifyPhoneNumber(authInternal, phoneNumber, getModularInstance(appVerifier));
+    return new ConfirmationResultImpl(verificationId, (cred) => signInWithCredential(authInternal, cred));
+  }
+  async function linkWithPhoneNumber(user, phoneNumber, appVerifier) {
+    const userInternal = getModularInstance(user);
+    await _assertLinkedStatus(
+      false,
+      userInternal,
+      "phone"
+      /* ProviderId.PHONE */
+    );
+    const verificationId = await _verifyPhoneNumber(userInternal.auth, phoneNumber, getModularInstance(appVerifier));
+    return new ConfirmationResultImpl(verificationId, (cred) => linkWithCredential(userInternal, cred));
+  }
+  async function reauthenticateWithPhoneNumber(user, phoneNumber, appVerifier) {
+    const userInternal = getModularInstance(user);
+    if (_isFirebaseServerApp(userInternal.auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(userInternal.auth));
+    }
+    const verificationId = await _verifyPhoneNumber(userInternal.auth, phoneNumber, getModularInstance(appVerifier));
+    return new ConfirmationResultImpl(verificationId, (cred) => reauthenticateWithCredential(userInternal, cred));
+  }
   async function _verifyPhoneNumber(auth, options, verifier) {
     var _a;
     const recaptchaToken = await verifier.verify();
@@ -4774,6 +6244,13 @@
       verifier._reset();
     }
   }
+  async function updatePhoneNumber(user, credential) {
+    const userInternal = getModularInstance(user);
+    if (_isFirebaseServerApp(userInternal.auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(userInternal.auth));
+    }
+    await _link$1(userInternal, credential);
+  }
   function _withDefaultResolver(auth, resolverOverride) {
     if (resolverOverride) {
       return _getInstance(resolverOverride);
@@ -4809,6 +6286,41 @@
     );
     return _link$1(user, new IdpCredential(params), params.bypassAuthState);
   }
+  async function signInWithPopup(auth, provider, resolver) {
+    if (_isFirebaseServerApp(auth.app)) {
+      return Promise.reject(_createError(
+        auth,
+        "operation-not-supported-in-this-environment"
+        /* AuthErrorCode.OPERATION_NOT_SUPPORTED */
+      ));
+    }
+    const authInternal = _castAuth(auth);
+    _assertInstanceOf(auth, provider, FederatedAuthProvider);
+    const resolverInternal = _withDefaultResolver(authInternal, resolver);
+    const action = new PopupOperation(authInternal, "signInViaPopup", provider, resolverInternal);
+    return action.executeNotNull();
+  }
+  async function reauthenticateWithPopup(user, provider, resolver) {
+    const userInternal = getModularInstance(user);
+    if (_isFirebaseServerApp(userInternal.auth.app)) {
+      return Promise.reject(_createError(
+        userInternal.auth,
+        "operation-not-supported-in-this-environment"
+        /* AuthErrorCode.OPERATION_NOT_SUPPORTED */
+      ));
+    }
+    _assertInstanceOf(userInternal.auth, provider, FederatedAuthProvider);
+    const resolverInternal = _withDefaultResolver(userInternal.auth, resolver);
+    const action = new PopupOperation(userInternal.auth, "reauthViaPopup", provider, resolverInternal, userInternal);
+    return action.executeNotNull();
+  }
+  async function linkWithPopup(user, provider, resolver) {
+    const userInternal = getModularInstance(user);
+    _assertInstanceOf(userInternal.auth, provider, FederatedAuthProvider);
+    const resolverInternal = _withDefaultResolver(userInternal.auth, resolver);
+    const action = new PopupOperation(userInternal.auth, "linkViaPopup", provider, resolverInternal, userInternal);
+    return action.executeNotNull();
+  }
   async function _getAndClearPendingRedirectStatus(resolver, auth) {
     const key = pendingRedirectKey(auth);
     const persistence = resolverPersistence(resolver);
@@ -4819,6 +6331,9 @@
     await persistence._remove(key);
     return hasPendingRedirect;
   }
+  async function _setPendingRedirectStatus(resolver, auth) {
+    return resolverPersistence(resolver)._set(pendingRedirectKey(auth), "true");
+  }
   function _overrideRedirectResult(auth, result) {
     redirectOutcomeMap.set(auth._key(), result);
   }
@@ -4827,6 +6342,57 @@
   }
   function pendingRedirectKey(auth) {
     return _persistenceKeyName(PENDING_REDIRECT_KEY, auth.config.apiKey, auth.name);
+  }
+  function signInWithRedirect(auth, provider, resolver) {
+    return _signInWithRedirect(auth, provider, resolver);
+  }
+  async function _signInWithRedirect(auth, provider, resolver) {
+    if (_isFirebaseServerApp(auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(auth));
+    }
+    const authInternal = _castAuth(auth);
+    _assertInstanceOf(auth, provider, FederatedAuthProvider);
+    await authInternal._initializationPromise;
+    const resolverInternal = _withDefaultResolver(authInternal, resolver);
+    await _setPendingRedirectStatus(resolverInternal, authInternal);
+    return resolverInternal._openRedirect(
+      authInternal,
+      provider,
+      "signInViaRedirect"
+      /* AuthEventType.SIGN_IN_VIA_REDIRECT */
+    );
+  }
+  function reauthenticateWithRedirect(user, provider, resolver) {
+    return _reauthenticateWithRedirect(user, provider, resolver);
+  }
+  async function _reauthenticateWithRedirect(user, provider, resolver) {
+    const userInternal = getModularInstance(user);
+    _assertInstanceOf(userInternal.auth, provider, FederatedAuthProvider);
+    if (_isFirebaseServerApp(userInternal.auth.app)) {
+      return Promise.reject(_serverAppCurrentUserOperationNotSupportedError(userInternal.auth));
+    }
+    await userInternal.auth._initializationPromise;
+    const resolverInternal = _withDefaultResolver(userInternal.auth, resolver);
+    await _setPendingRedirectStatus(resolverInternal, userInternal.auth);
+    const eventId = await prepareUserForRedirect(userInternal);
+    return resolverInternal._openRedirect(userInternal.auth, provider, "reauthViaRedirect", eventId);
+  }
+  function linkWithRedirect(user, provider, resolver) {
+    return _linkWithRedirect(user, provider, resolver);
+  }
+  async function _linkWithRedirect(user, provider, resolver) {
+    const userInternal = getModularInstance(user);
+    _assertInstanceOf(userInternal.auth, provider, FederatedAuthProvider);
+    await userInternal.auth._initializationPromise;
+    const resolverInternal = _withDefaultResolver(userInternal.auth, resolver);
+    await _assertLinkedStatus(false, userInternal, provider.providerId);
+    await _setPendingRedirectStatus(resolverInternal, userInternal.auth);
+    const eventId = await prepareUserForRedirect(userInternal);
+    return resolverInternal._openRedirect(userInternal.auth, provider, "linkViaRedirect", eventId);
+  }
+  async function getRedirectResult(auth, resolver) {
+    await _castAuth(auth)._initializationPromise;
+    return _getRedirectResult(auth, resolver, false);
   }
   async function _getRedirectResult(auth, resolverExtern, bypassAuthState = false) {
     if (_isFirebaseServerApp(auth.app)) {
@@ -4842,6 +6408,13 @@
       await authInternal._setRedirectUser(null, resolverExtern);
     }
     return result;
+  }
+  async function prepareUserForRedirect(user) {
+    const eventId = _generateEventId(`${user.uid}:::`);
+    user._redirectEventId = eventId;
+    await user.auth._setRedirectUser(user);
+    await user.auth._persistUserIfCurrent(user);
+    return eventId;
   }
   function eventUid(e) {
     return [e.type, e.eventId, e.sessionId, e.tenantId].filter((v2) => v2).join("-");
@@ -5230,7 +6803,7 @@
     var _a, _b;
     return (_b = (_a = document.getElementsByTagName("head")) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : document;
   }
-  var prodErrorMap, _DEFAULT_AUTH_ERROR_FACTORY, logClient, Delay, FetchProvider, SERVER_ERROR_MAP, DEFAULT_API_TIMEOUT_MS, NetworkTimeout, RecaptchaConfig, ProactiveRefresh, UserMetadata, StsTokenManager, UserImpl, instanceCache, InMemoryPersistence, inMemoryPersistence, PersistenceUserManager, AuthMiddlewareQueue, MINIMUM_MIN_PASSWORD_LENGTH, PasswordPolicyImpl, AuthImpl, Subscription, externalJSProvider, RECAPTCHA_ENTERPRISE_VERIFIER_TYPE, FAKE_TOKEN, RecaptchaEnterpriseVerifier, AuthCredential, EmailAuthCredential, IDP_REQUEST_URI$1, OAuthCredential, VERIFY_PHONE_NUMBER_FOR_EXISTING_ERROR_MAP_, PhoneAuthCredential, ActionCodeURL, EmailAuthProvider, FederatedAuthProvider, BaseOAuthProvider, FacebookAuthProvider, GoogleAuthProvider, GithubAuthProvider, TwitterAuthProvider, UserCredentialImpl, MultiFactorError, STORAGE_AVAILABLE_KEY, BrowserPersistenceClass, _POLLING_INTERVAL_MS$1, IE10_LOCAL_STORAGE_SYNC_DELAY, BrowserLocalPersistence, browserLocalPersistence, BrowserSessionPersistence, browserSessionPersistence, Receiver, Sender, DB_NAME2, DB_VERSION2, DB_OBJECTSTORE_NAME, DB_DATA_KEYPATH, DBPromise, _POLLING_INTERVAL_MS, _TRANSACTION_RETRY_COUNT, IndexedDBLocalPersistence, indexedDBLocalPersistence, _JSLOAD_CALLBACK, NETWORK_TIMEOUT_DELAY, RECAPTCHA_VERIFIER_TYPE, PhoneAuthProvider, IdpCredential, AbstractPopupRedirectOperation, _POLL_WINDOW_CLOSE_TIMEOUT, PopupOperation, PENDING_REDIRECT_KEY, redirectOutcomeMap, RedirectAction, EVENT_DUPLICATION_CACHE_DURATION_MS, AuthEventManager, IP_ADDRESS_REGEX, HTTP_REGEX, NETWORK_TIMEOUT, cachedGApiLoader, PING_TIMEOUT, IFRAME_PATH, EMULATED_IFRAME_PATH, IFRAME_ATTRIBUTES, EID_FROM_APIHOST, BASE_POPUP_OPTIONS, DEFAULT_WIDTH, DEFAULT_HEIGHT, TARGET_BLANK, FIREFOX_EMPTY_URL, AuthPopup, WIDGET_PATH, EMULATOR_WIDGET_PATH, FIREBASE_APP_CHECK_FRAGMENT_ID, WEB_STORAGE_SUPPORT_KEY, BrowserPopupRedirectResolver, browserPopupRedirectResolver, MultiFactorAssertionImpl, PhoneMultiFactorAssertionImpl, PhoneMultiFactorGenerator, TotpMultiFactorGenerator, TotpMultiFactorAssertionImpl, TotpSecret, name3, version3, AuthInterop, DEFAULT_ID_TOKEN_MAX_AGE, authIdTokenMaxAge, lastPostedIdToken, mintCookieFactory;
+  var FactorId, ProviderId, SignInMethod, OperationType, ActionCodeOperation, debugErrorMap, prodErrorMap, _DEFAULT_AUTH_ERROR_FACTORY, AUTH_ERROR_CODES_MAP_DO_NOT_USE_INTERNALLY, logClient, Delay, FetchProvider, SERVER_ERROR_MAP, DEFAULT_API_TIMEOUT_MS, NetworkTimeout, RecaptchaConfig, ProactiveRefresh, UserMetadata, StsTokenManager, UserImpl, instanceCache, InMemoryPersistence, inMemoryPersistence, PersistenceUserManager, AuthMiddlewareQueue, MINIMUM_MIN_PASSWORD_LENGTH, PasswordPolicyImpl, AuthImpl, Subscription, externalJSProvider, RECAPTCHA_ENTERPRISE_VERIFIER_TYPE, FAKE_TOKEN, RecaptchaEnterpriseVerifier, AuthCredential, EmailAuthCredential, IDP_REQUEST_URI$1, OAuthCredential, VERIFY_PHONE_NUMBER_FOR_EXISTING_ERROR_MAP_, PhoneAuthCredential, ActionCodeURL, EmailAuthProvider, FederatedAuthProvider, BaseOAuthProvider, OAuthProvider, FacebookAuthProvider, GoogleAuthProvider, GithubAuthProvider, IDP_REQUEST_URI, SAMLAuthCredential, SAML_PROVIDER_PREFIX, SAMLAuthProvider, TwitterAuthProvider, UserCredentialImpl, MultiFactorError, MultiFactorInfoImpl, PhoneMultiFactorInfoImpl, TotpMultiFactorInfoImpl, GenericAdditionalUserInfo, FederatedAdditionalUserInfoWithUsername, FacebookAdditionalUserInfo, GithubAdditionalUserInfo, GoogleAdditionalUserInfo, TwitterAdditionalUserInfo, MultiFactorSessionImpl, MultiFactorResolverImpl, MultiFactorUserImpl, multiFactorUserCache, STORAGE_AVAILABLE_KEY, BrowserPersistenceClass, _POLLING_INTERVAL_MS$1, IE10_LOCAL_STORAGE_SYNC_DELAY, BrowserLocalPersistence, browserLocalPersistence, BrowserSessionPersistence, browserSessionPersistence, Receiver, Sender, DB_NAME2, DB_VERSION2, DB_OBJECTSTORE_NAME, DB_DATA_KEYPATH, DBPromise, _POLLING_INTERVAL_MS, _TRANSACTION_RETRY_COUNT, IndexedDBLocalPersistence, indexedDBLocalPersistence, _SOLVE_TIME_MS, _EXPIRATION_TIME_MS, _WIDGET_ID_START, MockReCaptcha, MockWidget, _JSLOAD_CALLBACK, NETWORK_TIMEOUT_DELAY, ReCaptchaLoaderImpl, MockReCaptchaLoaderImpl, RECAPTCHA_VERIFIER_TYPE, DEFAULT_PARAMS, RecaptchaVerifier, ConfirmationResultImpl, PhoneAuthProvider, IdpCredential, AbstractPopupRedirectOperation, _POLL_WINDOW_CLOSE_TIMEOUT, PopupOperation, PENDING_REDIRECT_KEY, redirectOutcomeMap, RedirectAction, EVENT_DUPLICATION_CACHE_DURATION_MS, AuthEventManager, IP_ADDRESS_REGEX, HTTP_REGEX, NETWORK_TIMEOUT, cachedGApiLoader, PING_TIMEOUT, IFRAME_PATH, EMULATED_IFRAME_PATH, IFRAME_ATTRIBUTES, EID_FROM_APIHOST, BASE_POPUP_OPTIONS, DEFAULT_WIDTH, DEFAULT_HEIGHT, TARGET_BLANK, FIREFOX_EMPTY_URL, AuthPopup, WIDGET_PATH, EMULATOR_WIDGET_PATH, FIREBASE_APP_CHECK_FRAGMENT_ID, WEB_STORAGE_SUPPORT_KEY, BrowserPopupRedirectResolver, browserPopupRedirectResolver, MultiFactorAssertionImpl, PhoneMultiFactorAssertionImpl, PhoneMultiFactorGenerator, TotpMultiFactorGenerator, TotpMultiFactorAssertionImpl, TotpSecret, name3, version3, AuthInterop, DEFAULT_ID_TOKEN_MAX_AGE, authIdTokenMaxAge, lastPostedIdToken, mintCookieFactory;
   var init_index_21205181 = __esm({
     "node_modules/@firebase/auth/dist/esm2017/index-21205181.js"() {
       init_index_esm20174();
@@ -5238,8 +6811,172 @@
       init_index_esm20173();
       init_tslib_es6();
       init_index_esm20172();
+      FactorId = {
+        /** Phone as second factor */
+        PHONE: "phone",
+        TOTP: "totp"
+      };
+      ProviderId = {
+        /** Facebook provider ID */
+        FACEBOOK: "facebook.com",
+        /** GitHub provider ID */
+        GITHUB: "github.com",
+        /** Google provider ID */
+        GOOGLE: "google.com",
+        /** Password provider */
+        PASSWORD: "password",
+        /** Phone provider */
+        PHONE: "phone",
+        /** Twitter provider ID */
+        TWITTER: "twitter.com"
+      };
+      SignInMethod = {
+        /** Email link sign in method */
+        EMAIL_LINK: "emailLink",
+        /** Email/password sign in method */
+        EMAIL_PASSWORD: "password",
+        /** Facebook sign in method */
+        FACEBOOK: "facebook.com",
+        /** GitHub sign in method */
+        GITHUB: "github.com",
+        /** Google sign in method */
+        GOOGLE: "google.com",
+        /** Phone sign in method */
+        PHONE: "phone",
+        /** Twitter sign in method */
+        TWITTER: "twitter.com"
+      };
+      OperationType = {
+        /** Operation involving linking an additional provider to an already signed-in user. */
+        LINK: "link",
+        /** Operation involving using a provider to reauthenticate an already signed-in user. */
+        REAUTHENTICATE: "reauthenticate",
+        /** Operation involving signing in a user. */
+        SIGN_IN: "signIn"
+      };
+      ActionCodeOperation = {
+        /** The email link sign-in action. */
+        EMAIL_SIGNIN: "EMAIL_SIGNIN",
+        /** The password reset action. */
+        PASSWORD_RESET: "PASSWORD_RESET",
+        /** The email revocation action. */
+        RECOVER_EMAIL: "RECOVER_EMAIL",
+        /** The revert second factor addition email action. */
+        REVERT_SECOND_FACTOR_ADDITION: "REVERT_SECOND_FACTOR_ADDITION",
+        /** The revert second factor addition email action. */
+        VERIFY_AND_CHANGE_EMAIL: "VERIFY_AND_CHANGE_EMAIL",
+        /** The email verification action. */
+        VERIFY_EMAIL: "VERIFY_EMAIL"
+      };
+      debugErrorMap = _debugErrorMap;
       prodErrorMap = _prodErrorMap;
       _DEFAULT_AUTH_ERROR_FACTORY = new ErrorFactory("auth", "Firebase", _prodErrorMap());
+      AUTH_ERROR_CODES_MAP_DO_NOT_USE_INTERNALLY = {
+        ADMIN_ONLY_OPERATION: "auth/admin-restricted-operation",
+        ARGUMENT_ERROR: "auth/argument-error",
+        APP_NOT_AUTHORIZED: "auth/app-not-authorized",
+        APP_NOT_INSTALLED: "auth/app-not-installed",
+        CAPTCHA_CHECK_FAILED: "auth/captcha-check-failed",
+        CODE_EXPIRED: "auth/code-expired",
+        CORDOVA_NOT_READY: "auth/cordova-not-ready",
+        CORS_UNSUPPORTED: "auth/cors-unsupported",
+        CREDENTIAL_ALREADY_IN_USE: "auth/credential-already-in-use",
+        CREDENTIAL_MISMATCH: "auth/custom-token-mismatch",
+        CREDENTIAL_TOO_OLD_LOGIN_AGAIN: "auth/requires-recent-login",
+        DEPENDENT_SDK_INIT_BEFORE_AUTH: "auth/dependent-sdk-initialized-before-auth",
+        DYNAMIC_LINK_NOT_ACTIVATED: "auth/dynamic-link-not-activated",
+        EMAIL_CHANGE_NEEDS_VERIFICATION: "auth/email-change-needs-verification",
+        EMAIL_EXISTS: "auth/email-already-in-use",
+        EMULATOR_CONFIG_FAILED: "auth/emulator-config-failed",
+        EXPIRED_OOB_CODE: "auth/expired-action-code",
+        EXPIRED_POPUP_REQUEST: "auth/cancelled-popup-request",
+        INTERNAL_ERROR: "auth/internal-error",
+        INVALID_API_KEY: "auth/invalid-api-key",
+        INVALID_APP_CREDENTIAL: "auth/invalid-app-credential",
+        INVALID_APP_ID: "auth/invalid-app-id",
+        INVALID_AUTH: "auth/invalid-user-token",
+        INVALID_AUTH_EVENT: "auth/invalid-auth-event",
+        INVALID_CERT_HASH: "auth/invalid-cert-hash",
+        INVALID_CODE: "auth/invalid-verification-code",
+        INVALID_CONTINUE_URI: "auth/invalid-continue-uri",
+        INVALID_CORDOVA_CONFIGURATION: "auth/invalid-cordova-configuration",
+        INVALID_CUSTOM_TOKEN: "auth/invalid-custom-token",
+        INVALID_DYNAMIC_LINK_DOMAIN: "auth/invalid-dynamic-link-domain",
+        INVALID_EMAIL: "auth/invalid-email",
+        INVALID_EMULATOR_SCHEME: "auth/invalid-emulator-scheme",
+        INVALID_IDP_RESPONSE: "auth/invalid-credential",
+        INVALID_LOGIN_CREDENTIALS: "auth/invalid-credential",
+        INVALID_MESSAGE_PAYLOAD: "auth/invalid-message-payload",
+        INVALID_MFA_SESSION: "auth/invalid-multi-factor-session",
+        INVALID_OAUTH_CLIENT_ID: "auth/invalid-oauth-client-id",
+        INVALID_OAUTH_PROVIDER: "auth/invalid-oauth-provider",
+        INVALID_OOB_CODE: "auth/invalid-action-code",
+        INVALID_ORIGIN: "auth/unauthorized-domain",
+        INVALID_PASSWORD: "auth/wrong-password",
+        INVALID_PERSISTENCE: "auth/invalid-persistence-type",
+        INVALID_PHONE_NUMBER: "auth/invalid-phone-number",
+        INVALID_PROVIDER_ID: "auth/invalid-provider-id",
+        INVALID_RECIPIENT_EMAIL: "auth/invalid-recipient-email",
+        INVALID_SENDER: "auth/invalid-sender",
+        INVALID_SESSION_INFO: "auth/invalid-verification-id",
+        INVALID_TENANT_ID: "auth/invalid-tenant-id",
+        MFA_INFO_NOT_FOUND: "auth/multi-factor-info-not-found",
+        MFA_REQUIRED: "auth/multi-factor-auth-required",
+        MISSING_ANDROID_PACKAGE_NAME: "auth/missing-android-pkg-name",
+        MISSING_APP_CREDENTIAL: "auth/missing-app-credential",
+        MISSING_AUTH_DOMAIN: "auth/auth-domain-config-required",
+        MISSING_CODE: "auth/missing-verification-code",
+        MISSING_CONTINUE_URI: "auth/missing-continue-uri",
+        MISSING_IFRAME_START: "auth/missing-iframe-start",
+        MISSING_IOS_BUNDLE_ID: "auth/missing-ios-bundle-id",
+        MISSING_OR_INVALID_NONCE: "auth/missing-or-invalid-nonce",
+        MISSING_MFA_INFO: "auth/missing-multi-factor-info",
+        MISSING_MFA_SESSION: "auth/missing-multi-factor-session",
+        MISSING_PHONE_NUMBER: "auth/missing-phone-number",
+        MISSING_SESSION_INFO: "auth/missing-verification-id",
+        MODULE_DESTROYED: "auth/app-deleted",
+        NEED_CONFIRMATION: "auth/account-exists-with-different-credential",
+        NETWORK_REQUEST_FAILED: "auth/network-request-failed",
+        NULL_USER: "auth/null-user",
+        NO_AUTH_EVENT: "auth/no-auth-event",
+        NO_SUCH_PROVIDER: "auth/no-such-provider",
+        OPERATION_NOT_ALLOWED: "auth/operation-not-allowed",
+        OPERATION_NOT_SUPPORTED: "auth/operation-not-supported-in-this-environment",
+        POPUP_BLOCKED: "auth/popup-blocked",
+        POPUP_CLOSED_BY_USER: "auth/popup-closed-by-user",
+        PROVIDER_ALREADY_LINKED: "auth/provider-already-linked",
+        QUOTA_EXCEEDED: "auth/quota-exceeded",
+        REDIRECT_CANCELLED_BY_USER: "auth/redirect-cancelled-by-user",
+        REDIRECT_OPERATION_PENDING: "auth/redirect-operation-pending",
+        REJECTED_CREDENTIAL: "auth/rejected-credential",
+        SECOND_FACTOR_ALREADY_ENROLLED: "auth/second-factor-already-in-use",
+        SECOND_FACTOR_LIMIT_EXCEEDED: "auth/maximum-second-factor-count-exceeded",
+        TENANT_ID_MISMATCH: "auth/tenant-id-mismatch",
+        TIMEOUT: "auth/timeout",
+        TOKEN_EXPIRED: "auth/user-token-expired",
+        TOO_MANY_ATTEMPTS_TRY_LATER: "auth/too-many-requests",
+        UNAUTHORIZED_DOMAIN: "auth/unauthorized-continue-uri",
+        UNSUPPORTED_FIRST_FACTOR: "auth/unsupported-first-factor",
+        UNSUPPORTED_PERSISTENCE: "auth/unsupported-persistence-type",
+        UNSUPPORTED_TENANT_OPERATION: "auth/unsupported-tenant-operation",
+        UNVERIFIED_EMAIL: "auth/unverified-email",
+        USER_CANCELLED: "auth/user-cancelled",
+        USER_DELETED: "auth/user-not-found",
+        USER_DISABLED: "auth/user-disabled",
+        USER_MISMATCH: "auth/user-mismatch",
+        USER_SIGNED_OUT: "auth/user-signed-out",
+        WEAK_PASSWORD: "auth/weak-password",
+        WEB_STORAGE_UNSUPPORTED: "auth/web-storage-unsupported",
+        ALREADY_INITIALIZED: "auth/already-initialized",
+        RECAPTCHA_NOT_ENABLED: "auth/recaptcha-not-enabled",
+        MISSING_RECAPTCHA_TOKEN: "auth/missing-recaptcha-token",
+        INVALID_RECAPTCHA_TOKEN: "auth/invalid-recaptcha-token",
+        INVALID_RECAPTCHA_ACTION: "auth/invalid-recaptcha-action",
+        MISSING_CLIENT_TYPE: "auth/missing-client-type",
+        MISSING_RECAPTCHA_VERSION: "auth/missing-recaptcha-version",
+        INVALID_RECAPTCHA_VERSION: "auth/invalid-recaptcha-version",
+        INVALID_REQ_TYPE: "auth/invalid-req-type"
+      };
       logClient = new Logger("@firebase/auth");
       Delay = class {
         constructor(shortDelay, longDelay) {
@@ -7460,6 +9197,93 @@
           return [...this.scopes];
         }
       };
+      OAuthProvider = class _OAuthProvider extends BaseOAuthProvider {
+        /**
+         * Creates an {@link OAuthCredential} from a JSON string or a plain object.
+         * @param json - A plain object or a JSON string
+         */
+        static credentialFromJSON(json) {
+          const obj = typeof json === "string" ? JSON.parse(json) : json;
+          _assert(
+            "providerId" in obj && "signInMethod" in obj,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          return OAuthCredential._fromParams(obj);
+        }
+        /**
+         * Creates a {@link OAuthCredential} from a generic OAuth provider's access token or ID token.
+         *
+         * @remarks
+         * The raw nonce is required when an ID token with a nonce field is provided. The SHA-256 hash of
+         * the raw nonce must match the nonce field in the ID token.
+         *
+         * @example
+         * ```javascript
+         * // `googleUser` from the onsuccess Google Sign In callback.
+         * // Initialize a generate OAuth provider with a `google.com` providerId.
+         * const provider = new OAuthProvider('google.com');
+         * const credential = provider.credential({
+         *   idToken: googleUser.getAuthResponse().id_token,
+         * });
+         * const result = await signInWithCredential(credential);
+         * ```
+         *
+         * @param params - Either the options object containing the ID token, access token and raw nonce
+         * or the ID token string.
+         */
+        credential(params) {
+          return this._credential(Object.assign(Object.assign({}, params), { nonce: params.rawNonce }));
+        }
+        /** An internal credential method that accepts more permissive options */
+        _credential(params) {
+          _assert(
+            params.idToken || params.accessToken,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          return OAuthCredential._fromParams(Object.assign(Object.assign({}, params), { providerId: this.providerId, signInMethod: this.providerId }));
+        }
+        /**
+         * Used to extract the underlying {@link OAuthCredential} from a {@link UserCredential}.
+         *
+         * @param userCredential - The user credential.
+         */
+        static credentialFromResult(userCredential) {
+          return _OAuthProvider.oauthCredentialFromTaggedObject(userCredential);
+        }
+        /**
+         * Used to extract the underlying {@link OAuthCredential} from a {@link AuthError} which was
+         * thrown during a sign-in, link, or reauthenticate operation.
+         *
+         * @param userCredential - The user credential.
+         */
+        static credentialFromError(error) {
+          return _OAuthProvider.oauthCredentialFromTaggedObject(error.customData || {});
+        }
+        static oauthCredentialFromTaggedObject({ _tokenResponse: tokenResponse }) {
+          if (!tokenResponse) {
+            return null;
+          }
+          const { oauthIdToken, oauthAccessToken, oauthTokenSecret, pendingToken, nonce, providerId } = tokenResponse;
+          if (!oauthAccessToken && !oauthTokenSecret && !oauthIdToken && !pendingToken) {
+            return null;
+          }
+          if (!providerId) {
+            return null;
+          }
+          try {
+            return new _OAuthProvider(providerId)._credential({
+              idToken: oauthIdToken,
+              accessToken: oauthAccessToken,
+              nonce,
+              pendingToken
+            });
+          } catch (e) {
+            return null;
+          }
+        }
+      };
       FacebookAuthProvider = class _FacebookAuthProvider extends BaseOAuthProvider {
         constructor() {
           super(
@@ -7634,6 +9458,141 @@
       };
       GithubAuthProvider.GITHUB_SIGN_IN_METHOD = "github.com";
       GithubAuthProvider.PROVIDER_ID = "github.com";
+      IDP_REQUEST_URI = "http://localhost";
+      SAMLAuthCredential = class _SAMLAuthCredential extends AuthCredential {
+        /** @internal */
+        constructor(providerId, pendingToken) {
+          super(providerId, providerId);
+          this.pendingToken = pendingToken;
+        }
+        /** @internal */
+        _getIdTokenResponse(auth) {
+          const request = this.buildRequest();
+          return signInWithIdp(auth, request);
+        }
+        /** @internal */
+        _linkToIdToken(auth, idToken) {
+          const request = this.buildRequest();
+          request.idToken = idToken;
+          return signInWithIdp(auth, request);
+        }
+        /** @internal */
+        _getReauthenticationResolver(auth) {
+          const request = this.buildRequest();
+          request.autoCreate = false;
+          return signInWithIdp(auth, request);
+        }
+        /** {@inheritdoc AuthCredential.toJSON}  */
+        toJSON() {
+          return {
+            signInMethod: this.signInMethod,
+            providerId: this.providerId,
+            pendingToken: this.pendingToken
+          };
+        }
+        /**
+         * Static method to deserialize a JSON representation of an object into an
+         * {@link  AuthCredential}.
+         *
+         * @param json - Input can be either Object or the stringified representation of the object.
+         * When string is provided, JSON.parse would be called first.
+         *
+         * @returns If the JSON input does not represent an {@link  AuthCredential}, null is returned.
+         */
+        static fromJSON(json) {
+          const obj = typeof json === "string" ? JSON.parse(json) : json;
+          const { providerId, signInMethod, pendingToken } = obj;
+          if (!providerId || !signInMethod || !pendingToken || providerId !== signInMethod) {
+            return null;
+          }
+          return new _SAMLAuthCredential(providerId, pendingToken);
+        }
+        /**
+         * Helper static method to avoid exposing the constructor to end users.
+         *
+         * @internal
+         */
+        static _create(providerId, pendingToken) {
+          return new _SAMLAuthCredential(providerId, pendingToken);
+        }
+        buildRequest() {
+          return {
+            requestUri: IDP_REQUEST_URI,
+            returnSecureToken: true,
+            pendingToken: this.pendingToken
+          };
+        }
+      };
+      SAML_PROVIDER_PREFIX = "saml.";
+      SAMLAuthProvider = class _SAMLAuthProvider extends FederatedAuthProvider {
+        /**
+         * Constructor. The providerId must start with "saml."
+         * @param providerId - SAML provider ID.
+         */
+        constructor(providerId) {
+          _assert(
+            providerId.startsWith(SAML_PROVIDER_PREFIX),
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          super(providerId);
+        }
+        /**
+         * Generates an {@link AuthCredential} from a {@link UserCredential} after a
+         * successful SAML flow completes.
+         *
+         * @remarks
+         *
+         * For example, to get an {@link AuthCredential}, you could write the
+         * following code:
+         *
+         * ```js
+         * const userCredential = await signInWithPopup(auth, samlProvider);
+         * const credential = SAMLAuthProvider.credentialFromResult(userCredential);
+         * ```
+         *
+         * @param userCredential - The user credential.
+         */
+        static credentialFromResult(userCredential) {
+          return _SAMLAuthProvider.samlCredentialFromTaggedObject(userCredential);
+        }
+        /**
+         * Used to extract the underlying {@link OAuthCredential} from a {@link AuthError} which was
+         * thrown during a sign-in, link, or reauthenticate operation.
+         *
+         * @param userCredential - The user credential.
+         */
+        static credentialFromError(error) {
+          return _SAMLAuthProvider.samlCredentialFromTaggedObject(error.customData || {});
+        }
+        /**
+         * Creates an {@link AuthCredential} from a JSON string or a plain object.
+         * @param json - A plain object or a JSON string
+         */
+        static credentialFromJSON(json) {
+          const credential = SAMLAuthCredential.fromJSON(json);
+          _assert(
+            credential,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          return credential;
+        }
+        static samlCredentialFromTaggedObject({ _tokenResponse: tokenResponse }) {
+          if (!tokenResponse) {
+            return null;
+          }
+          const { pendingToken, providerId } = tokenResponse;
+          if (!pendingToken || !providerId) {
+            return null;
+          }
+          try {
+            return SAMLAuthCredential._create(providerId, pendingToken);
+          } catch (e) {
+            return null;
+          }
+        }
+      };
       TwitterAuthProvider = class _TwitterAuthProvider extends BaseOAuthProvider {
         constructor() {
           super(
@@ -7740,6 +9699,198 @@
           return new _MultiFactorError(auth, error, operationType, user);
         }
       };
+      MultiFactorInfoImpl = class {
+        constructor(factorId, response) {
+          this.factorId = factorId;
+          this.uid = response.mfaEnrollmentId;
+          this.enrollmentTime = new Date(response.enrolledAt).toUTCString();
+          this.displayName = response.displayName;
+        }
+        static _fromServerResponse(auth, enrollment) {
+          if ("phoneInfo" in enrollment) {
+            return PhoneMultiFactorInfoImpl._fromServerResponse(auth, enrollment);
+          } else if ("totpInfo" in enrollment) {
+            return TotpMultiFactorInfoImpl._fromServerResponse(auth, enrollment);
+          }
+          return _fail(
+            auth,
+            "internal-error"
+            /* AuthErrorCode.INTERNAL_ERROR */
+          );
+        }
+      };
+      PhoneMultiFactorInfoImpl = class _PhoneMultiFactorInfoImpl extends MultiFactorInfoImpl {
+        constructor(response) {
+          super("phone", response);
+          this.phoneNumber = response.phoneInfo;
+        }
+        static _fromServerResponse(_auth, enrollment) {
+          return new _PhoneMultiFactorInfoImpl(enrollment);
+        }
+      };
+      TotpMultiFactorInfoImpl = class _TotpMultiFactorInfoImpl extends MultiFactorInfoImpl {
+        constructor(response) {
+          super("totp", response);
+        }
+        static _fromServerResponse(_auth, enrollment) {
+          return new _TotpMultiFactorInfoImpl(enrollment);
+        }
+      };
+      GenericAdditionalUserInfo = class {
+        constructor(isNewUser, providerId, profile = {}) {
+          this.isNewUser = isNewUser;
+          this.providerId = providerId;
+          this.profile = profile;
+        }
+      };
+      FederatedAdditionalUserInfoWithUsername = class extends GenericAdditionalUserInfo {
+        constructor(isNewUser, providerId, profile, username) {
+          super(isNewUser, providerId, profile);
+          this.username = username;
+        }
+      };
+      FacebookAdditionalUserInfo = class extends GenericAdditionalUserInfo {
+        constructor(isNewUser, profile) {
+          super(isNewUser, "facebook.com", profile);
+        }
+      };
+      GithubAdditionalUserInfo = class extends FederatedAdditionalUserInfoWithUsername {
+        constructor(isNewUser, profile) {
+          super(isNewUser, "github.com", profile, typeof (profile === null || profile === void 0 ? void 0 : profile.login) === "string" ? profile === null || profile === void 0 ? void 0 : profile.login : null);
+        }
+      };
+      GoogleAdditionalUserInfo = class extends GenericAdditionalUserInfo {
+        constructor(isNewUser, profile) {
+          super(isNewUser, "google.com", profile);
+        }
+      };
+      TwitterAdditionalUserInfo = class extends FederatedAdditionalUserInfoWithUsername {
+        constructor(isNewUser, profile, screenName) {
+          super(isNewUser, "twitter.com", profile, screenName);
+        }
+      };
+      MultiFactorSessionImpl = class _MultiFactorSessionImpl {
+        constructor(type, credential, user) {
+          this.type = type;
+          this.credential = credential;
+          this.user = user;
+        }
+        static _fromIdtoken(idToken, user) {
+          return new _MultiFactorSessionImpl("enroll", idToken, user);
+        }
+        static _fromMfaPendingCredential(mfaPendingCredential) {
+          return new _MultiFactorSessionImpl("signin", mfaPendingCredential);
+        }
+        toJSON() {
+          const key = this.type === "enroll" ? "idToken" : "pendingCredential";
+          return {
+            multiFactorSession: {
+              [key]: this.credential
+            }
+          };
+        }
+        static fromJSON(obj) {
+          var _a, _b;
+          if (obj === null || obj === void 0 ? void 0 : obj.multiFactorSession) {
+            if ((_a = obj.multiFactorSession) === null || _a === void 0 ? void 0 : _a.pendingCredential) {
+              return _MultiFactorSessionImpl._fromMfaPendingCredential(obj.multiFactorSession.pendingCredential);
+            } else if ((_b = obj.multiFactorSession) === null || _b === void 0 ? void 0 : _b.idToken) {
+              return _MultiFactorSessionImpl._fromIdtoken(obj.multiFactorSession.idToken);
+            }
+          }
+          return null;
+        }
+      };
+      MultiFactorResolverImpl = class _MultiFactorResolverImpl {
+        constructor(session, hints, signInResolver) {
+          this.session = session;
+          this.hints = hints;
+          this.signInResolver = signInResolver;
+        }
+        /** @internal */
+        static _fromError(authExtern, error) {
+          const auth = _castAuth(authExtern);
+          const serverResponse = error.customData._serverResponse;
+          const hints = (serverResponse.mfaInfo || []).map((enrollment) => MultiFactorInfoImpl._fromServerResponse(auth, enrollment));
+          _assert(
+            serverResponse.mfaPendingCredential,
+            auth,
+            "internal-error"
+            /* AuthErrorCode.INTERNAL_ERROR */
+          );
+          const session = MultiFactorSessionImpl._fromMfaPendingCredential(serverResponse.mfaPendingCredential);
+          return new _MultiFactorResolverImpl(session, hints, async (assertion) => {
+            const mfaResponse = await assertion._process(auth, session);
+            delete serverResponse.mfaInfo;
+            delete serverResponse.mfaPendingCredential;
+            const idTokenResponse = Object.assign(Object.assign({}, serverResponse), { idToken: mfaResponse.idToken, refreshToken: mfaResponse.refreshToken });
+            switch (error.operationType) {
+              case "signIn":
+                const userCredential = await UserCredentialImpl._fromIdTokenResponse(auth, error.operationType, idTokenResponse);
+                await auth._updateCurrentUser(userCredential.user);
+                return userCredential;
+              case "reauthenticate":
+                _assert(
+                  error.user,
+                  auth,
+                  "internal-error"
+                  /* AuthErrorCode.INTERNAL_ERROR */
+                );
+                return UserCredentialImpl._forOperation(error.user, error.operationType, idTokenResponse);
+              default:
+                _fail(
+                  auth,
+                  "internal-error"
+                  /* AuthErrorCode.INTERNAL_ERROR */
+                );
+            }
+          });
+        }
+        async resolveSignIn(assertionExtern) {
+          const assertion = assertionExtern;
+          return this.signInResolver(assertion);
+        }
+      };
+      MultiFactorUserImpl = class _MultiFactorUserImpl {
+        constructor(user) {
+          this.user = user;
+          this.enrolledFactors = [];
+          user._onReload((userInfo) => {
+            if (userInfo.mfaInfo) {
+              this.enrolledFactors = userInfo.mfaInfo.map((enrollment) => MultiFactorInfoImpl._fromServerResponse(user.auth, enrollment));
+            }
+          });
+        }
+        static _fromUser(user) {
+          return new _MultiFactorUserImpl(user);
+        }
+        async getSession() {
+          return MultiFactorSessionImpl._fromIdtoken(await this.user.getIdToken(), this.user);
+        }
+        async enroll(assertionExtern, displayName) {
+          const assertion = assertionExtern;
+          const session = await this.getSession();
+          const finalizeMfaResponse = await _logoutIfInvalidated(this.user, assertion._process(this.user.auth, session, displayName));
+          await this.user._updateTokensIfNecessary(finalizeMfaResponse);
+          return this.user.reload();
+        }
+        async unenroll(infoOrUid) {
+          const mfaEnrollmentId = typeof infoOrUid === "string" ? infoOrUid : infoOrUid.uid;
+          const idToken = await this.user.getIdToken();
+          try {
+            const idTokenResponse = await _logoutIfInvalidated(this.user, withdrawMfa(this.user.auth, {
+              idToken,
+              mfaEnrollmentId
+            }));
+            this.enrolledFactors = this.enrolledFactors.filter(({ uid }) => uid !== mfaEnrollmentId);
+            await this.user._updateTokensIfNecessary(idTokenResponse);
+            await this.user.reload();
+          } catch (e) {
+            throw e;
+          }
+        }
+      };
+      multiFactorUserCache = /* @__PURE__ */ new WeakMap();
       STORAGE_AVAILABLE_KEY = "__sak";
       BrowserPersistenceClass = class {
         constructor(storageRetriever, type) {
@@ -8379,9 +10530,396 @@
       };
       IndexedDBLocalPersistence.type = "LOCAL";
       indexedDBLocalPersistence = IndexedDBLocalPersistence;
+      _SOLVE_TIME_MS = 500;
+      _EXPIRATION_TIME_MS = 6e4;
+      _WIDGET_ID_START = 1e12;
+      MockReCaptcha = class {
+        constructor(auth) {
+          this.auth = auth;
+          this.counter = _WIDGET_ID_START;
+          this._widgets = /* @__PURE__ */ new Map();
+        }
+        render(container, parameters) {
+          const id = this.counter;
+          this._widgets.set(id, new MockWidget(container, this.auth.name, parameters || {}));
+          this.counter++;
+          return id;
+        }
+        reset(optWidgetId) {
+          var _a;
+          const id = optWidgetId || _WIDGET_ID_START;
+          void ((_a = this._widgets.get(id)) === null || _a === void 0 ? void 0 : _a.delete());
+          this._widgets.delete(id);
+        }
+        getResponse(optWidgetId) {
+          var _a;
+          const id = optWidgetId || _WIDGET_ID_START;
+          return ((_a = this._widgets.get(id)) === null || _a === void 0 ? void 0 : _a.getResponse()) || "";
+        }
+        async execute(optWidgetId) {
+          var _a;
+          const id = optWidgetId || _WIDGET_ID_START;
+          void ((_a = this._widgets.get(id)) === null || _a === void 0 ? void 0 : _a.execute());
+          return "";
+        }
+      };
+      MockWidget = class {
+        constructor(containerOrId, appName, params) {
+          this.params = params;
+          this.timerId = null;
+          this.deleted = false;
+          this.responseToken = null;
+          this.clickHandler = () => {
+            this.execute();
+          };
+          const container = typeof containerOrId === "string" ? document.getElementById(containerOrId) : containerOrId;
+          _assert(container, "argument-error", { appName });
+          this.container = container;
+          this.isVisible = this.params.size !== "invisible";
+          if (this.isVisible) {
+            this.execute();
+          } else {
+            this.container.addEventListener("click", this.clickHandler);
+          }
+        }
+        getResponse() {
+          this.checkIfDeleted();
+          return this.responseToken;
+        }
+        delete() {
+          this.checkIfDeleted();
+          this.deleted = true;
+          if (this.timerId) {
+            clearTimeout(this.timerId);
+            this.timerId = null;
+          }
+          this.container.removeEventListener("click", this.clickHandler);
+        }
+        execute() {
+          this.checkIfDeleted();
+          if (this.timerId) {
+            return;
+          }
+          this.timerId = window.setTimeout(() => {
+            this.responseToken = generateRandomAlphaNumericString(50);
+            const { callback, "expired-callback": expiredCallback } = this.params;
+            if (callback) {
+              try {
+                callback(this.responseToken);
+              } catch (e) {
+              }
+            }
+            this.timerId = window.setTimeout(() => {
+              this.timerId = null;
+              this.responseToken = null;
+              if (expiredCallback) {
+                try {
+                  expiredCallback();
+                } catch (e) {
+                }
+              }
+              if (this.isVisible) {
+                this.execute();
+              }
+            }, _EXPIRATION_TIME_MS);
+          }, _SOLVE_TIME_MS);
+        }
+        checkIfDeleted() {
+          if (this.deleted) {
+            throw new Error("reCAPTCHA mock was already deleted!");
+          }
+        }
+      };
       _JSLOAD_CALLBACK = _generateCallbackName("rcb");
       NETWORK_TIMEOUT_DELAY = new Delay(3e4, 6e4);
+      ReCaptchaLoaderImpl = class {
+        constructor() {
+          var _a;
+          this.hostLanguage = "";
+          this.counter = 0;
+          this.librarySeparatelyLoaded = !!((_a = _window().grecaptcha) === null || _a === void 0 ? void 0 : _a.render);
+        }
+        load(auth, hl = "") {
+          _assert(
+            isHostLanguageValid(hl),
+            auth,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          if (this.shouldResolveImmediately(hl) && isV2(_window().grecaptcha)) {
+            return Promise.resolve(_window().grecaptcha);
+          }
+          return new Promise((resolve, reject) => {
+            const networkTimeout = _window().setTimeout(() => {
+              reject(_createError(
+                auth,
+                "network-request-failed"
+                /* AuthErrorCode.NETWORK_REQUEST_FAILED */
+              ));
+            }, NETWORK_TIMEOUT_DELAY.get());
+            _window()[_JSLOAD_CALLBACK] = () => {
+              _window().clearTimeout(networkTimeout);
+              delete _window()[_JSLOAD_CALLBACK];
+              const recaptcha = _window().grecaptcha;
+              if (!recaptcha || !isV2(recaptcha)) {
+                reject(_createError(
+                  auth,
+                  "internal-error"
+                  /* AuthErrorCode.INTERNAL_ERROR */
+                ));
+                return;
+              }
+              const render = recaptcha.render;
+              recaptcha.render = (container, params) => {
+                const widgetId = render(container, params);
+                this.counter++;
+                return widgetId;
+              };
+              this.hostLanguage = hl;
+              resolve(recaptcha);
+            };
+            const url = `${_recaptchaV2ScriptUrl()}?${querystring({
+              onload: _JSLOAD_CALLBACK,
+              render: "explicit",
+              hl
+            })}`;
+            _loadJS(url).catch(() => {
+              clearTimeout(networkTimeout);
+              reject(_createError(
+                auth,
+                "internal-error"
+                /* AuthErrorCode.INTERNAL_ERROR */
+              ));
+            });
+          });
+        }
+        clearedOneInstance() {
+          this.counter--;
+        }
+        shouldResolveImmediately(hl) {
+          var _a;
+          return !!((_a = _window().grecaptcha) === null || _a === void 0 ? void 0 : _a.render) && (hl === this.hostLanguage || this.counter > 0 || this.librarySeparatelyLoaded);
+        }
+      };
+      MockReCaptchaLoaderImpl = class {
+        async load(auth) {
+          return new MockReCaptcha(auth);
+        }
+        clearedOneInstance() {
+        }
+      };
       RECAPTCHA_VERIFIER_TYPE = "recaptcha";
+      DEFAULT_PARAMS = {
+        theme: "light",
+        type: "image"
+      };
+      RecaptchaVerifier = class {
+        /**
+         * @param authExtern - The corresponding Firebase {@link Auth} instance.
+         *
+         * @param containerOrId - The reCAPTCHA container parameter.
+         *
+         * @remarks
+         * This has different meaning depending on whether the reCAPTCHA is hidden or visible. For a
+         * visible reCAPTCHA the container must be empty. If a string is used, it has to correspond to
+         * an element ID. The corresponding element must also must be in the DOM at the time of
+         * initialization.
+         *
+         * @param parameters - The optional reCAPTCHA parameters.
+         *
+         * @remarks
+         * Check the reCAPTCHA docs for a comprehensive list. All parameters are accepted except for
+         * the sitekey. Firebase Auth backend provisions a reCAPTCHA for each project and will
+         * configure this upon rendering. For an invisible reCAPTCHA, a size key must have the value
+         * 'invisible'.
+         */
+        constructor(authExtern, containerOrId, parameters = Object.assign({}, DEFAULT_PARAMS)) {
+          this.parameters = parameters;
+          this.type = RECAPTCHA_VERIFIER_TYPE;
+          this.destroyed = false;
+          this.widgetId = null;
+          this.tokenChangeListeners = /* @__PURE__ */ new Set();
+          this.renderPromise = null;
+          this.recaptcha = null;
+          this.auth = _castAuth(authExtern);
+          this.isInvisible = this.parameters.size === "invisible";
+          _assert(
+            typeof document !== "undefined",
+            this.auth,
+            "operation-not-supported-in-this-environment"
+            /* AuthErrorCode.OPERATION_NOT_SUPPORTED */
+          );
+          const container = typeof containerOrId === "string" ? document.getElementById(containerOrId) : containerOrId;
+          _assert(
+            container,
+            this.auth,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          this.container = container;
+          this.parameters.callback = this.makeTokenCallback(this.parameters.callback);
+          this._recaptchaLoader = this.auth.settings.appVerificationDisabledForTesting ? new MockReCaptchaLoaderImpl() : new ReCaptchaLoaderImpl();
+          this.validateStartingState();
+        }
+        /**
+         * Waits for the user to solve the reCAPTCHA and resolves with the reCAPTCHA token.
+         *
+         * @returns A Promise for the reCAPTCHA token.
+         */
+        async verify() {
+          this.assertNotDestroyed();
+          const id = await this.render();
+          const recaptcha = this.getAssertedRecaptcha();
+          const response = recaptcha.getResponse(id);
+          if (response) {
+            return response;
+          }
+          return new Promise((resolve) => {
+            const tokenChange = (token) => {
+              if (!token) {
+                return;
+              }
+              this.tokenChangeListeners.delete(tokenChange);
+              resolve(token);
+            };
+            this.tokenChangeListeners.add(tokenChange);
+            if (this.isInvisible) {
+              recaptcha.execute(id);
+            }
+          });
+        }
+        /**
+         * Renders the reCAPTCHA widget on the page.
+         *
+         * @returns A Promise that resolves with the reCAPTCHA widget ID.
+         */
+        render() {
+          try {
+            this.assertNotDestroyed();
+          } catch (e) {
+            return Promise.reject(e);
+          }
+          if (this.renderPromise) {
+            return this.renderPromise;
+          }
+          this.renderPromise = this.makeRenderPromise().catch((e) => {
+            this.renderPromise = null;
+            throw e;
+          });
+          return this.renderPromise;
+        }
+        /** @internal */
+        _reset() {
+          this.assertNotDestroyed();
+          if (this.widgetId !== null) {
+            this.getAssertedRecaptcha().reset(this.widgetId);
+          }
+        }
+        /**
+         * Clears the reCAPTCHA widget from the page and destroys the instance.
+         */
+        clear() {
+          this.assertNotDestroyed();
+          this.destroyed = true;
+          this._recaptchaLoader.clearedOneInstance();
+          if (!this.isInvisible) {
+            this.container.childNodes.forEach((node) => {
+              this.container.removeChild(node);
+            });
+          }
+        }
+        validateStartingState() {
+          _assert(
+            !this.parameters.sitekey,
+            this.auth,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          _assert(
+            this.isInvisible || !this.container.hasChildNodes(),
+            this.auth,
+            "argument-error"
+            /* AuthErrorCode.ARGUMENT_ERROR */
+          );
+          _assert(
+            typeof document !== "undefined",
+            this.auth,
+            "operation-not-supported-in-this-environment"
+            /* AuthErrorCode.OPERATION_NOT_SUPPORTED */
+          );
+        }
+        makeTokenCallback(existing) {
+          return (token) => {
+            this.tokenChangeListeners.forEach((listener) => listener(token));
+            if (typeof existing === "function") {
+              existing(token);
+            } else if (typeof existing === "string") {
+              const globalFunc = _window()[existing];
+              if (typeof globalFunc === "function") {
+                globalFunc(token);
+              }
+            }
+          };
+        }
+        assertNotDestroyed() {
+          _assert(
+            !this.destroyed,
+            this.auth,
+            "internal-error"
+            /* AuthErrorCode.INTERNAL_ERROR */
+          );
+        }
+        async makeRenderPromise() {
+          await this.init();
+          if (!this.widgetId) {
+            let container = this.container;
+            if (!this.isInvisible) {
+              const guaranteedEmpty = document.createElement("div");
+              container.appendChild(guaranteedEmpty);
+              container = guaranteedEmpty;
+            }
+            this.widgetId = this.getAssertedRecaptcha().render(container, this.parameters);
+          }
+          return this.widgetId;
+        }
+        async init() {
+          _assert(
+            _isHttpOrHttps() && !_isWorker(),
+            this.auth,
+            "internal-error"
+            /* AuthErrorCode.INTERNAL_ERROR */
+          );
+          await domReady();
+          this.recaptcha = await this._recaptchaLoader.load(this.auth, this.auth.languageCode || void 0);
+          const siteKey = await getRecaptchaParams(this.auth);
+          _assert(
+            siteKey,
+            this.auth,
+            "internal-error"
+            /* AuthErrorCode.INTERNAL_ERROR */
+          );
+          this.parameters.sitekey = siteKey;
+        }
+        getAssertedRecaptcha() {
+          _assert(
+            this.recaptcha,
+            this.auth,
+            "internal-error"
+            /* AuthErrorCode.INTERNAL_ERROR */
+          );
+          return this.recaptcha;
+        }
+      };
+      ConfirmationResultImpl = class {
+        constructor(verificationId, onConfirmation) {
+          this.verificationId = verificationId;
+          this.onConfirmation = onConfirmation;
+        }
+        confirm(verificationCode) {
+          const authCredential = PhoneAuthCredential._fromVerification(this.verificationId, verificationCode);
+          return this.onConfirmation(authCredential);
+        }
+      };
       PhoneAuthProvider = class _PhoneAuthProvider {
         /**
          * @param auth - The Firebase {@link Auth} instance in which sign-ins should occur.
@@ -9310,6 +11848,93 @@
   });
 
   // node_modules/firebase/auth/dist/esm/index.esm.js
+  var index_esm_exports2 = {};
+  __export(index_esm_exports2, {
+    ActionCodeOperation: () => ActionCodeOperation,
+    ActionCodeURL: () => ActionCodeURL,
+    AuthCredential: () => AuthCredential,
+    AuthErrorCodes: () => AUTH_ERROR_CODES_MAP_DO_NOT_USE_INTERNALLY,
+    EmailAuthCredential: () => EmailAuthCredential,
+    EmailAuthProvider: () => EmailAuthProvider,
+    FacebookAuthProvider: () => FacebookAuthProvider,
+    FactorId: () => FactorId,
+    GithubAuthProvider: () => GithubAuthProvider,
+    GoogleAuthProvider: () => GoogleAuthProvider,
+    OAuthCredential: () => OAuthCredential,
+    OAuthProvider: () => OAuthProvider,
+    OperationType: () => OperationType,
+    PhoneAuthCredential: () => PhoneAuthCredential,
+    PhoneAuthProvider: () => PhoneAuthProvider,
+    PhoneMultiFactorGenerator: () => PhoneMultiFactorGenerator,
+    ProviderId: () => ProviderId,
+    RecaptchaVerifier: () => RecaptchaVerifier,
+    SAMLAuthProvider: () => SAMLAuthProvider,
+    SignInMethod: () => SignInMethod,
+    TotpMultiFactorGenerator: () => TotpMultiFactorGenerator,
+    TotpSecret: () => TotpSecret,
+    TwitterAuthProvider: () => TwitterAuthProvider,
+    applyActionCode: () => applyActionCode,
+    beforeAuthStateChanged: () => beforeAuthStateChanged,
+    browserLocalPersistence: () => browserLocalPersistence,
+    browserPopupRedirectResolver: () => browserPopupRedirectResolver,
+    browserSessionPersistence: () => browserSessionPersistence,
+    checkActionCode: () => checkActionCode,
+    confirmPasswordReset: () => confirmPasswordReset,
+    connectAuthEmulator: () => connectAuthEmulator,
+    createUserWithEmailAndPassword: () => createUserWithEmailAndPassword,
+    debugErrorMap: () => debugErrorMap,
+    deleteUser: () => deleteUser,
+    fetchSignInMethodsForEmail: () => fetchSignInMethodsForEmail,
+    getAdditionalUserInfo: () => getAdditionalUserInfo,
+    getAuth: () => getAuth,
+    getIdToken: () => getIdToken,
+    getIdTokenResult: () => getIdTokenResult,
+    getMultiFactorResolver: () => getMultiFactorResolver,
+    getRedirectResult: () => getRedirectResult,
+    inMemoryPersistence: () => inMemoryPersistence,
+    indexedDBLocalPersistence: () => indexedDBLocalPersistence,
+    initializeAuth: () => initializeAuth,
+    initializeRecaptchaConfig: () => initializeRecaptchaConfig,
+    isSignInWithEmailLink: () => isSignInWithEmailLink,
+    linkWithCredential: () => linkWithCredential,
+    linkWithPhoneNumber: () => linkWithPhoneNumber,
+    linkWithPopup: () => linkWithPopup,
+    linkWithRedirect: () => linkWithRedirect,
+    multiFactor: () => multiFactor,
+    onAuthStateChanged: () => onAuthStateChanged,
+    onIdTokenChanged: () => onIdTokenChanged,
+    parseActionCodeURL: () => parseActionCodeURL,
+    prodErrorMap: () => prodErrorMap,
+    reauthenticateWithCredential: () => reauthenticateWithCredential,
+    reauthenticateWithPhoneNumber: () => reauthenticateWithPhoneNumber,
+    reauthenticateWithPopup: () => reauthenticateWithPopup,
+    reauthenticateWithRedirect: () => reauthenticateWithRedirect,
+    reload: () => reload,
+    revokeAccessToken: () => revokeAccessToken,
+    sendEmailVerification: () => sendEmailVerification,
+    sendPasswordResetEmail: () => sendPasswordResetEmail,
+    sendSignInLinkToEmail: () => sendSignInLinkToEmail,
+    setPersistence: () => setPersistence,
+    signInAnonymously: () => signInAnonymously,
+    signInWithCredential: () => signInWithCredential,
+    signInWithCustomToken: () => signInWithCustomToken,
+    signInWithEmailAndPassword: () => signInWithEmailAndPassword,
+    signInWithEmailLink: () => signInWithEmailLink,
+    signInWithPhoneNumber: () => signInWithPhoneNumber,
+    signInWithPopup: () => signInWithPopup,
+    signInWithRedirect: () => signInWithRedirect,
+    signOut: () => signOut,
+    unlink: () => unlink,
+    updateCurrentUser: () => updateCurrentUser,
+    updateEmail: () => updateEmail,
+    updatePassword: () => updatePassword,
+    updatePhoneNumber: () => updatePhoneNumber,
+    updateProfile: () => updateProfile,
+    useDeviceLanguage: () => useDeviceLanguage,
+    validatePassword: () => validatePassword,
+    verifyBeforeUpdateEmail: () => verifyBeforeUpdateEmail,
+    verifyPasswordResetCode: () => verifyPasswordResetCode
+  });
   var init_index_esm2 = __esm({
     "node_modules/firebase/auth/dist/esm/index.esm.js"() {
       init_esm2017();
@@ -9317,6 +11942,9 @@
   });
 
   // node_modules/@firebase/firestore/dist/lite/index.browser.esm2017.js
+  function setLogLevel3(t) {
+    f.setLogLevel(t);
+  }
   function __PRIVATE_logDebug(t, ...e) {
     if (f.logLevel <= LogLevel.DEBUG) {
       const r = e.map(__PRIVATE_argToString);
@@ -9361,6 +11989,9 @@
   function __PRIVATE_validateDocumentPath(t) {
     if (!DocumentKey.isDocumentKey(t)) throw new FirestoreError(T, `Invalid document reference. Document references must have an even number of segments, but ${t} has ${t.length}.`);
   }
+  function __PRIVATE_validateCollectionPath(t) {
+    if (DocumentKey.isDocumentKey(t)) throw new FirestoreError(T, `Invalid collection reference. Collection references must have an odd number of segments, but ${t} has ${t.length}.`);
+  }
   function __PRIVATE_valueDescription(t) {
     if (void 0 === t) return "undefined";
     if (null === t) return "null";
@@ -9393,6 +12024,9 @@
     }
     return t;
   }
+  function __PRIVATE_validatePositiveNumber(t, e) {
+    if (e <= 0) throw new FirestoreError(T, `Function ${t}() requires a positive number, but it was: ${e}.`);
+  }
   function __PRIVATE_cloneLongPollingOptions(t) {
     const e = {};
     return void 0 !== t.timeoutSeconds && (e.timeoutSeconds = t.timeoutSeconds), e;
@@ -9401,6 +12035,9 @@
     return null === N ? N = (function __PRIVATE_generateInitialUniqueDebugId() {
       return 268435456 + Math.round(2147483648 * Math.random());
     })() : N++, "0x" + N.toString(16);
+  }
+  function __PRIVATE_isNullOrUndefined(t) {
+    return null == t;
   }
   function __PRIVATE_isNegativeZero(t) {
     return 0 === t && 1 / t == -1 / 0;
@@ -9568,6 +12205,100 @@
         return fail();
     }
   }
+  function __PRIVATE_arrayValueContains(t, e) {
+    return void 0 !== (t.values || []).find(((t2) => __PRIVATE_valueEquals(t2, e)));
+  }
+  function __PRIVATE_valueCompare(t, e) {
+    if (t === e) return 0;
+    const r = __PRIVATE_typeOrder(t), n = __PRIVATE_typeOrder(e);
+    if (r !== n) return __PRIVATE_primitiveComparator(r, n);
+    switch (r) {
+      case 0:
+      case 9007199254740991:
+        return 0;
+      case 1:
+        return __PRIVATE_primitiveComparator(t.booleanValue, e.booleanValue);
+      case 2:
+        return (function __PRIVATE_compareNumbers(t2, e2) {
+          const r2 = __PRIVATE_normalizeNumber(t2.integerValue || t2.doubleValue), n2 = __PRIVATE_normalizeNumber(e2.integerValue || e2.doubleValue);
+          return r2 < n2 ? -1 : r2 > n2 ? 1 : r2 === n2 ? 0 : (
+            // one or both are NaN.
+            isNaN(r2) ? isNaN(n2) ? 0 : -1 : 1
+          );
+        })(t, e);
+      case 3:
+        return __PRIVATE_compareTimestamps(t.timestampValue, e.timestampValue);
+      case 4:
+        return __PRIVATE_compareTimestamps(__PRIVATE_getLocalWriteTime(t), __PRIVATE_getLocalWriteTime(e));
+      case 5:
+        return __PRIVATE_primitiveComparator(t.stringValue, e.stringValue);
+      case 6:
+        return (function __PRIVATE_compareBlobs(t2, e2) {
+          const r2 = __PRIVATE_normalizeByteString(t2), n2 = __PRIVATE_normalizeByteString(e2);
+          return r2.compareTo(n2);
+        })(t.bytesValue, e.bytesValue);
+      case 7:
+        return (function __PRIVATE_compareReferences(t2, e2) {
+          const r2 = t2.split("/"), n2 = e2.split("/");
+          for (let t3 = 0; t3 < r2.length && t3 < n2.length; t3++) {
+            const e3 = __PRIVATE_primitiveComparator(r2[t3], n2[t3]);
+            if (0 !== e3) return e3;
+          }
+          return __PRIVATE_primitiveComparator(r2.length, n2.length);
+        })(t.referenceValue, e.referenceValue);
+      case 8:
+        return (function __PRIVATE_compareGeoPoints(t2, e2) {
+          const r2 = __PRIVATE_primitiveComparator(__PRIVATE_normalizeNumber(t2.latitude), __PRIVATE_normalizeNumber(e2.latitude));
+          if (0 !== r2) return r2;
+          return __PRIVATE_primitiveComparator(__PRIVATE_normalizeNumber(t2.longitude), __PRIVATE_normalizeNumber(e2.longitude));
+        })(t.geoPointValue, e.geoPointValue);
+      case 9:
+        return (function __PRIVATE_compareArrays(t2, e2) {
+          const r2 = t2.values || [], n2 = e2.values || [];
+          for (let t3 = 0; t3 < r2.length && t3 < n2.length; ++t3) {
+            const e3 = __PRIVATE_valueCompare(r2[t3], n2[t3]);
+            if (e3) return e3;
+          }
+          return __PRIVATE_primitiveComparator(r2.length, n2.length);
+        })(t.arrayValue, e.arrayValue);
+      case 10:
+        return (function __PRIVATE_compareMaps(t2, e2) {
+          if (t2 === Q && e2 === Q) return 0;
+          if (t2 === Q) return 1;
+          if (e2 === Q) return -1;
+          const r2 = t2.fields || {}, n2 = Object.keys(r2), i = e2.fields || {}, s = Object.keys(i);
+          n2.sort(), s.sort();
+          for (let t3 = 0; t3 < n2.length && t3 < s.length; ++t3) {
+            const e3 = __PRIVATE_primitiveComparator(n2[t3], s[t3]);
+            if (0 !== e3) return e3;
+            const o = __PRIVATE_valueCompare(r2[n2[t3]], i[s[t3]]);
+            if (0 !== o) return o;
+          }
+          return __PRIVATE_primitiveComparator(n2.length, s.length);
+        })(t.mapValue, e.mapValue);
+      default:
+        throw fail();
+    }
+  }
+  function __PRIVATE_compareTimestamps(t, e) {
+    if ("string" == typeof t && "string" == typeof e && t.length === e.length) return __PRIVATE_primitiveComparator(t, e);
+    const r = __PRIVATE_normalizeTimestamp(t), n = __PRIVATE_normalizeTimestamp(e), i = __PRIVATE_primitiveComparator(r.seconds, n.seconds);
+    return 0 !== i ? i : __PRIVATE_primitiveComparator(r.nanos, n.nanos);
+  }
+  function __PRIVATE_refValue(t, e) {
+    return {
+      referenceValue: `projects/${t.projectId}/databases/${t.database}/documents/${e.path.canonicalString()}`
+    };
+  }
+  function isArray(t) {
+    return !!t && "arrayValue" in t;
+  }
+  function __PRIVATE_isNullValue(t) {
+    return !!t && "nullValue" in t;
+  }
+  function __PRIVATE_isNanValue(t) {
+    return !!t && "doubleValue" in t && isNaN(Number(t.doubleValue));
+  }
   function __PRIVATE_isMapValue(t) {
     return !!t && "mapValue" in t;
   }
@@ -9596,6 +12327,91 @@
       return e;
     }
     return Object.assign({}, t);
+  }
+  function __PRIVATE_boundEquals(t, e) {
+    if (null === t) return null === e;
+    if (null === e) return false;
+    if (t.inclusive !== e.inclusive || t.position.length !== e.position.length) return false;
+    for (let r = 0; r < t.position.length; r++) {
+      if (!__PRIVATE_valueEquals(t.position[r], e.position[r])) return false;
+    }
+    return true;
+  }
+  function __PRIVATE_filterEquals(t, e) {
+    return t instanceof FieldFilter ? (function __PRIVATE_fieldFilterEquals(t2, e2) {
+      return e2 instanceof FieldFilter && t2.op === e2.op && t2.field.isEqual(e2.field) && __PRIVATE_valueEquals(t2.value, e2.value);
+    })(t, e) : t instanceof CompositeFilter ? (function __PRIVATE_compositeFilterEquals(t2, e2) {
+      if (e2 instanceof CompositeFilter && t2.op === e2.op && t2.filters.length === e2.filters.length) {
+        return t2.filters.reduce(((t3, r, n) => t3 && __PRIVATE_filterEquals(r, e2.filters[n])), true);
+      }
+      return false;
+    })(t, e) : void fail();
+  }
+  function __PRIVATE_extractDocumentKeysFromArrayValue(t, e) {
+    var r;
+    return ((null === (r = e.arrayValue) || void 0 === r ? void 0 : r.values) || []).map(((t2) => DocumentKey.fromName(t2.referenceValue)));
+  }
+  function __PRIVATE_orderByEquals(t, e) {
+    return t.dir === e.dir && t.field.isEqual(e.field);
+  }
+  function __PRIVATE_newTarget(t, e = null, r = [], n = [], i = null, s = null, o = null) {
+    return new __PRIVATE_TargetImpl(t, e, r, n, i, s, o);
+  }
+  function __PRIVATE_isCollectionGroupQuery(t) {
+    return null !== t.collectionGroup;
+  }
+  function __PRIVATE_queryNormalizedOrderBy(t) {
+    const e = __PRIVATE_debugCast(t);
+    if (null === e.S) {
+      e.S = [];
+      const t2 = /* @__PURE__ */ new Set();
+      for (const r2 of e.explicitOrderBy) e.S.push(r2), t2.add(r2.field.canonicalString());
+      const r = e.explicitOrderBy.length > 0 ? e.explicitOrderBy[e.explicitOrderBy.length - 1].dir : "asc", n = (
+        // Returns the sorted set of inequality filter fields used in this query.
+        (function __PRIVATE_getInequalityFilterFields(t3) {
+          let e2 = new SortedSet(FieldPath$1.comparator);
+          return t3.filters.forEach(((t4) => {
+            t4.getFlattenedFilters().forEach(((t5) => {
+              t5.isInequality() && (e2 = e2.add(t5.field));
+            }));
+          })), e2;
+        })(e)
+      );
+      n.forEach(((n2) => {
+        t2.has(n2.canonicalString()) || n2.isKeyField() || e.S.push(new OrderBy(n2, r));
+      })), // Add the document key field to the last if it is not explicitly ordered.
+      t2.has(FieldPath$1.keyField().canonicalString()) || e.S.push(new OrderBy(FieldPath$1.keyField(), r));
+    }
+    return e.S;
+  }
+  function __PRIVATE_queryToTarget(t) {
+    const e = __PRIVATE_debugCast(t);
+    return e.N || (e.N = __PRIVATE__queryToTarget(e, __PRIVATE_queryNormalizedOrderBy(t))), e.N;
+  }
+  function __PRIVATE__queryToTarget(t, e) {
+    if ("F" === t.limitType) return __PRIVATE_newTarget(t.path, t.collectionGroup, e, t.filters, t.limit, t.startAt, t.endAt);
+    {
+      e = e.map(((t2) => {
+        const e2 = "desc" === t2.dir ? "asc" : "desc";
+        return new OrderBy(t2.field, e2);
+      }));
+      const r = t.endAt ? new Bound(t.endAt.position, t.endAt.inclusive) : null, n = t.startAt ? new Bound(t.startAt.position, t.startAt.inclusive) : null;
+      return __PRIVATE_newTarget(t.path, t.collectionGroup, e, t.filters, t.limit, r, n);
+    }
+  }
+  function __PRIVATE_queryWithAddedFilter(t, e) {
+    const r = t.filters.concat([e]);
+    return new __PRIVATE_QueryImpl(t.path, t.collectionGroup, t.explicitOrderBy.slice(), r, t.limit, t.limitType, t.startAt, t.endAt);
+  }
+  function __PRIVATE_queryEquals(t, e) {
+    return (function __PRIVATE_targetEquals(t2, e2) {
+      if (t2.limit !== e2.limit) return false;
+      if (t2.orderBy.length !== e2.orderBy.length) return false;
+      for (let r = 0; r < t2.orderBy.length; r++) if (!__PRIVATE_orderByEquals(t2.orderBy[r], e2.orderBy[r])) return false;
+      if (t2.filters.length !== e2.filters.length) return false;
+      for (let r = 0; r < t2.filters.length; r++) if (!__PRIVATE_filterEquals(t2.filters[r], e2.filters[r])) return false;
+      return t2.collectionGroup === e2.collectionGroup && !!t2.path.isEqual(e2.path) && !!__PRIVATE_boundEquals(t2.startAt, e2.startAt) && __PRIVATE_boundEquals(t2.endAt, e2.endAt);
+    })(__PRIVATE_queryToTarget(t), __PRIVATE_queryToTarget(e)) && t.limitType === e.limitType;
   }
   function toNumber(t, e) {
     return (function isSafeInteger(t2) {
@@ -9740,6 +12556,122 @@
       } : fail();
     })(t, e.precondition)), r;
   }
+  function __PRIVATE_toQueryTarget(t, e) {
+    const r = {
+      structuredQuery: {}
+    }, n = e.path;
+    let i;
+    null !== e.collectionGroup ? (i = n, r.structuredQuery.from = [{
+      collectionId: e.collectionGroup,
+      allDescendants: true
+    }]) : (i = n.popLast(), r.structuredQuery.from = [{
+      collectionId: n.lastSegment()
+    }]), r.parent = (function __PRIVATE_toQueryPath(t2, e2) {
+      return __PRIVATE_toResourceName(t2.databaseId, e2);
+    })(t, i);
+    const s = (function __PRIVATE_toFilters(t2) {
+      if (0 === t2.length) return;
+      return __PRIVATE_toFilter(CompositeFilter.create(
+        t2,
+        "and"
+        /* CompositeOperator.AND */
+      ));
+    })(e.filters);
+    s && (r.structuredQuery.where = s);
+    const o = (function __PRIVATE_toOrder(t2) {
+      if (0 === t2.length) return;
+      return t2.map(((t3) => (
+        // visible for testing
+        (function __PRIVATE_toPropertyOrder(t4) {
+          return {
+            field: __PRIVATE_toFieldPathReference(t4.field),
+            direction: __PRIVATE_toDirection(t4.dir)
+          };
+        })(t3)
+      )));
+    })(e.orderBy);
+    o && (r.structuredQuery.orderBy = o);
+    const a = (function __PRIVATE_toInt32Proto(t2, e2) {
+      return t2.useProto3Json || __PRIVATE_isNullOrUndefined(e2) ? e2 : {
+        value: e2
+      };
+    })(t, e.limit);
+    return null !== a && (r.structuredQuery.limit = a), e.startAt && (r.structuredQuery.startAt = (function __PRIVATE_toStartAtCursor(t2) {
+      return {
+        before: t2.inclusive,
+        values: t2.position
+      };
+    })(e.startAt)), e.endAt && (r.structuredQuery.endAt = (function __PRIVATE_toEndAtCursor(t2) {
+      return {
+        before: !t2.inclusive,
+        values: t2.position
+      };
+    })(e.endAt)), {
+      B: r,
+      parent: i
+    };
+  }
+  function __PRIVATE_toDirection(t) {
+    return L[t];
+  }
+  function __PRIVATE_toOperatorName(t) {
+    return M[t];
+  }
+  function __PRIVATE_toCompositeOperatorName(t) {
+    return x[t];
+  }
+  function __PRIVATE_toFieldPathReference(t) {
+    return {
+      fieldPath: t.canonicalString()
+    };
+  }
+  function __PRIVATE_toFilter(t) {
+    return t instanceof FieldFilter ? (function __PRIVATE_toUnaryOrFieldFilter(t2) {
+      if ("==" === t2.op) {
+        if (__PRIVATE_isNanValue(t2.value)) return {
+          unaryFilter: {
+            field: __PRIVATE_toFieldPathReference(t2.field),
+            op: "IS_NAN"
+          }
+        };
+        if (__PRIVATE_isNullValue(t2.value)) return {
+          unaryFilter: {
+            field: __PRIVATE_toFieldPathReference(t2.field),
+            op: "IS_NULL"
+          }
+        };
+      } else if ("!=" === t2.op) {
+        if (__PRIVATE_isNanValue(t2.value)) return {
+          unaryFilter: {
+            field: __PRIVATE_toFieldPathReference(t2.field),
+            op: "IS_NOT_NAN"
+          }
+        };
+        if (__PRIVATE_isNullValue(t2.value)) return {
+          unaryFilter: {
+            field: __PRIVATE_toFieldPathReference(t2.field),
+            op: "IS_NOT_NULL"
+          }
+        };
+      }
+      return {
+        fieldFilter: {
+          field: __PRIVATE_toFieldPathReference(t2.field),
+          op: __PRIVATE_toOperatorName(t2.op),
+          value: t2.value
+        }
+      };
+    })(t) : t instanceof CompositeFilter ? (function __PRIVATE_toCompositeFilter(t2) {
+      const e = t2.getFilters().map(((t3) => __PRIVATE_toFilter(t3)));
+      if (1 === e.length) return e[0];
+      return {
+        compositeFilter: {
+          op: __PRIVATE_toCompositeOperatorName(t2.op),
+          filters: e
+        }
+      };
+    })(t) : fail();
+  }
   function __PRIVATE_toDocumentMask(t) {
     const e = [];
     return t.fields.forEach(((t2) => e.push(t2.canonicalString()))), {
@@ -9776,6 +12708,69 @@
       __PRIVATE_hardAssert(!!e2), o.push(e2);
     })), o;
   }
+  async function __PRIVATE_invokeRunQueryRpc(t, e) {
+    const r = __PRIVATE_debugCast(t), { B: n, parent: i } = __PRIVATE_toQueryTarget(r.serializer, __PRIVATE_queryToTarget(e));
+    return (await r.g("RunQuery", r.serializer.databaseId, i, {
+      structuredQuery: n.structuredQuery
+    })).filter(((t2) => !!t2.document)).map(((t2) => (function __PRIVATE_fromDocument(t3, e2, r2) {
+      const n2 = fromName(t3, e2.name), i2 = __PRIVATE_fromVersion(e2.updateTime), s = e2.createTime ? __PRIVATE_fromVersion(e2.createTime) : SnapshotVersion.min(), o = new ObjectValue({
+        mapValue: {
+          fields: e2.fields
+        }
+      }), a = MutableDocument.newFoundDocument(n2, i2, s, o);
+      return r2 && a.setHasCommittedMutations(), r2 ? a.setHasCommittedMutations() : a;
+    })(r.serializer, t2.document, void 0)));
+  }
+  async function __PRIVATE_invokeRunAggregationQueryRpc(t, e, r) {
+    var n;
+    const i = __PRIVATE_debugCast(t), { request: s, X: o, parent: a } = (function __PRIVATE_toRunAggregationQueryRequest(t2, e2, r2, n2) {
+      const { B: i2, parent: s2 } = __PRIVATE_toQueryTarget(t2, e2), o2 = {}, a2 = [];
+      let u2 = 0;
+      return r2.forEach(((t3) => {
+        const e3 = n2 ? t3.alias : "aggregate_" + u2++;
+        o2[e3] = t3.alias, "count" === t3.aggregateType ? a2.push({
+          alias: e3,
+          count: {}
+        }) : "avg" === t3.aggregateType ? a2.push({
+          alias: e3,
+          avg: {
+            field: __PRIVATE_toFieldPathReference(t3.fieldPath)
+          }
+        }) : "sum" === t3.aggregateType && a2.push({
+          alias: e3,
+          sum: {
+            field: __PRIVATE_toFieldPathReference(t3.fieldPath)
+          }
+        });
+      })), {
+        request: {
+          structuredAggregationQuery: {
+            aggregations: a2,
+            structuredQuery: i2.structuredQuery
+          },
+          parent: i2.parent
+        },
+        X: o2,
+        parent: s2
+      };
+    })(i.serializer, (function __PRIVATE_queryToAggregateTarget(t2) {
+      const e2 = __PRIVATE_debugCast(t2);
+      return e2.O || // Do not include implicit order-bys for aggregate queries.
+      (e2.O = __PRIVATE__queryToTarget(e2, t2.explicitOrderBy)), e2.O;
+    })(e), r);
+    i.connection.R || delete s.parent;
+    const u = (await i.g(
+      "RunAggregationQuery",
+      i.serializer.databaseId,
+      a,
+      s,
+      /*expectedResponseCount=*/
+      1
+    )).filter(((t2) => !!t2.result));
+    __PRIVATE_hardAssert(1 === u.length);
+    const _ = null === (n = u[0].result) || void 0 === n ? void 0 : n.aggregateFields;
+    return Object.keys(_).reduce(((t2, e2) => (t2[o[e2]] = _[e2], t2)), {});
+  }
   function __PRIVATE_getDatastore(t) {
     if (t._terminated) throw new FirestoreError(w, "The client has already been terminated.");
     if (!k.has(t)) {
@@ -9790,6 +12785,15 @@
       k.set(t, n);
     }
     return k.get(t);
+  }
+  function initializeFirestore(t, e, r) {
+    r || (r = "(default)");
+    const n = _getProvider(t, "firestore/lite");
+    if (n.isInitialized(r)) throw new FirestoreError(w, "Firestore can only be initialized once per app.");
+    return n.initialize({
+      options: e,
+      instanceIdentifier: r
+    });
   }
   function getFirestore(e, r) {
     const n = "object" == typeof e ? e : getApp(), i = "string" == typeof e ? e : r || "(default)", s = _getProvider(n, "firestore/lite").getImmediate({
@@ -9819,6 +12823,41 @@
       t._authCredentials = new __PRIVATE_EmulatorAuthCredentialsProvider(new __PRIVATE_OAuthToken(e2, r2));
     }
   }
+  function terminate(t) {
+    return t = __PRIVATE_cast(t, Firestore), _removeServiceInstance(t.app, "firestore/lite"), t._delete();
+  }
+  function collection(t, e, ...r) {
+    if (t = getModularInstance(t), __PRIVATE_validateNonEmptyArgument("collection", "path", e), t instanceof Firestore) {
+      const n = ResourcePath.fromString(e, ...r);
+      return __PRIVATE_validateCollectionPath(n), new CollectionReference(
+        t,
+        /* converter= */
+        null,
+        n
+      );
+    }
+    {
+      if (!(t instanceof DocumentReference || t instanceof CollectionReference)) throw new FirestoreError(T, "Expected first argument to collection() to be a CollectionReference, a DocumentReference or FirebaseFirestore");
+      const n = t._path.child(ResourcePath.fromString(e, ...r));
+      return __PRIVATE_validateCollectionPath(n), new CollectionReference(
+        t.firestore,
+        /* converter= */
+        null,
+        n
+      );
+    }
+  }
+  function collectionGroup(t, e) {
+    if (t = __PRIVATE_cast(t, Firestore), __PRIVATE_validateNonEmptyArgument("collectionGroup", "collection id", e), e.indexOf("/") >= 0) throw new FirestoreError(T, `Invalid collection ID '${e}' passed to function collectionGroup(). Collection IDs must not contain '/'.`);
+    return new Query(
+      t,
+      /* converter= */
+      null,
+      (function __PRIVATE_newQueryForCollectionGroup(t2) {
+        return new __PRIVATE_QueryImpl(ResourcePath.emptyPath(), t2);
+      })(e)
+    );
+  }
   function doc(t, e, ...r) {
     if (t = getModularInstance(t), // We allow omission of 'pathString' but explicitly prohibit passing in both
     // 'undefined' and 'null'.
@@ -9836,6 +12875,15 @@
       const n = t._path.child(ResourcePath.fromString(e, ...r));
       return __PRIVATE_validateDocumentPath(n), new DocumentReference(t.firestore, t instanceof CollectionReference ? t.converter : null, new DocumentKey(n));
     }
+  }
+  function refEqual(t, e) {
+    return t = getModularInstance(t), e = getModularInstance(e), (t instanceof DocumentReference || t instanceof CollectionReference) && (e instanceof DocumentReference || e instanceof CollectionReference) && (t.firestore === e.firestore && t.path === e.path && t.converter === e.converter);
+  }
+  function queryEqual(t, e) {
+    return t = getModularInstance(t), e = getModularInstance(e), t instanceof Query && e instanceof Query && (t.firestore === e.firestore && __PRIVATE_queryEquals(t._query, e._query) && t.converter === e.converter);
+  }
+  function documentId() {
+    return new FieldPath("__name__");
   }
   function __PRIVATE_isWrite(t) {
     switch (t) {
@@ -9872,6 +12920,55 @@
       u = new FieldMask(t2), _ = o.fieldTransforms.filter(((t3) => u.covers(t3.field)));
     } else u = null, _ = o.fieldTransforms;
     return new ParsedSetData(new ObjectValue(a), u, _);
+  }
+  function __PRIVATE_createSentinelChildContext(t, e, r) {
+    return new __PRIVATE_ParseContextImpl({
+      et: 3,
+      lt: e.settings.lt,
+      methodName: t._methodName,
+      it: r
+    }, e.databaseId, e.serializer, e.ignoreUndefinedProperties);
+  }
+  function __PRIVATE_parseUpdateData(t, e, r, n) {
+    const i = t.ht(1, e, r);
+    __PRIVATE_validatePlainObject("Data must be an object, but it was:", i, n);
+    const s = [], o = ObjectValue.empty();
+    forEach(n, ((t2, n2) => {
+      const a2 = __PRIVATE_fieldPathFromDotSeparatedString(e, t2, r);
+      n2 = getModularInstance(n2);
+      const u = i.ot(a2);
+      if (n2 instanceof __PRIVATE_DeleteFieldValueImpl)
+        s.push(a2);
+      else {
+        const t3 = __PRIVATE_parseData(n2, u);
+        null != t3 && (s.push(a2), o.set(a2, t3));
+      }
+    }));
+    const a = new FieldMask(s);
+    return new ParsedUpdateData(o, a, i.fieldTransforms);
+  }
+  function __PRIVATE_parseUpdateVarargs(t, e, r, n, i, s) {
+    const o = t.ht(1, e, r), a = [__PRIVATE_fieldPathFromArgument$1(e, n, r)], u = [i];
+    if (s.length % 2 != 0) throw new FirestoreError(T, `Function ${e}() needs to be called with an even number of arguments that alternate between field names and values.`);
+    for (let t2 = 0; t2 < s.length; t2 += 2) a.push(__PRIVATE_fieldPathFromArgument$1(e, s[t2])), u.push(s[t2 + 1]);
+    const _ = [], c = ObjectValue.empty();
+    for (let t2 = a.length - 1; t2 >= 0; --t2) if (!__PRIVATE_fieldMaskContains(_, a[t2])) {
+      const e2 = a[t2];
+      let r2 = u[t2];
+      r2 = getModularInstance(r2);
+      const n2 = o.ot(e2);
+      if (r2 instanceof __PRIVATE_DeleteFieldValueImpl)
+        _.push(e2);
+      else {
+        const t3 = __PRIVATE_parseData(r2, n2);
+        null != t3 && (_.push(e2), c.set(e2, t3));
+      }
+    }
+    const h = new FieldMask(_);
+    return new ParsedUpdateData(c, h, o.fieldTransforms);
+  }
+  function __PRIVATE_parseQueryValue(t, e, r, n = false) {
+    return __PRIVATE_parseData(r, t.ht(n ? 4 : 3, e));
   }
   function __PRIVATE_parseData(t, e) {
     if (__PRIVATE_looksLikeJsonObject(
@@ -10034,8 +13131,172 @@
   function __PRIVATE_fieldMaskContains(t, e) {
     return t.some(((t2) => t2.isEqual(e)));
   }
+  function snapshotEqual(t, e) {
+    return t = getModularInstance(t), e = getModularInstance(e), t instanceof DocumentSnapshot && e instanceof DocumentSnapshot ? t._firestore === e._firestore && t._key.isEqual(e._key) && (null === t._document ? null === e._document : t._document.isEqual(e._document)) && t._converter === e._converter : t instanceof QuerySnapshot && e instanceof QuerySnapshot && (queryEqual(t.query, e.query) && __PRIVATE_arrayEquals(t.docs, e.docs, snapshotEqual));
+  }
   function __PRIVATE_fieldPathFromArgument(t, e) {
     return "string" == typeof e ? __PRIVATE_fieldPathFromDotSeparatedString(t, e) : e instanceof FieldPath ? e._internalPath : e._delegate._internalPath;
+  }
+  function query(t, e, ...r) {
+    let n = [];
+    e instanceof AppliableConstraint && n.push(e), n = n.concat(r), (function __PRIVATE_validateQueryConstraintArray(t2) {
+      const e2 = t2.filter(((t3) => t3 instanceof QueryCompositeFilterConstraint)).length, r2 = t2.filter(((t3) => t3 instanceof QueryFieldFilterConstraint)).length;
+      if (e2 > 1 || e2 > 0 && r2 > 0) throw new FirestoreError(T, "InvalidQuery. When using composite filters, you cannot use more than one filter at the top level. Consider nesting the multiple filters within an `and(...)` statement. For example: change `query(query, where(...), or(...))` to `query(query, and(where(...), or(...)))`.");
+    })(n);
+    for (const e2 of n) t = e2._apply(t);
+    return t;
+  }
+  function where(t, e, r) {
+    const n = e, i = __PRIVATE_fieldPathFromArgument("where", t);
+    return QueryFieldFilterConstraint._create(i, n, r);
+  }
+  function or(...t) {
+    return t.forEach(((t2) => __PRIVATE_validateQueryFilterConstraint("or", t2))), QueryCompositeFilterConstraint._create("or", t);
+  }
+  function and(...t) {
+    return t.forEach(((t2) => __PRIVATE_validateQueryFilterConstraint("and", t2))), QueryCompositeFilterConstraint._create("and", t);
+  }
+  function orderBy(t, e = "asc") {
+    const r = e, n = __PRIVATE_fieldPathFromArgument("orderBy", t);
+    return QueryOrderByConstraint._create(n, r);
+  }
+  function limit(t) {
+    return __PRIVATE_validatePositiveNumber("limit", t), QueryLimitConstraint._create(
+      "limit",
+      t,
+      "F"
+      /* LimitType.First */
+    );
+  }
+  function limitToLast(t) {
+    return __PRIVATE_validatePositiveNumber("limitToLast", t), QueryLimitConstraint._create(
+      "limitToLast",
+      t,
+      "L"
+      /* LimitType.Last */
+    );
+  }
+  function startAt(...t) {
+    return QueryStartAtConstraint._create(
+      "startAt",
+      t,
+      /*inclusive=*/
+      true
+    );
+  }
+  function startAfter(...t) {
+    return QueryStartAtConstraint._create(
+      "startAfter",
+      t,
+      /*inclusive=*/
+      false
+    );
+  }
+  function endBefore(...t) {
+    return QueryEndAtConstraint._create(
+      "endBefore",
+      t,
+      /*inclusive=*/
+      false
+    );
+  }
+  function endAt(...t) {
+    return QueryEndAtConstraint._create(
+      "endAt",
+      t,
+      /*inclusive=*/
+      true
+    );
+  }
+  function __PRIVATE_newQueryBoundFromDocOrFields(t, e, r, n) {
+    if (r[0] = getModularInstance(r[0]), r[0] instanceof DocumentSnapshot) return (function __PRIVATE_newQueryBoundFromDocument(t2, e2, r2, n2, i) {
+      if (!n2) throw new FirestoreError(P, `Can't use a DocumentSnapshot that doesn't exist for ${r2}().`);
+      const s = [];
+      for (const r3 of __PRIVATE_queryNormalizedOrderBy(t2)) if (r3.field.isKeyField()) s.push(__PRIVATE_refValue(e2, n2.key));
+      else {
+        const t3 = n2.data.field(r3.field);
+        if (__PRIVATE_isServerTimestamp(t3)) throw new FirestoreError(T, 'Invalid query. You are trying to start or end a query using a document for which the field "' + r3.field + '" is an uncommitted server timestamp. (Since the value of this field is unknown, you cannot start/end a query with it.)');
+        if (null === t3) {
+          const t4 = r3.field.canonicalString();
+          throw new FirestoreError(T, `Invalid query. You are trying to start or end a query using a document for which the field '${t4}' (used as the orderBy) does not exist.`);
+        }
+        s.push(t3);
+      }
+      return new Bound(s, i);
+    })(t._query, t.firestore._databaseId, e, r[0]._document, n);
+    {
+      const i = __PRIVATE_newUserDataReader(t.firestore);
+      return (function __PRIVATE_newQueryBoundFromFields(t2, e2, r2, n2, i2, s) {
+        const o = t2.explicitOrderBy;
+        if (i2.length > o.length) throw new FirestoreError(T, `Too many arguments provided to ${n2}(). The number of arguments must be less than or equal to the number of orderBy() clauses`);
+        const a = [];
+        for (let s2 = 0; s2 < i2.length; s2++) {
+          const u = i2[s2];
+          if (o[s2].field.isKeyField()) {
+            if ("string" != typeof u) throw new FirestoreError(T, `Invalid query. Expected a string for document ID in ${n2}(), but got a ${typeof u}`);
+            if (!__PRIVATE_isCollectionGroupQuery(t2) && -1 !== u.indexOf("/")) throw new FirestoreError(T, `Invalid query. When querying a collection and ordering by documentId(), the value passed to ${n2}() must be a plain document ID, but '${u}' contains a slash.`);
+            const r3 = t2.path.child(ResourcePath.fromString(u));
+            if (!DocumentKey.isDocumentKey(r3)) throw new FirestoreError(T, `Invalid query. When querying a collection group and ordering by documentId(), the value passed to ${n2}() must result in a valid document path, but '${r3}' is not because it contains an odd number of segments.`);
+            const i3 = new DocumentKey(r3);
+            a.push(__PRIVATE_refValue(e2, i3));
+          } else {
+            const t3 = __PRIVATE_parseQueryValue(r2, n2, u);
+            a.push(t3);
+          }
+        }
+        return new Bound(a, s);
+      })(t._query, t.firestore._databaseId, i, e, r, n);
+    }
+  }
+  function __PRIVATE_parseDocumentIdValue(t, e, r) {
+    if ("string" == typeof (r = getModularInstance(r))) {
+      if ("" === r) throw new FirestoreError(T, "Invalid query. When querying with documentId(), you must provide a valid document ID, but it was an empty string.");
+      if (!__PRIVATE_isCollectionGroupQuery(e) && -1 !== r.indexOf("/")) throw new FirestoreError(T, `Invalid query. When querying a collection by documentId(), you must provide a plain document ID, but '${r}' contains a '/' character.`);
+      const n = e.path.child(ResourcePath.fromString(r));
+      if (!DocumentKey.isDocumentKey(n)) throw new FirestoreError(T, `Invalid query. When querying a collection group by documentId(), the value provided must result in a valid document path, but '${n}' is not because it has an odd number of segments (${n.length}).`);
+      return __PRIVATE_refValue(t, new DocumentKey(n));
+    }
+    if (r instanceof DocumentReference) return __PRIVATE_refValue(t, r._key);
+    throw new FirestoreError(T, `Invalid query. When querying with documentId(), you must provide a valid string or a DocumentReference, but it was: ${__PRIVATE_valueDescription(r)}.`);
+  }
+  function __PRIVATE_validateDisjunctiveFilterElements(t, e) {
+    if (!Array.isArray(t) || 0 === t.length) throw new FirestoreError(T, `Invalid Query. A non-empty array is required for '${e.toString()}' filters.`);
+  }
+  function __PRIVATE_validateNewFieldFilter(t, e) {
+    const r = (function __PRIVATE_findOpInsideFilters(t2, e2) {
+      for (const r2 of t2) for (const t3 of r2.getFlattenedFilters()) if (e2.indexOf(t3.op) >= 0) return t3.op;
+      return null;
+    })(t.filters, (function __PRIVATE_conflictingOps(t2) {
+      switch (t2) {
+        case "!=":
+          return [
+            "!=",
+            "not-in"
+            /* Operator.NOT_IN */
+          ];
+        case "array-contains-any":
+        case "in":
+          return [
+            "not-in"
+            /* Operator.NOT_IN */
+          ];
+        case "not-in":
+          return [
+            "array-contains-any",
+            "in",
+            "not-in",
+            "!="
+            /* Operator.NOT_EQUAL */
+          ];
+        default:
+          return [];
+      }
+    })(e.op));
+    if (null !== r)
+      throw r === e.op ? new FirestoreError(T, `Invalid query. You cannot use more than one '${e.op.toString()}' filter.`) : new FirestoreError(T, `Invalid query. You cannot use '${e.op.toString()}' filters with '${r.toString()}' filters.`);
+  }
+  function __PRIVATE_validateQueryFilterConstraint(t, e) {
+    if (!(e instanceof QueryFieldFilterConstraint || e instanceof QueryCompositeFilterConstraint)) throw new FirestoreError(T, `Function ${t}() requires AppliableConstraints created with a call to 'where(...)', 'or(...)', or 'and(...)'.`);
   }
   function __PRIVATE_applyFirestoreDataConverter(t, e, r) {
     let n;
@@ -10049,11 +13310,105 @@
       return new DocumentSnapshot(t.firestore, r, t._key, n.isFoundDocument() ? n : null, t.converter);
     }));
   }
+  function getDocs(t) {
+    (function __PRIVATE_validateHasExplicitOrderByForLimitToLast(t2) {
+      if ("L" === t2.limitType && 0 === t2.explicitOrderBy.length) throw new FirestoreError(v, "limitToLast() queries require specifying at least one orderBy() clause");
+    })((t = __PRIVATE_cast(t, Query))._query);
+    const e = __PRIVATE_getDatastore(t.firestore), r = new __PRIVATE_LiteUserDataWriter(t.firestore);
+    return __PRIVATE_invokeRunQueryRpc(e, t._query).then(((e2) => {
+      const n = e2.map(((e3) => new QueryDocumentSnapshot(t.firestore, r, e3.key, e3, t.converter)));
+      return "L" === t._query.limitType && // Limit to last queries reverse the orderBy constraint that was
+      // specified by the user. As such, we need to reverse the order of the
+      // results to return the documents in the expected order.
+      n.reverse(), new QuerySnapshot(t, n);
+    }));
+  }
   function setDoc(t, e, r) {
     const n = __PRIVATE_applyFirestoreDataConverter((t = __PRIVATE_cast(t, DocumentReference)).converter, e, r), i = __PRIVATE_parseSetData(__PRIVATE_newUserDataReader(t.firestore), "setDoc", t._key, n, null !== t.converter, r);
     return __PRIVATE_invokeCommitRpc(__PRIVATE_getDatastore(t.firestore), [i.toMutation(t._key, Precondition.none())]);
   }
-  var User, d, f, E, m, A, T, R, P, V, p, y, w, g, F, v, D, b, FirestoreError, __PRIVATE_OAuthToken, __PRIVATE_EmptyAuthCredentialsProvider, __PRIVATE_EmulatorAuthCredentialsProvider, __PRIVATE_LiteAuthCredentialsProvider, __PRIVATE_FirstPartyToken, __PRIVATE_FirstPartyAuthCredentialsProvider, AppCheckToken, __PRIVATE_LiteAppCheckTokenProvider, DatabaseInfo, DatabaseId, BasePath, ResourcePath, S, FieldPath$1, DocumentKey, N, O, q, B, __PRIVATE_FetchConnection, __PRIVATE_AutoId, __PRIVATE_Base64DecodeError, ByteString, $, Timestamp, SnapshotVersion, SortedMap, SortedMapIterator, LLRBNode, SortedSet, SortedSetIterator, FieldMask, ObjectValue, MutableDocument, __PRIVATE_QueryImpl, TransformOperation, __PRIVATE_ServerTimestampTransform, __PRIVATE_ArrayUnionTransformOperation, __PRIVATE_ArrayRemoveTransformOperation, __PRIVATE_NumericIncrementTransformOperation, Precondition, Mutation, __PRIVATE_SetMutation, __PRIVATE_PatchMutation, __PRIVATE_DeleteMutation, __PRIVATE_VerifyMutation, JsonProtoSerializer, __PRIVATE_DatastoreImpl, k, FirestoreSettingsImpl, Firestore, Query, DocumentReference, CollectionReference, Bytes, FieldPath, FieldValue, GeoPoint, U, ParsedSetData, __PRIVATE_ParseContextImpl, __PRIVATE_UserDataReader, j, DocumentSnapshot, QueryDocumentSnapshot, __PRIVATE_LiteUserDataWriter;
+  function updateDoc(t, e, r, ...n) {
+    const i = __PRIVATE_newUserDataReader((t = __PRIVATE_cast(t, DocumentReference)).firestore);
+    let s;
+    s = "string" == typeof (e = getModularInstance(e)) || e instanceof FieldPath ? __PRIVATE_parseUpdateVarargs(i, "updateDoc", t._key, e, r, n) : __PRIVATE_parseUpdateData(i, "updateDoc", t._key, e);
+    return __PRIVATE_invokeCommitRpc(__PRIVATE_getDatastore(t.firestore), [s.toMutation(t._key, Precondition.exists(true))]);
+  }
+  function deleteDoc(t) {
+    return __PRIVATE_invokeCommitRpc(__PRIVATE_getDatastore((t = __PRIVATE_cast(t, DocumentReference)).firestore), [new __PRIVATE_DeleteMutation(t._key, Precondition.none())]);
+  }
+  function addDoc(t, e) {
+    const r = doc(t = __PRIVATE_cast(t, CollectionReference)), n = __PRIVATE_applyFirestoreDataConverter(t.converter, e), i = __PRIVATE_parseSetData(__PRIVATE_newUserDataReader(t.firestore), "addDoc", r._key, n, null !== r.converter, {});
+    return __PRIVATE_invokeCommitRpc(__PRIVATE_getDatastore(t.firestore), [i.toMutation(r._key, Precondition.exists(false))]).then((() => r));
+  }
+  function getCount(t) {
+    return getAggregate(t, {
+      count: count()
+    });
+  }
+  function getAggregate(t, e) {
+    const r = __PRIVATE_cast(t.firestore, Firestore), n = __PRIVATE_getDatastore(r), i = (function __PRIVATE_mapToArray(t2, e2) {
+      const r2 = [];
+      for (const n2 in t2) Object.prototype.hasOwnProperty.call(t2, n2) && r2.push(e2(t2[n2], n2, t2));
+      return r2;
+    })(e, ((t2, e2) => new __PRIVATE_AggregateImpl(e2, t2.aggregateType, t2._internalFieldPath)));
+    return __PRIVATE_invokeRunAggregationQueryRpc(n, t._query, i).then(((e2) => (function __PRIVATE_convertToAggregateQuerySnapshot(t2, e3, r2) {
+      const n2 = new __PRIVATE_LiteUserDataWriter(t2);
+      return new AggregateQuerySnapshot(e3, n2, r2);
+    })(r, t, e2)));
+  }
+  function sum(t) {
+    return new AggregateField("sum", __PRIVATE_fieldPathFromArgument$1("sum", t));
+  }
+  function average(t) {
+    return new AggregateField("avg", __PRIVATE_fieldPathFromArgument$1("average", t));
+  }
+  function count() {
+    return new AggregateField("count");
+  }
+  function aggregateFieldEqual(t, e) {
+    var r, n;
+    return t instanceof AggregateField && e instanceof AggregateField && t.aggregateType === e.aggregateType && (null === (r = t._internalFieldPath) || void 0 === r ? void 0 : r.canonicalString()) === (null === (n = e._internalFieldPath) || void 0 === n ? void 0 : n.canonicalString());
+  }
+  function aggregateQuerySnapshotEqual(t, e) {
+    return queryEqual(t.query, e.query) && deepEqual(t.data(), e.data());
+  }
+  function deleteField() {
+    return new __PRIVATE_DeleteFieldValueImpl("deleteField");
+  }
+  function serverTimestamp() {
+    return new __PRIVATE_ServerTimestampFieldValueImpl("serverTimestamp");
+  }
+  function arrayUnion(...t) {
+    return new __PRIVATE_ArrayUnionFieldValueImpl("arrayUnion", t);
+  }
+  function arrayRemove(...t) {
+    return new __PRIVATE_ArrayRemoveFieldValueImpl("arrayRemove", t);
+  }
+  function increment(t) {
+    return new __PRIVATE_NumericIncrementFieldValueImpl("increment", t);
+  }
+  function __PRIVATE_validateReference(t, e) {
+    if ((t = getModularInstance(t)).firestore !== e) throw new FirestoreError(T, "Provided document reference is from a different Firestore instance.");
+    return t;
+  }
+  function writeBatch(t) {
+    const e = __PRIVATE_getDatastore(t = __PRIVATE_cast(t, Firestore));
+    return new WriteBatch(t, ((t2) => __PRIVATE_invokeCommitRpc(e, t2)));
+  }
+  function getDocument() {
+    return "undefined" != typeof document ? document : null;
+  }
+  function runTransaction(t, e, r) {
+    const n = __PRIVATE_getDatastore(t = __PRIVATE_cast(t, Firestore)), i = Object.assign(Object.assign({}, z), r);
+    !(function __PRIVATE_validateTransactionOptions(t2) {
+      if (t2.maxAttempts < 1) throw new FirestoreError(T, "Max attempts must be at least 1");
+    })(i);
+    const s = new __PRIVATE_Deferred();
+    return new __PRIVATE_TransactionRunner((function __PRIVATE_newAsyncQueue() {
+      return new __PRIVATE_AsyncQueueImpl();
+    })(), n, i, ((r2) => e(new Transaction(t, r2))), s).Tt(), s.promise;
+  }
+  var User, d, f, E, m, A, T, R, P, I, V, p, y, w, g, F, v, D, b, C, FirestoreError, __PRIVATE_Deferred, __PRIVATE_OAuthToken, __PRIVATE_EmptyAuthCredentialsProvider, __PRIVATE_EmulatorAuthCredentialsProvider, __PRIVATE_LiteAuthCredentialsProvider, __PRIVATE_FirstPartyToken, __PRIVATE_FirstPartyAuthCredentialsProvider, AppCheckToken, __PRIVATE_LiteAppCheckTokenProvider, DatabaseInfo, DatabaseId, BasePath, ResourcePath, S, FieldPath$1, DocumentKey, N, O, q, B, __PRIVATE_FetchConnection, __PRIVATE_AggregateImpl, __PRIVATE_AutoId, __PRIVATE_Base64DecodeError, ByteString, $, Timestamp, Q, Bound, Filter, FieldFilter, CompositeFilter, __PRIVATE_KeyFieldFilter, __PRIVATE_KeyFieldInFilter, __PRIVATE_KeyFieldNotInFilter, __PRIVATE_ArrayContainsFilter, __PRIVATE_InFilter, __PRIVATE_NotInFilter, __PRIVATE_ArrayContainsAnyFilter, OrderBy, SnapshotVersion, SortedMap, SortedMapIterator, LLRBNode, SortedSet, SortedSetIterator, FieldMask, ObjectValue, MutableDocument, __PRIVATE_TargetImpl, __PRIVATE_QueryImpl, TransformOperation, __PRIVATE_ServerTimestampTransform, __PRIVATE_ArrayUnionTransformOperation, __PRIVATE_ArrayRemoveTransformOperation, __PRIVATE_NumericIncrementTransformOperation, FieldTransform, Precondition, Mutation, __PRIVATE_SetMutation, __PRIVATE_PatchMutation, __PRIVATE_DeleteMutation, __PRIVATE_VerifyMutation, L, M, x, JsonProtoSerializer, __PRIVATE_ExponentialBackoff, __PRIVATE_DatastoreImpl, k, FirestoreSettingsImpl, Firestore, AggregateField, AggregateQuerySnapshot, Query, DocumentReference, CollectionReference, Bytes, FieldPath, FieldValue, GeoPoint, U, ParsedSetData, ParsedUpdateData, __PRIVATE_ParseContextImpl, __PRIVATE_UserDataReader, __PRIVATE_DeleteFieldValueImpl, __PRIVATE_ServerTimestampFieldValueImpl, __PRIVATE_ArrayUnionFieldValueImpl, __PRIVATE_ArrayRemoveFieldValueImpl, __PRIVATE_NumericIncrementFieldValueImpl, j, DocumentSnapshot, QueryDocumentSnapshot, QuerySnapshot, AppliableConstraint, QueryConstraint, QueryFieldFilterConstraint, QueryCompositeFilterConstraint, QueryOrderByConstraint, QueryLimitConstraint, QueryStartAtConstraint, QueryEndAtConstraint, __PRIVATE_LiteUserDataWriter, WriteBatch, Transaction$1, z, __PRIVATE_TransactionRunner, DelayedOperation, __PRIVATE_AsyncQueueImpl, Transaction;
   var init_index_browser_esm2017 = __esm({
     "node_modules/@firebase/firestore/dist/lite/index.browser.esm2017.js"() {
       init_index_esm20174();
@@ -10089,6 +13444,7 @@
       T = "invalid-argument";
       R = "deadline-exceeded";
       P = "not-found";
+      I = "already-exists";
       V = "permission-denied";
       p = "unauthenticated";
       y = "resource-exhausted";
@@ -10098,6 +13454,7 @@
       v = "unimplemented";
       D = "internal";
       b = "unavailable";
+      C = "data-loss";
       FirestoreError = class extends FirebaseError {
         /** @hideconstructor */
         constructor(t, e) {
@@ -10105,6 +13462,13 @@
           // class and so inheritance does not work correctly. We could alternatively
           // do the same "back-door inheritance" trick that FirebaseError does.
           this.toString = () => `${this.name}: [code=${this.code}]: ${this.message}`;
+        }
+      };
+      __PRIVATE_Deferred = class {
+        constructor() {
+          this.promise = new Promise(((t, e) => {
+            this.resolve = t, this.reject = e;
+          }));
         }
       };
       __PRIVATE_OAuthToken = class {
@@ -10560,6 +13924,11 @@
           return o.json();
         }
       };
+      __PRIVATE_AggregateImpl = class {
+        constructor(t, e, r) {
+          this.alias = t, this.aggregateType = e, this.fieldPath = r;
+        }
+      };
       __PRIVATE_AutoId = class {
         static newId() {
           const t = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", e = Math.floor(256 / t.length) * t.length;
@@ -10739,6 +14108,165 @@
         valueOf() {
           const t = this.seconds - -62135596800;
           return String(t).padStart(12, "0") + "." + String(this.nanoseconds).padStart(9, "0");
+        }
+      };
+      Q = {
+        fields: {
+          __type__: {
+            stringValue: "__max__"
+          }
+        }
+      };
+      Bound = class {
+        constructor(t, e) {
+          this.position = t, this.inclusive = e;
+        }
+      };
+      Filter = class {
+      };
+      FieldFilter = class _FieldFilter extends Filter {
+        constructor(t, e, r) {
+          super(), this.field = t, this.op = e, this.value = r;
+        }
+        /**
+         * Creates a filter based on the provided arguments.
+         */
+        static create(t, e, r) {
+          return t.isKeyField() ? "in" === e || "not-in" === e ? this.createKeyFieldInFilter(t, e, r) : new __PRIVATE_KeyFieldFilter(t, e, r) : "array-contains" === e ? new __PRIVATE_ArrayContainsFilter(t, r) : "in" === e ? new __PRIVATE_InFilter(t, r) : "not-in" === e ? new __PRIVATE_NotInFilter(t, r) : "array-contains-any" === e ? new __PRIVATE_ArrayContainsAnyFilter(t, r) : new _FieldFilter(t, e, r);
+        }
+        static createKeyFieldInFilter(t, e, r) {
+          return "in" === e ? new __PRIVATE_KeyFieldInFilter(t, r) : new __PRIVATE_KeyFieldNotInFilter(t, r);
+        }
+        matches(t) {
+          const e = t.data.field(this.field);
+          return "!=" === this.op ? null !== e && this.matchesComparison(__PRIVATE_valueCompare(e, this.value)) : null !== e && __PRIVATE_typeOrder(this.value) === __PRIVATE_typeOrder(e) && this.matchesComparison(__PRIVATE_valueCompare(e, this.value));
+        }
+        matchesComparison(t) {
+          switch (this.op) {
+            case "<":
+              return t < 0;
+            case "<=":
+              return t <= 0;
+            case "==":
+              return 0 === t;
+            case "!=":
+              return 0 !== t;
+            case ">":
+              return t > 0;
+            case ">=":
+              return t >= 0;
+            default:
+              return fail();
+          }
+        }
+        isInequality() {
+          return [
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "!=",
+            "not-in"
+            /* Operator.NOT_IN */
+          ].indexOf(this.op) >= 0;
+        }
+        getFlattenedFilters() {
+          return [this];
+        }
+        getFilters() {
+          return [this];
+        }
+      };
+      CompositeFilter = class _CompositeFilter extends Filter {
+        constructor(t, e) {
+          super(), this.filters = t, this.op = e, this.D = null;
+        }
+        /**
+         * Creates a filter based on the provided arguments.
+         */
+        static create(t, e) {
+          return new _CompositeFilter(t, e);
+        }
+        matches(t) {
+          return (function __PRIVATE_compositeFilterIsConjunction(t2) {
+            return "and" === t2.op;
+          })(this) ? void 0 === this.filters.find(((e) => !e.matches(t))) : void 0 !== this.filters.find(((e) => e.matches(t)));
+        }
+        getFlattenedFilters() {
+          return null !== this.D || (this.D = this.filters.reduce(((t, e) => t.concat(e.getFlattenedFilters())), [])), this.D;
+        }
+        // Returns a mutable copy of `this.filters`
+        getFilters() {
+          return Object.assign([], this.filters);
+        }
+      };
+      __PRIVATE_KeyFieldFilter = class extends FieldFilter {
+        constructor(t, e, r) {
+          super(t, e, r), this.key = DocumentKey.fromName(r.referenceValue);
+        }
+        matches(t) {
+          const e = DocumentKey.comparator(t.key, this.key);
+          return this.matchesComparison(e);
+        }
+      };
+      __PRIVATE_KeyFieldInFilter = class extends FieldFilter {
+        constructor(t, e) {
+          super(t, "in", e), this.keys = __PRIVATE_extractDocumentKeysFromArrayValue("in", e);
+        }
+        matches(t) {
+          return this.keys.some(((e) => e.isEqual(t.key)));
+        }
+      };
+      __PRIVATE_KeyFieldNotInFilter = class extends FieldFilter {
+        constructor(t, e) {
+          super(t, "not-in", e), this.keys = __PRIVATE_extractDocumentKeysFromArrayValue("not-in", e);
+        }
+        matches(t) {
+          return !this.keys.some(((e) => e.isEqual(t.key)));
+        }
+      };
+      __PRIVATE_ArrayContainsFilter = class extends FieldFilter {
+        constructor(t, e) {
+          super(t, "array-contains", e);
+        }
+        matches(t) {
+          const e = t.data.field(this.field);
+          return isArray(e) && __PRIVATE_arrayValueContains(e.arrayValue, this.value);
+        }
+      };
+      __PRIVATE_InFilter = class extends FieldFilter {
+        constructor(t, e) {
+          super(t, "in", e);
+        }
+        matches(t) {
+          const e = t.data.field(this.field);
+          return null !== e && __PRIVATE_arrayValueContains(this.value.arrayValue, e);
+        }
+      };
+      __PRIVATE_NotInFilter = class extends FieldFilter {
+        constructor(t, e) {
+          super(t, "not-in", e);
+        }
+        matches(t) {
+          if (__PRIVATE_arrayValueContains(this.value.arrayValue, {
+            nullValue: "NULL_VALUE"
+          })) return false;
+          const e = t.data.field(this.field);
+          return null !== e && !__PRIVATE_arrayValueContains(this.value.arrayValue, e);
+        }
+      };
+      __PRIVATE_ArrayContainsAnyFilter = class extends FieldFilter {
+        constructor(t, e) {
+          super(t, "array-contains-any", e);
+        }
+        matches(t) {
+          const e = t.data.field(this.field);
+          return !(!isArray(e) || !e.arrayValue.values) && e.arrayValue.values.some(((t2) => __PRIVATE_arrayValueContains(this.value.arrayValue, t2)));
+        }
+      };
+      OrderBy = class {
+        constructor(t, e = "asc") {
+          this.field = t, this.dir = e;
         }
       };
       SnapshotVersion = class _SnapshotVersion {
@@ -11429,6 +14957,11 @@
           return `Document(${this.key}, ${this.version}, ${JSON.stringify(this.data.value)}, {createTime: ${this.createTime}}), {documentType: ${this.documentType}}), {documentState: ${this.documentState}})`;
         }
       };
+      __PRIVATE_TargetImpl = class {
+        constructor(t, e = null, r = [], n = [], i = null, s = null, o = null) {
+          this.path = t, this.collectionGroup = e, this.orderBy = r, this.filters = n, this.limit = i, this.startAt = s, this.endAt = o, this.C = null;
+        }
+      };
       __PRIVATE_QueryImpl = class {
         /**
          * Initializes a Query with a path and optional additional query constraints.
@@ -11464,6 +14997,11 @@
       __PRIVATE_NumericIncrementTransformOperation = class extends TransformOperation {
         constructor(t, e) {
           super(), this.serializer = t, this.q = e;
+        }
+      };
+      FieldTransform = class {
+        constructor(t, e) {
+          this.field = t, this.transform = e;
         }
       };
       Precondition = class _Precondition {
@@ -11524,9 +15062,83 @@
           return null;
         }
       };
+      L = /* @__PURE__ */ (() => {
+        const t = {
+          asc: "ASCENDING",
+          desc: "DESCENDING"
+        };
+        return t;
+      })();
+      M = /* @__PURE__ */ (() => {
+        const t = {
+          "<": "LESS_THAN",
+          "<=": "LESS_THAN_OR_EQUAL",
+          ">": "GREATER_THAN",
+          ">=": "GREATER_THAN_OR_EQUAL",
+          "==": "EQUAL",
+          "!=": "NOT_EQUAL",
+          "array-contains": "ARRAY_CONTAINS",
+          in: "IN",
+          "not-in": "NOT_IN",
+          "array-contains-any": "ARRAY_CONTAINS_ANY"
+        };
+        return t;
+      })();
+      x = /* @__PURE__ */ (() => {
+        const t = {
+          and: "AND",
+          or: "OR"
+        };
+        return t;
+      })();
       JsonProtoSerializer = class {
         constructor(t, e) {
           this.databaseId = t, this.useProto3Json = e;
+        }
+      };
+      __PRIVATE_ExponentialBackoff = class {
+        constructor(t, e, r = 1e3, n = 1.5, i = 6e4) {
+          this.$ = t, this.timerId = e, this.L = r, this.M = n, this.k = i, this.U = 0, this.j = null, /** The last backoff attempt, as epoch milliseconds. */
+          this.W = Date.now(), this.reset();
+        }
+        /**
+         * Resets the backoff delay.
+         *
+         * The very next backoffAndWait() will have no delay. If it is called again
+         * (i.e. due to an error), initialDelayMs (plus jitter) will be used, and
+         * subsequent ones will increase according to the backoffFactor.
+         */
+        reset() {
+          this.U = 0;
+        }
+        /**
+         * Resets the backoff delay to the maximum delay (e.g. for use after a
+         * RESOURCE_EXHAUSTED error).
+         */
+        K() {
+          this.U = this.k;
+        }
+        /**
+         * Returns a promise that resolves after currentDelayMs, and increases the
+         * delay for any subsequent attempts. If there was a pending backoff operation
+         * already, it will be canceled.
+         */
+        G(t) {
+          this.cancel();
+          const e = Math.floor(this.U + this.H()), r = Math.max(0, Date.now() - this.W), n = Math.max(0, e - r);
+          n > 0 && __PRIVATE_logDebug("ExponentialBackoff", `Backing off for ${n} ms (base delay: ${this.U} ms, delay with jitter: ${e} ms, last attempt: ${r} ms ago)`), this.j = this.$.enqueueAfterDelay(this.timerId, n, (() => (this.W = Date.now(), t()))), // Apply backoff factor to determine next delay and ensure it is within
+          // bounds.
+          this.U *= this.M, this.U < this.L && (this.U = this.L), this.U > this.k && (this.U = this.k);
+        }
+        J() {
+          null !== this.j && (this.j.skipDelay(), this.j = null);
+        }
+        cancel() {
+          null !== this.j && (this.j.cancel(), this.j = null);
+        }
+        /** Returns a random value in the range [-currentBaseMs/2, currentBaseMs/2] */
+        H() {
+          return (Math.random() - 0.5) * this.U;
         }
       };
       __PRIVATE_DatastoreImpl = class extends class Datastore {
@@ -11652,6 +15264,39 @@
             const e = k.get(t);
             e && (__PRIVATE_logDebug("ComponentProvider", "Removing Datastore"), k.delete(t), e.terminate());
           })(this), Promise.resolve();
+        }
+      };
+      AggregateField = class {
+        /**
+         * Create a new AggregateField<T>
+         * @param aggregateType Specifies the type of aggregation operation to perform.
+         * @param _internalFieldPath Optionally specifies the field that is aggregated.
+         * @internal
+         */
+        constructor(t = "count", e) {
+          this._internalFieldPath = e, /** A type string to uniquely identify instances of this class. */
+          this.type = "AggregateField", this.aggregateType = t;
+        }
+      };
+      AggregateQuerySnapshot = class {
+        /** @hideconstructor */
+        constructor(t, e, r) {
+          this._userDataWriter = e, this._data = r, /** A type string to uniquely identify instances of this class. */
+          this.type = "AggregateQuerySnapshot", this.query = t;
+        }
+        /**
+         * Returns the results of the aggregations performed over the underlying
+         * query.
+         *
+         * The keys of the returned object will be the same as those of the
+         * `AggregateSpec` object specified to the aggregation method, and the values
+         * will be the corresponding aggregation result.
+         *
+         * @returns The results of the aggregations performed over the underlying
+         * query.
+         */
+        data() {
+          return this._userDataWriter.convertObjectMap(this._data);
         }
       };
       Query = class _Query {
@@ -11880,6 +15525,14 @@
           return null !== this.fieldMask ? new __PRIVATE_PatchMutation(t, this.data, this.fieldMask, e, this.fieldTransforms) : new __PRIVATE_SetMutation(t, this.data, e, this.fieldTransforms);
         }
       };
+      ParsedUpdateData = class {
+        constructor(t, e, r) {
+          this.data = t, this.fieldMask = e, this.fieldTransforms = r;
+        }
+        toMutation(t, e) {
+          return new __PRIVATE_PatchMutation(t, this.data, this.fieldMask, e, this.fieldTransforms);
+        }
+      };
       __PRIVATE_ParseContextImpl = class ___PRIVATE_ParseContextImpl {
         /**
          * Initializes a ParseContext with the given source and path.
@@ -11967,6 +15620,69 @@
           }, this.databaseId, this.serializer, this.ignoreUndefinedProperties);
         }
       };
+      __PRIVATE_DeleteFieldValueImpl = class ___PRIVATE_DeleteFieldValueImpl extends FieldValue {
+        _toFieldTransform(t) {
+          if (2 !== t.et) throw 1 === t.et ? t._t(`${this._methodName}() can only appear at the top level of your update data`) : t._t(`${this._methodName}() cannot be used with set() unless you pass {merge:true}`);
+          return t.fieldMask.push(t.path), null;
+        }
+        isEqual(t) {
+          return t instanceof ___PRIVATE_DeleteFieldValueImpl;
+        }
+      };
+      __PRIVATE_ServerTimestampFieldValueImpl = class ___PRIVATE_ServerTimestampFieldValueImpl extends FieldValue {
+        _toFieldTransform(t) {
+          return new FieldTransform(t.path, new __PRIVATE_ServerTimestampTransform());
+        }
+        isEqual(t) {
+          return t instanceof ___PRIVATE_ServerTimestampFieldValueImpl;
+        }
+      };
+      __PRIVATE_ArrayUnionFieldValueImpl = class ___PRIVATE_ArrayUnionFieldValueImpl extends FieldValue {
+        constructor(t, e) {
+          super(t), this.dt = e;
+        }
+        _toFieldTransform(t) {
+          const e = __PRIVATE_createSentinelChildContext(
+            this,
+            t,
+            /*array=*/
+            true
+          ), r = this.dt.map(((t2) => __PRIVATE_parseData(t2, e))), n = new __PRIVATE_ArrayUnionTransformOperation(r);
+          return new FieldTransform(t.path, n);
+        }
+        isEqual(t) {
+          return t instanceof ___PRIVATE_ArrayUnionFieldValueImpl && deepEqual(this.dt, t.dt);
+        }
+      };
+      __PRIVATE_ArrayRemoveFieldValueImpl = class ___PRIVATE_ArrayRemoveFieldValueImpl extends FieldValue {
+        constructor(t, e) {
+          super(t), this.dt = e;
+        }
+        _toFieldTransform(t) {
+          const e = __PRIVATE_createSentinelChildContext(
+            this,
+            t,
+            /*array=*/
+            true
+          ), r = this.dt.map(((t2) => __PRIVATE_parseData(t2, e))), n = new __PRIVATE_ArrayRemoveTransformOperation(r);
+          return new FieldTransform(t.path, n);
+        }
+        isEqual(t) {
+          return t instanceof ___PRIVATE_ArrayRemoveFieldValueImpl && deepEqual(this.dt, t.dt);
+        }
+      };
+      __PRIVATE_NumericIncrementFieldValueImpl = class ___PRIVATE_NumericIncrementFieldValueImpl extends FieldValue {
+        constructor(t, e) {
+          super(t), this.ft = e;
+        }
+        _toFieldTransform(t) {
+          const e = new __PRIVATE_NumericIncrementTransformOperation(t.serializer, toNumber(t.serializer, this.ft));
+          return new FieldTransform(t.path, e);
+        }
+        isEqual(t) {
+          return t instanceof ___PRIVATE_NumericIncrementFieldValueImpl && this.ft === t.ft;
+        }
+      };
       j = new RegExp("[~\\*/\\[\\]]");
       DocumentSnapshot = class {
         // Note: This class is stripped down version of the DocumentSnapshot in
@@ -12045,6 +15761,182 @@
          */
         data() {
           return super.data();
+        }
+      };
+      QuerySnapshot = class {
+        /** @hideconstructor */
+        constructor(t, e) {
+          this._docs = e, this.query = t;
+        }
+        /** An array of all the documents in the `QuerySnapshot`. */
+        get docs() {
+          return [...this._docs];
+        }
+        /** The number of documents in the `QuerySnapshot`. */
+        get size() {
+          return this.docs.length;
+        }
+        /** True if there are no documents in the `QuerySnapshot`. */
+        get empty() {
+          return 0 === this.docs.length;
+        }
+        /**
+         * Enumerates all of the documents in the `QuerySnapshot`.
+         *
+         * @param callback - A callback to be called with a `QueryDocumentSnapshot` for
+         * each document in the snapshot.
+         * @param thisArg - The `this` binding for the callback.
+         */
+        forEach(t, e) {
+          this._docs.forEach(t, e);
+        }
+      };
+      AppliableConstraint = class {
+      };
+      QueryConstraint = class extends AppliableConstraint {
+      };
+      QueryFieldFilterConstraint = class _QueryFieldFilterConstraint extends QueryConstraint {
+        /**
+         * @internal
+         */
+        constructor(t, e, r) {
+          super(), this._field = t, this._op = e, this._value = r, /** The type of this query constraint */
+          this.type = "where";
+        }
+        static _create(t, e, r) {
+          return new _QueryFieldFilterConstraint(t, e, r);
+        }
+        _apply(t) {
+          const e = this._parse(t);
+          return __PRIVATE_validateNewFieldFilter(t._query, e), new Query(t.firestore, t.converter, __PRIVATE_queryWithAddedFilter(t._query, e));
+        }
+        _parse(t) {
+          const e = __PRIVATE_newUserDataReader(t.firestore), r = (function __PRIVATE_newQueryFilter(t2, e2, r2, n, i, s, o) {
+            let a;
+            if (i.isKeyField()) {
+              if ("array-contains" === s || "array-contains-any" === s) throw new FirestoreError(T, `Invalid Query. You can't perform '${s}' queries on documentId().`);
+              if ("in" === s || "not-in" === s) {
+                __PRIVATE_validateDisjunctiveFilterElements(o, s);
+                const e3 = [];
+                for (const r3 of o) e3.push(__PRIVATE_parseDocumentIdValue(n, t2, r3));
+                a = {
+                  arrayValue: {
+                    values: e3
+                  }
+                };
+              } else a = __PRIVATE_parseDocumentIdValue(n, t2, o);
+            } else "in" !== s && "not-in" !== s && "array-contains-any" !== s || __PRIVATE_validateDisjunctiveFilterElements(o, s), a = __PRIVATE_parseQueryValue(
+              r2,
+              e2,
+              o,
+              /* allowArrays= */
+              "in" === s || "not-in" === s
+            );
+            return FieldFilter.create(i, s, a);
+          })(t._query, "where", e, t.firestore._databaseId, this._field, this._op, this._value);
+          return r;
+        }
+      };
+      QueryCompositeFilterConstraint = class _QueryCompositeFilterConstraint extends AppliableConstraint {
+        /**
+         * @internal
+         */
+        constructor(t, e) {
+          super(), this.type = t, this._queryConstraints = e;
+        }
+        static _create(t, e) {
+          return new _QueryCompositeFilterConstraint(t, e);
+        }
+        _parse(t) {
+          const e = this._queryConstraints.map(((e2) => e2._parse(t))).filter(((t2) => t2.getFilters().length > 0));
+          return 1 === e.length ? e[0] : CompositeFilter.create(e, this._getOperator());
+        }
+        _apply(t) {
+          const e = this._parse(t);
+          return 0 === e.getFilters().length ? t : ((function __PRIVATE_validateNewFilter(t2, e2) {
+            let r = t2;
+            const n = e2.getFlattenedFilters();
+            for (const t3 of n) __PRIVATE_validateNewFieldFilter(r, t3), r = __PRIVATE_queryWithAddedFilter(r, t3);
+          })(t._query, e), new Query(t.firestore, t.converter, __PRIVATE_queryWithAddedFilter(t._query, e)));
+        }
+        _getQueryConstraints() {
+          return this._queryConstraints;
+        }
+        _getOperator() {
+          return "and" === this.type ? "and" : "or";
+        }
+      };
+      QueryOrderByConstraint = class _QueryOrderByConstraint extends QueryConstraint {
+        /**
+         * @internal
+         */
+        constructor(t, e) {
+          super(), this._field = t, this._direction = e, /** The type of this query constraint */
+          this.type = "orderBy";
+        }
+        static _create(t, e) {
+          return new _QueryOrderByConstraint(t, e);
+        }
+        _apply(t) {
+          const e = (function __PRIVATE_newQueryOrderBy(t2, e2, r) {
+            if (null !== t2.startAt) throw new FirestoreError(T, "Invalid query. You must not call startAt() or startAfter() before calling orderBy().");
+            if (null !== t2.endAt) throw new FirestoreError(T, "Invalid query. You must not call endAt() or endBefore() before calling orderBy().");
+            return new OrderBy(e2, r);
+          })(t._query, this._field, this._direction);
+          return new Query(t.firestore, t.converter, (function __PRIVATE_queryWithAddedOrderBy(t2, e2) {
+            const r = t2.explicitOrderBy.concat([e2]);
+            return new __PRIVATE_QueryImpl(t2.path, t2.collectionGroup, r, t2.filters.slice(), t2.limit, t2.limitType, t2.startAt, t2.endAt);
+          })(t._query, e));
+        }
+      };
+      QueryLimitConstraint = class _QueryLimitConstraint extends QueryConstraint {
+        /**
+         * @internal
+         */
+        constructor(t, e, r) {
+          super(), this.type = t, this._limit = e, this._limitType = r;
+        }
+        static _create(t, e, r) {
+          return new _QueryLimitConstraint(t, e, r);
+        }
+        _apply(t) {
+          return new Query(t.firestore, t.converter, (function __PRIVATE_queryWithLimit(t2, e, r) {
+            return new __PRIVATE_QueryImpl(t2.path, t2.collectionGroup, t2.explicitOrderBy.slice(), t2.filters.slice(), e, r, t2.startAt, t2.endAt);
+          })(t._query, this._limit, this._limitType));
+        }
+      };
+      QueryStartAtConstraint = class _QueryStartAtConstraint extends QueryConstraint {
+        /**
+         * @internal
+         */
+        constructor(t, e, r) {
+          super(), this.type = t, this._docOrFields = e, this._inclusive = r;
+        }
+        static _create(t, e, r) {
+          return new _QueryStartAtConstraint(t, e, r);
+        }
+        _apply(t) {
+          const e = __PRIVATE_newQueryBoundFromDocOrFields(t, this.type, this._docOrFields, this._inclusive);
+          return new Query(t.firestore, t.converter, (function __PRIVATE_queryWithStartAt(t2, e2) {
+            return new __PRIVATE_QueryImpl(t2.path, t2.collectionGroup, t2.explicitOrderBy.slice(), t2.filters.slice(), t2.limit, t2.limitType, e2, t2.endAt);
+          })(t._query, e));
+        }
+      };
+      QueryEndAtConstraint = class _QueryEndAtConstraint extends QueryConstraint {
+        /**
+         * @internal
+         */
+        constructor(t, e, r) {
+          super(), this.type = t, this._docOrFields = e, this._inclusive = r;
+        }
+        static _create(t, e, r) {
+          return new _QueryEndAtConstraint(t, e, r);
+        }
+        _apply(t) {
+          const e = __PRIVATE_newQueryBoundFromDocOrFields(t, this.type, this._docOrFields, this._inclusive);
+          return new Query(t.firestore, t.converter, (function __PRIVATE_queryWithEndAt(t2, e2) {
+            return new __PRIVATE_QueryImpl(t2.path, t2.collectionGroup, t2.explicitOrderBy.slice(), t2.filters.slice(), t2.limit, t2.limitType, t2.startAt, e2);
+          })(t._query, e));
         }
       };
       __PRIVATE_LiteUserDataWriter = class extends class AbstractUserDataWriter {
@@ -12133,6 +16025,497 @@
           );
         }
       };
+      WriteBatch = class {
+        /** @hideconstructor */
+        constructor(t, e) {
+          this._firestore = t, this._commitHandler = e, this._mutations = [], this._committed = false, this._dataReader = __PRIVATE_newUserDataReader(t);
+        }
+        set(t, e, r) {
+          this._verifyNotCommitted();
+          const n = __PRIVATE_validateReference(t, this._firestore), i = __PRIVATE_applyFirestoreDataConverter(n.converter, e, r), s = __PRIVATE_parseSetData(this._dataReader, "WriteBatch.set", n._key, i, null !== n.converter, r);
+          return this._mutations.push(s.toMutation(n._key, Precondition.none())), this;
+        }
+        update(t, e, r, ...n) {
+          this._verifyNotCommitted();
+          const i = __PRIVATE_validateReference(t, this._firestore);
+          let s;
+          return s = "string" == typeof (e = getModularInstance(e)) || e instanceof FieldPath ? __PRIVATE_parseUpdateVarargs(this._dataReader, "WriteBatch.update", i._key, e, r, n) : __PRIVATE_parseUpdateData(this._dataReader, "WriteBatch.update", i._key, e), this._mutations.push(s.toMutation(i._key, Precondition.exists(true))), this;
+        }
+        /**
+         * Deletes the document referred to by the provided {@link DocumentReference}.
+         *
+         * @param documentRef - A reference to the document to be deleted.
+         * @returns This `WriteBatch` instance. Used for chaining method calls.
+         */
+        delete(t) {
+          this._verifyNotCommitted();
+          const e = __PRIVATE_validateReference(t, this._firestore);
+          return this._mutations = this._mutations.concat(new __PRIVATE_DeleteMutation(e._key, Precondition.none())), this;
+        }
+        /**
+         * Commits all of the writes in this write batch as a single atomic unit.
+         *
+         * The result of these writes will only be reflected in document reads that
+         * occur after the returned promise resolves. If the client is offline, the
+         * write fails. If you would like to see local modifications or buffer writes
+         * until the client is online, use the full Firestore SDK.
+         *
+         * @returns A `Promise` resolved once all of the writes in the batch have been
+         * successfully written to the backend as an atomic unit (note that it won't
+         * resolve while you're offline).
+         */
+        commit() {
+          return this._verifyNotCommitted(), this._committed = true, this._mutations.length > 0 ? this._commitHandler(this._mutations) : Promise.resolve();
+        }
+        _verifyNotCommitted() {
+          if (this._committed) throw new FirestoreError(w, "A write batch can no longer be used after commit() has been called.");
+        }
+      };
+      Transaction$1 = class {
+        constructor(t) {
+          this.datastore = t, // The version of each document that was read during this transaction.
+          this.readVersions = /* @__PURE__ */ new Map(), this.mutations = [], this.committed = false, /**
+           * A deferred usage error that occurred previously in this transaction that
+           * will cause the transaction to fail once it actually commits.
+           */
+          this.lastTransactionError = null, /**
+           * Set of documents that have been written in the transaction.
+           *
+           * When there's more than one write to the same key in a transaction, any
+           * writes after the first are handled differently.
+           */
+          this.writtenDocs = /* @__PURE__ */ new Set();
+        }
+        async lookup(t) {
+          if (this.ensureCommitNotCalled(), this.mutations.length > 0) throw this.lastTransactionError = new FirestoreError(T, "Firestore transactions require all reads to be executed before all writes."), this.lastTransactionError;
+          const e = await __PRIVATE_invokeBatchGetDocumentsRpc(this.datastore, t);
+          return e.forEach(((t2) => this.recordVersion(t2))), e;
+        }
+        set(t, e) {
+          this.write(e.toMutation(t, this.precondition(t))), this.writtenDocs.add(t.toString());
+        }
+        update(t, e) {
+          try {
+            this.write(e.toMutation(t, this.preconditionForUpdate(t)));
+          } catch (t2) {
+            this.lastTransactionError = t2;
+          }
+          this.writtenDocs.add(t.toString());
+        }
+        delete(t) {
+          this.write(new __PRIVATE_DeleteMutation(t, this.precondition(t))), this.writtenDocs.add(t.toString());
+        }
+        async commit() {
+          if (this.ensureCommitNotCalled(), this.lastTransactionError) throw this.lastTransactionError;
+          const t = this.readVersions;
+          this.mutations.forEach(((e) => {
+            t.delete(e.key.toString());
+          })), // For each document that was read but not written to, we want to perform
+          // a `verify` operation.
+          t.forEach(((t2, e) => {
+            const r = DocumentKey.fromPath(e);
+            this.mutations.push(new __PRIVATE_VerifyMutation(r, this.precondition(r)));
+          })), await __PRIVATE_invokeCommitRpc(this.datastore, this.mutations), this.committed = true;
+        }
+        recordVersion(t) {
+          let e;
+          if (t.isFoundDocument()) e = t.version;
+          else {
+            if (!t.isNoDocument()) throw fail();
+            e = SnapshotVersion.min();
+          }
+          const r = this.readVersions.get(t.key.toString());
+          if (r) {
+            if (!e.isEqual(r))
+              throw new FirestoreError(g, "Document version changed between two reads.");
+          } else this.readVersions.set(t.key.toString(), e);
+        }
+        /**
+         * Returns the version of this document when it was read in this transaction,
+         * as a precondition, or no precondition if it was not read.
+         */
+        precondition(t) {
+          const e = this.readVersions.get(t.toString());
+          return !this.writtenDocs.has(t.toString()) && e ? e.isEqual(SnapshotVersion.min()) ? Precondition.exists(false) : Precondition.updateTime(e) : Precondition.none();
+        }
+        /**
+         * Returns the precondition for a document if the operation is an update.
+         */
+        preconditionForUpdate(t) {
+          const e = this.readVersions.get(t.toString());
+          if (!this.writtenDocs.has(t.toString()) && e) {
+            if (e.isEqual(SnapshotVersion.min()))
+              throw new FirestoreError(T, "Can't update a document that doesn't exist.");
+            return Precondition.updateTime(e);
+          }
+          return Precondition.exists(true);
+        }
+        write(t) {
+          this.ensureCommitNotCalled(), this.mutations.push(t);
+        }
+        ensureCommitNotCalled() {
+        }
+      };
+      z = {
+        maxAttempts: 5
+      };
+      __PRIVATE_TransactionRunner = class {
+        constructor(t, e, r, n, i) {
+          this.asyncQueue = t, this.datastore = e, this.options = r, this.updateFunction = n, this.deferred = i, this.Et = r.maxAttempts, this.At = new __PRIVATE_ExponentialBackoff(
+            this.asyncQueue,
+            "transaction_retry"
+            /* TimerId.TransactionRetry */
+          );
+        }
+        /** Runs the transaction and sets the result on deferred. */
+        Tt() {
+          this.Et -= 1, this.Rt();
+        }
+        Rt() {
+          this.At.G((async () => {
+            const t = new Transaction$1(this.datastore), e = this.Pt(t);
+            e && e.then(((e2) => {
+              this.asyncQueue.enqueueAndForget((() => t.commit().then((() => {
+                this.deferred.resolve(e2);
+              })).catch(((t2) => {
+                this.It(t2);
+              }))));
+            })).catch(((t2) => {
+              this.It(t2);
+            }));
+          }));
+        }
+        Pt(t) {
+          try {
+            const e = this.updateFunction(t);
+            return !__PRIVATE_isNullOrUndefined(e) && e.catch && e.then ? e : (this.deferred.reject(Error("Transaction callback must return a Promise")), null);
+          } catch (t2) {
+            return this.deferred.reject(t2), null;
+          }
+        }
+        It(t) {
+          this.Et > 0 && this.Vt(t) ? (this.Et -= 1, this.asyncQueue.enqueueAndForget((() => (this.Rt(), Promise.resolve())))) : this.deferred.reject(t);
+        }
+        Vt(t) {
+          if ("FirebaseError" === t.name) {
+            const e = t.code;
+            return "aborted" === e || "failed-precondition" === e || "already-exists" === e || !/**
+            * Determines whether an error code represents a permanent error when received
+            * in response to a non-write operation.
+            *
+            * See isPermanentWriteError for classifying write errors.
+            */
+            (function __PRIVATE_isPermanentError(t2) {
+              switch (t2) {
+                default:
+                  return fail();
+                case m:
+                case A:
+                case R:
+                case y:
+                case D:
+                case b:
+                // Unauthenticated means something went wrong with our token and we need
+                // to retry with new credentials which will happen automatically.
+                case p:
+                  return false;
+                case T:
+                case P:
+                case I:
+                case V:
+                case w:
+                // Aborted might be retried in some scenarios, but that is dependent on
+                // the context and should handled individually by the calling code.
+                // See https://cloud.google.com/apis/design/errors.
+                case g:
+                case F:
+                case v:
+                case C:
+                  return true;
+              }
+            })(e);
+          }
+          return false;
+        }
+      };
+      DelayedOperation = class _DelayedOperation {
+        constructor(t, e, r, n, i) {
+          this.asyncQueue = t, this.timerId = e, this.targetTimeMs = r, this.op = n, this.removalCallback = i, this.deferred = new __PRIVATE_Deferred(), this.then = this.deferred.promise.then.bind(this.deferred.promise), // It's normal for the deferred promise to be canceled (due to cancellation)
+          // and so we attach a dummy catch callback to avoid
+          // 'UnhandledPromiseRejectionWarning' log spam.
+          this.deferred.promise.catch(((t2) => {
+          }));
+        }
+        get promise() {
+          return this.deferred.promise;
+        }
+        /**
+         * Creates and returns a DelayedOperation that has been scheduled to be
+         * executed on the provided asyncQueue after the provided delayMs.
+         *
+         * @param asyncQueue - The queue to schedule the operation on.
+         * @param id - A Timer ID identifying the type of operation this is.
+         * @param delayMs - The delay (ms) before the operation should be scheduled.
+         * @param op - The operation to run.
+         * @param removalCallback - A callback to be called synchronously once the
+         *   operation is executed or canceled, notifying the AsyncQueue to remove it
+         *   from its delayedOperations list.
+         *   PORTING NOTE: This exists to prevent making removeDelayedOperation() and
+         *   the DelayedOperation class public.
+         */
+        static createAndSchedule(t, e, r, n, i) {
+          const s = Date.now() + r, o = new _DelayedOperation(t, e, s, n, i);
+          return o.start(r), o;
+        }
+        /**
+         * Starts the timer. This is called immediately after construction by
+         * createAndSchedule().
+         */
+        start(t) {
+          this.timerHandle = setTimeout((() => this.handleDelayElapsed()), t);
+        }
+        /**
+         * Queues the operation to run immediately (if it hasn't already been run or
+         * canceled).
+         */
+        skipDelay() {
+          return this.handleDelayElapsed();
+        }
+        /**
+         * Cancels the operation if it hasn't already been executed or canceled. The
+         * promise will be rejected.
+         *
+         * As long as the operation has not yet been run, calling cancel() provides a
+         * guarantee that the operation will not be run.
+         */
+        cancel(t) {
+          null !== this.timerHandle && (this.clearTimeout(), this.deferred.reject(new FirestoreError(m, "Operation cancelled" + (t ? ": " + t : ""))));
+        }
+        handleDelayElapsed() {
+          this.asyncQueue.enqueueAndForget((() => null !== this.timerHandle ? (this.clearTimeout(), this.op().then(((t) => this.deferred.resolve(t)))) : Promise.resolve()));
+        }
+        clearTimeout() {
+          null !== this.timerHandle && (this.removalCallback(this), clearTimeout(this.timerHandle), this.timerHandle = null);
+        }
+      };
+      __PRIVATE_AsyncQueueImpl = class {
+        constructor() {
+          this.yt = Promise.resolve(), // A list of retryable operations. Retryable operations are run in order and
+          // retried with backoff.
+          this.wt = [], // Is this AsyncQueue being shut down? Once it is set to true, it will not
+          // be changed again.
+          this.gt = false, // Operations scheduled to be queued in the future. Operations are
+          // automatically removed after they are run or canceled.
+          this.Ft = [], // visible for testing
+          this.vt = null, // Flag set while there's an outstanding AsyncQueue operation, used for
+          // assertion sanity-checks.
+          this.Dt = false, // Enabled during shutdown on Safari to prevent future access to IndexedDB.
+          this.bt = false, // List of TimerIds to fast-forward delays for.
+          this.Ct = [], // Backoff timer used to schedule retries for retryable operations
+          this.At = new __PRIVATE_ExponentialBackoff(
+            this,
+            "async_queue_retry"
+            /* TimerId.AsyncQueueRetry */
+          ), // Visibility handler that triggers an immediate retry of all retryable
+          // operations. Meant to speed up recovery when we regain file system access
+          // after page comes into foreground.
+          this.St = () => {
+            const t2 = getDocument();
+            t2 && __PRIVATE_logDebug("AsyncQueue", "Visibility state changed to " + t2.visibilityState), this.At.J();
+          };
+          const t = getDocument();
+          t && "function" == typeof t.addEventListener && t.addEventListener("visibilitychange", this.St);
+        }
+        get isShuttingDown() {
+          return this.gt;
+        }
+        /**
+         * Adds a new operation to the queue without waiting for it to complete (i.e.
+         * we ignore the Promise result).
+         */
+        enqueueAndForget(t) {
+          this.enqueue(t);
+        }
+        enqueueAndForgetEvenWhileRestricted(t) {
+          this.Nt(), // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          this.Ot(t);
+        }
+        enterRestrictedMode(t) {
+          if (!this.gt) {
+            this.gt = true, this.bt = t || false;
+            const e = getDocument();
+            e && "function" == typeof e.removeEventListener && e.removeEventListener("visibilitychange", this.St);
+          }
+        }
+        enqueue(t) {
+          if (this.Nt(), this.gt)
+            return new Promise((() => {
+            }));
+          const e = new __PRIVATE_Deferred();
+          return this.Ot((() => this.gt && this.bt ? Promise.resolve() : (t().then(e.resolve, e.reject), e.promise))).then((() => e.promise));
+        }
+        enqueueRetryable(t) {
+          this.enqueueAndForget((() => (this.wt.push(t), this.qt())));
+        }
+        /**
+         * Runs the next operation from the retryable queue. If the operation fails,
+         * reschedules with backoff.
+         */
+        async qt() {
+          if (0 !== this.wt.length) {
+            try {
+              await this.wt[0](), this.wt.shift(), this.At.reset();
+            } catch (t) {
+              if (!/**
+              * @license
+              * Copyright 2017 Google LLC
+              *
+              * Licensed under the Apache License, Version 2.0 (the "License");
+              * you may not use this file except in compliance with the License.
+              * You may obtain a copy of the License at
+              *
+              *   http://www.apache.org/licenses/LICENSE-2.0
+              *
+              * Unless required by applicable law or agreed to in writing, software
+              * distributed under the License is distributed on an "AS IS" BASIS,
+              * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+              * See the License for the specific language governing permissions and
+              * limitations under the License.
+              */
+              /** Verifies whether `e` is an IndexedDbTransactionError. */
+              (function __PRIVATE_isIndexedDbTransactionError(t2) {
+                return "IndexedDbTransactionError" === t2.name;
+              })(t)) throw t;
+              __PRIVATE_logDebug("AsyncQueue", "Operation failed with retryable error: " + t);
+            }
+            this.wt.length > 0 && // If there are additional operations, we re-schedule `retryNextOp()`.
+            // This is necessary to run retryable operations that failed during
+            // their initial attempt since we don't know whether they are already
+            // enqueued. If, for example, `op1`, `op2`, `op3` are enqueued and `op1`
+            // needs to  be re-run, we will run `op1`, `op1`, `op2` using the
+            // already enqueued calls to `retryNextOp()`. `op3()` will then run in the
+            // call scheduled here.
+            // Since `backoffAndRun()` cancels an existing backoff and schedules a
+            // new backoff on every call, there is only ever a single additional
+            // operation in the queue.
+            this.At.G((() => this.qt()));
+          }
+        }
+        Ot(t) {
+          const e = this.yt.then((() => (this.Dt = true, t().catch(((t2) => {
+            this.vt = t2, this.Dt = false;
+            const e2 = (
+              /**
+              * Chrome includes Error.message in Error.stack. Other browsers do not.
+              * This returns expected output of message + stack when available.
+              * @param error - Error or FirestoreError
+              */
+              (function __PRIVATE_getMessageOrStack(t3) {
+                let e3 = t3.message || "";
+                t3.stack && (e3 = t3.stack.includes(t3.message) ? t3.stack : t3.message + "\n" + t3.stack);
+                return e3;
+              })(t2)
+            );
+            throw __PRIVATE_logError("INTERNAL UNHANDLED ERROR: ", e2), t2;
+          })).then(((t2) => (this.Dt = false, t2))))));
+          return this.yt = e, e;
+        }
+        enqueueAfterDelay(t, e, r) {
+          this.Nt(), // Fast-forward delays for timerIds that have been overridden.
+          this.Ct.indexOf(t) > -1 && (e = 0);
+          const n = DelayedOperation.createAndSchedule(this, t, e, r, ((t2) => this.Bt(t2)));
+          return this.Ft.push(n), n;
+        }
+        Nt() {
+          this.vt && fail();
+        }
+        verifyOperationInProgress() {
+        }
+        /**
+         * Waits until all currently queued tasks are finished executing. Delayed
+         * operations are not run.
+         */
+        async $t() {
+          let t;
+          do {
+            t = this.yt, await t;
+          } while (t !== this.yt);
+        }
+        /**
+         * For Tests: Determine if a delayed operation with a particular TimerId
+         * exists.
+         */
+        Qt(t) {
+          for (const e of this.Ft) if (e.timerId === t) return true;
+          return false;
+        }
+        /**
+         * For Tests: Runs some or all delayed operations early.
+         *
+         * @param lastTimerId - Delayed operations up to and including this TimerId
+         * will be drained. Pass TimerId.All to run all delayed operations.
+         * @returns a Promise that resolves once all operations have been run.
+         */
+        Lt(t) {
+          return this.$t().then((() => {
+            this.Ft.sort(((t2, e) => t2.targetTimeMs - e.targetTimeMs));
+            for (const e of this.Ft) if (e.skipDelay(), "all" !== t && e.timerId === t) break;
+            return this.$t();
+          }));
+        }
+        /**
+         * For Tests: Skip all subsequent delays for a timer id.
+         */
+        Mt(t) {
+          this.Ct.push(t);
+        }
+        /** Called once a DelayedOperation is run or canceled. */
+        Bt(t) {
+          const e = this.Ft.indexOf(t);
+          this.Ft.splice(e, 1);
+        }
+      };
+      Transaction = class {
+        /** @hideconstructor */
+        constructor(t, e) {
+          this._firestore = t, this._transaction = e, this._dataReader = __PRIVATE_newUserDataReader(t);
+        }
+        /**
+         * Reads the document referenced by the provided {@link DocumentReference}.
+         *
+         * @param documentRef - A reference to the document to be read.
+         * @returns A `DocumentSnapshot` with the read data.
+         */
+        get(t) {
+          const e = __PRIVATE_validateReference(t, this._firestore), r = new __PRIVATE_LiteUserDataWriter(this._firestore);
+          return this._transaction.lookup([e._key]).then(((t2) => {
+            if (!t2 || 1 !== t2.length) return fail();
+            const n = t2[0];
+            if (n.isFoundDocument()) return new DocumentSnapshot(this._firestore, r, n.key, n, e.converter);
+            if (n.isNoDocument()) return new DocumentSnapshot(this._firestore, r, e._key, null, e.converter);
+            throw fail();
+          }));
+        }
+        set(t, e, r) {
+          const n = __PRIVATE_validateReference(t, this._firestore), i = __PRIVATE_applyFirestoreDataConverter(n.converter, e, r), s = __PRIVATE_parseSetData(this._dataReader, "Transaction.set", n._key, i, null !== n.converter, r);
+          return this._transaction.set(n._key, s), this;
+        }
+        update(t, e, r, ...n) {
+          const i = __PRIVATE_validateReference(t, this._firestore);
+          let s;
+          return s = "string" == typeof (e = getModularInstance(e)) || e instanceof FieldPath ? __PRIVATE_parseUpdateVarargs(this._dataReader, "Transaction.update", i._key, e, r, n) : __PRIVATE_parseUpdateData(this._dataReader, "Transaction.update", i._key, e), this._transaction.update(i._key, s), this;
+        }
+        /**
+         * Deletes the document referred to by the provided {@link DocumentReference}.
+         *
+         * @param documentRef - A reference to the document to be deleted.
+         * @returns This `Transaction` instance. Used for chaining method calls.
+         */
+        delete(t) {
+          const e = __PRIVATE_validateReference(t, this._firestore);
+          return this._transaction.delete(e._key), this;
+        }
+      };
       !(function __PRIVATE_registerFirestore() {
         !(function __PRIVATE_setSDKVersion(t) {
           d = t;
@@ -12149,6 +16532,76 @@
   });
 
   // node_modules/firebase/firestore/lite/dist/esm/index.esm.js
+  var index_esm_exports3 = {};
+  __export(index_esm_exports3, {
+    AggregateField: () => AggregateField,
+    AggregateQuerySnapshot: () => AggregateQuerySnapshot,
+    Bytes: () => Bytes,
+    CollectionReference: () => CollectionReference,
+    DocumentReference: () => DocumentReference,
+    DocumentSnapshot: () => DocumentSnapshot,
+    FieldPath: () => FieldPath,
+    FieldValue: () => FieldValue,
+    Firestore: () => Firestore,
+    FirestoreError: () => FirestoreError,
+    GeoPoint: () => GeoPoint,
+    Query: () => Query,
+    QueryCompositeFilterConstraint: () => QueryCompositeFilterConstraint,
+    QueryConstraint: () => QueryConstraint,
+    QueryDocumentSnapshot: () => QueryDocumentSnapshot,
+    QueryEndAtConstraint: () => QueryEndAtConstraint,
+    QueryFieldFilterConstraint: () => QueryFieldFilterConstraint,
+    QueryLimitConstraint: () => QueryLimitConstraint,
+    QueryOrderByConstraint: () => QueryOrderByConstraint,
+    QuerySnapshot: () => QuerySnapshot,
+    QueryStartAtConstraint: () => QueryStartAtConstraint,
+    Timestamp: () => Timestamp,
+    Transaction: () => Transaction,
+    WriteBatch: () => WriteBatch,
+    addDoc: () => addDoc,
+    aggregateFieldEqual: () => aggregateFieldEqual,
+    aggregateQuerySnapshotEqual: () => aggregateQuerySnapshotEqual,
+    and: () => and,
+    arrayRemove: () => arrayRemove,
+    arrayUnion: () => arrayUnion,
+    average: () => average,
+    collection: () => collection,
+    collectionGroup: () => collectionGroup,
+    connectFirestoreEmulator: () => connectFirestoreEmulator,
+    count: () => count,
+    deleteDoc: () => deleteDoc,
+    deleteField: () => deleteField,
+    doc: () => doc,
+    documentId: () => documentId,
+    endAt: () => endAt,
+    endBefore: () => endBefore,
+    getAggregate: () => getAggregate,
+    getCount: () => getCount,
+    getDoc: () => getDoc,
+    getDocs: () => getDocs,
+    getFirestore: () => getFirestore,
+    increment: () => increment,
+    initializeFirestore: () => initializeFirestore,
+    limit: () => limit,
+    limitToLast: () => limitToLast,
+    or: () => or,
+    orderBy: () => orderBy,
+    query: () => query,
+    queryEqual: () => queryEqual,
+    refEqual: () => refEqual,
+    runTransaction: () => runTransaction,
+    serverTimestamp: () => serverTimestamp,
+    setDoc: () => setDoc,
+    setLogLevel: () => setLogLevel3,
+    snapshotEqual: () => snapshotEqual,
+    startAfter: () => startAfter,
+    startAt: () => startAt,
+    sum: () => sum,
+    terminate: () => terminate,
+    updateDoc: () => updateDoc,
+    where: () => where,
+    writeBatch: () => writeBatch
+  });
   var init_index_esm3 = __esm({
     "node_modules/firebase/firestore/lite/dist/esm/index.esm.js"() {
       init_index_browser_esm2017();
@@ -12158,16 +16611,17 @@
   // js/features/cloudSync.js
   async function setupCloudSync({
     elements,
-    state,
+    state: state2,
     getLocalPayload,
     applyRemotePayload,
     onLocalStateApplied,
-    onLocalStateSaved
+    onLocalStateSaved,
+    eventBus: eventBus2
   }) {
     function estimatePayloadSize(payload) {
       try {
         return new Blob([JSON.stringify(payload)]).size;
-      } catch (e) {
+      } catch {
         return JSON.stringify(payload).length;
       }
     }
@@ -12199,11 +16653,11 @@
     async function writeCloudState(stateRef, payload) {
       const payloadSize = estimatePayloadSize(payload);
       if (payloadSize <= MAX_CLOUD_PAYLOAD_BYTES) {
-        await setDoc(stateRef, payload);
+        await setDoc2(stateRef, payload);
         return { writtenPayload: payload, usedCompactPayload: false };
       }
       const compactPayload = buildCompactCloudPayload(payload);
-      await setDoc(stateRef, compactPayload);
+      await setDoc2(stateRef, compactPayload);
       return { writtenPayload: compactPayload, usedCompactPayload: true };
     }
     function setStatus(text) {
@@ -12236,19 +16690,35 @@
       disableAuthButtons(true);
       return createNoopSync();
     }
-    const app = getApps().length ? getApp() : initializeApp(syncConfig.firebase);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    const firebaseApp = await Promise.resolve().then(() => (init_index_esm(), index_esm_exports));
+    const firebaseAuth = await Promise.resolve().then(() => (init_index_esm2(), index_esm_exports2));
+    const firebaseFirestore = await Promise.resolve().then(() => (init_index_esm3(), index_esm_exports3));
+    const { initializeApp: initializeApp2, getApp: getApp2, getApps: getApps2 } = firebaseApp;
+    const {
+      getAuth: getAuth2,
+      onAuthStateChanged: onAuthStateChanged2,
+      setPersistence: setPersistence2,
+      browserLocalPersistence: browserLocalPersistence2,
+      inMemoryPersistence: inMemoryPersistence2,
+      createUserWithEmailAndPassword: createUserWithEmailAndPassword2,
+      signInWithEmailAndPassword: signInWithEmailAndPassword2,
+      signOut: signOut2,
+      sendPasswordResetEmail: sendPasswordResetEmail2
+    } = firebaseAuth;
+    const { getFirestore: getFirestore2, doc: doc2, getDoc: getDoc2, setDoc: setDoc2 } = firebaseFirestore;
+    const app = getApps2().length ? getApp2() : initializeApp2(syncConfig.firebase);
+    const auth = getAuth2(app);
+    const db = getFirestore2(app);
     try {
-      await setPersistence(auth, browserLocalPersistence);
-    } catch (e) {
-      await setPersistence(auth, inMemoryPersistence);
+      await setPersistence2(auth, browserLocalPersistence2);
+    } catch {
+      await setPersistence2(auth, inMemoryPersistence2);
     }
     let currentUser = null;
     let uploadTimer = null;
     async function pullOrPushOnLogin(user) {
-      const stateRef = doc(db, "quizStates", user.uid);
-      const remoteSnap = await getDoc(stateRef);
+      const stateRef = doc2(db, "quizStates", user.uid);
+      const remoteSnap = await getDoc2(stateRef);
       const localPayload = getLocalPayload();
       if (!remoteSnap.exists()) {
         const writeResult = await writeCloudState(stateRef, localPayload);
@@ -12261,6 +16731,7 @@
       if (remoteSavedAt > localSavedAt) {
         applyRemotePayload(remotePayload);
         onLocalStateApplied();
+        if (eventBus2) eventBus2.emit("sync:conflictApplied");
         setStatus(`Connected: ${user.email || user.uid}. Downloaded newer cloud progress.`);
       } else {
         const writeResult = await writeCloudState(stateRef, localPayload);
@@ -12272,14 +16743,15 @@
         setStatus("Log in first to pull cloud data.");
         return;
       }
-      const stateRef = doc(db, "quizStates", currentUser.uid);
-      const remoteSnap = await getDoc(stateRef);
+      const stateRef = doc2(db, "quizStates", currentUser.uid);
+      const remoteSnap = await getDoc2(stateRef);
       if (!remoteSnap.exists()) {
         setStatus("No cloud data found yet.");
         return;
       }
       applyRemotePayload(remoteSnap.data());
       onLocalStateApplied();
+      if (eventBus2) eventBus2.emit("sync:conflictApplied");
       setStatus("Pulled cloud progress to this device.");
     }
     async function uploadNow() {
@@ -12287,7 +16759,7 @@
         setStatus("Log in first to sync.");
         return;
       }
-      const stateRef = doc(db, "quizStates", currentUser.uid);
+      const stateRef = doc2(db, "quizStates", currentUser.uid);
       const payload = getLocalPayload();
       const writeResult = await writeCloudState(stateRef, payload);
       const syncMeta = {
@@ -12314,7 +16786,7 @@
       }, 600);
     }
     disableAuthButtons(false);
-    setAccountInfo(state.syncUserEmail || "", state.lastCloudSyncAt || 0);
+    setAccountInfo(state2.syncUserEmail || "", state2.lastCloudSyncAt || 0);
     setStatus("Cloud sync ready. Log in to link data across devices.");
     elements.signUpBtn.addEventListener("click", async () => {
       try {
@@ -12324,7 +16796,7 @@
           setStatus("Enter email and password first.");
           return;
         }
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword2(auth, email, password);
         setStatus("Account created.");
       } catch (error) {
         setStatus(`Sign up error: ${error.message}`);
@@ -12338,7 +16810,7 @@
           setStatus("Enter email and password first.");
           return;
         }
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword2(auth, email, password);
       } catch (error) {
         setStatus(`Login error: ${error.message}`);
       }
@@ -12350,7 +16822,7 @@
           setStatus("Enter your email then tap Forgot Password.");
           return;
         }
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail2(auth, email);
         setStatus("Password reset email sent.");
       } catch (error) {
         setStatus(`Reset error: ${error.message}`);
@@ -12358,7 +16830,7 @@
     });
     elements.logoutBtn.addEventListener("click", async () => {
       try {
-        await signOut(auth);
+        await signOut2(auth);
         setStatus("Logged out.");
       } catch (error) {
         setStatus(`Logout error: ${error.message}`);
@@ -12379,14 +16851,14 @@
         setStatus(`Push error: ${error.message}`);
       });
     });
-    onAuthStateChanged(auth, async (user) => {
+    onAuthStateChanged2(auth, async (user) => {
       currentUser = user;
       if (!user) {
         setAccountInfo("", 0);
         setStatus("Cloud sync ready. Log in to link data across devices.");
         return;
       }
-      setAccountInfo(user.email || user.uid, state.lastCloudSyncAt || 0);
+      setAccountInfo(user.email || user.uid, state2.lastCloudSyncAt || 0);
       try {
         await pullOrPushOnLogin(user);
       } catch (error) {
@@ -12422,53 +16894,65 @@
   var init_cloudSync = __esm({
     "js/features/cloudSync.js"() {
       init_syncConfig();
-      init_index_esm();
-      init_index_esm2();
-      init_index_esm3();
       MAX_CLOUD_PAYLOAD_BYTES = 85e4;
       COMPACT_DRAWING_BUDGET_BYTES = 22e4;
     }
   });
 
   // js/features/srs.js
-  function createSrsManager(state) {
+  function createSrsManager(state2) {
     function getMistakeKey(answerMode = "typing") {
       return answerMode === "drawing" ? "recentDrawingMistakes" : "recentTypingMistakes";
     }
     function getDueRomajiList() {
       const now = Date.now();
-      return Object.entries(state.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
+      return Object.entries(state2.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
     }
     function upsertRecentMistake(romaji, answerMode = "typing") {
       const key = getMistakeKey(answerMode);
-      const source = Array.isArray(state[key]) ? state[key] : [];
-      state[key] = [
+      const source = Array.isArray(state2[key]) ? state2[key] : [];
+      state2[key] = [
         romaji,
         ...source.filter((value) => value !== romaji)
       ].slice(0, MAX_RECENT_MISTAKES);
-      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes || [], ...state.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
+      state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes || [], ...state2.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
     }
     function removeRecentMistake(romaji, answerMode = "typing") {
       const key = getMistakeKey(answerMode);
-      const source = Array.isArray(state[key]) ? state[key] : [];
-      state[key] = source.filter((value) => value !== romaji);
-      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes || [], ...state.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
+      const source = Array.isArray(state2[key]) ? state2[key] : [];
+      state2[key] = source.filter((value) => value !== romaji);
+      state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes || [], ...state2.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
     }
     function getRecentMistakesByMode(answerMode = "typing") {
       const key = getMistakeKey(answerMode);
-      return Array.isArray(state[key]) ? state[key] : [];
+      return Array.isArray(state2[key]) ? state2[key] : [];
     }
-    function updateSrsOnAttempt(romaji, wasCorrect, answerMode = "typing") {
-      const current = state.srsByRomaji[romaji] || {
+    function updateSrsOnAttempt(romaji, wasCorrect, answerMode = "typing", hintUsed = false) {
+      const current = state2.srsByRomaji[romaji] || {
         dueAt: 0,
         intervalHours: 0,
         lastSeenAt: 0,
         lastCorrect: false
       };
+      if (!state2.srsAccuracyWindow) state2.srsAccuracyWindow = {};
+      const window2 = Array.isArray(state2.srsAccuracyWindow[romaji]) ? state2.srsAccuracyWindow[romaji] : [];
+      window2.push(wasCorrect);
+      if (window2.length > ACCURACY_WINDOW_SIZE) window2.shift();
+      state2.srsAccuracyWindow[romaji] = window2;
       const now = Date.now();
       if (wasCorrect) {
         const previous = Number(current.intervalHours || 0);
-        const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
+        const accuracy = window2.length > 0 ? window2.filter(Boolean).length / window2.length : 0.5;
+        let baseMultiplier;
+        if (accuracy < 0.3) {
+          baseMultiplier = 1.2;
+        } else if (accuracy >= 0.7) {
+          baseMultiplier = 3.5;
+        } else {
+          baseMultiplier = 2.5;
+        }
+        const multiplier = hintUsed ? Math.min(baseMultiplier, 1.25) : baseMultiplier;
+        const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * multiplier, 24 * 14);
         current.intervalHours = nextInterval;
         current.dueAt = now + nextInterval * 60 * 60 * 1e3;
         removeRecentMistake(romaji, answerMode);
@@ -12479,10 +16963,10 @@
       }
       current.lastSeenAt = now;
       current.lastCorrect = wasCorrect;
-      state.srsByRomaji[romaji] = current;
+      state2.srsByRomaji[romaji] = current;
     }
     function getTotalAttempts2() {
-      return Object.values(state.srsByRomaji).reduce((sum, entry) => sum + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
+      return Object.values(state2.srsByRomaji).reduce((sum2, entry) => sum2 + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
     }
     return {
       getDueRomajiList,
@@ -12493,15 +16977,16 @@
       getTotalAttempts: getTotalAttempts2
     };
   }
-  var MAX_RECENT_MISTAKES;
+  var MAX_RECENT_MISTAKES, ACCURACY_WINDOW_SIZE;
   var init_srs = __esm({
     "js/features/srs.js"() {
       MAX_RECENT_MISTAKES = 120;
+      ACCURACY_WINDOW_SIZE = 10;
     }
   });
 
   // js/features/queue.js
-  function createQueueManager(state, elements, srsManager, getKanaCategoryFn) {
+  function createQueueManager(state2, elements, srsManager, getKanaCategoryFn) {
     function getQuestionKindForCurrentMode() {
       const mode = elements.modeSelect.value;
       if (mode === "romajiToKana") {
@@ -12527,7 +17012,7 @@
       return srsManager.getRecentMistakesByMode("typing");
     }
     function getFrequentMistakesRomajiList(questionKind = "typing") {
-      const entries = Object.values(state.backlog).map((row) => {
+      const entries = Object.values(state2.backlog).map((row) => {
         let wrong = row.typingWrong;
         let right = row.typingRight;
         if (questionKind === "drawing") {
@@ -12554,13 +17039,13 @@
       return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
     }
     function getPreferredRomajiList(questionKind = getQuestionKindForCurrentMode()) {
-      if (state.practiceStrategy === "mistakeReview") {
+      if (state2.practiceStrategy === "mistakeReview") {
         return filterRomajiForCurrentKanaSet(getMistakeEntriesForKind(questionKind)).slice(0, 30);
       }
-      if (state.practiceStrategy === "frequentMistakes") {
+      if (state2.practiceStrategy === "frequentMistakes") {
         return getFrequentMistakesRomajiList(questionKind);
       }
-      if (state.practiceStrategy === "srs") {
+      if (state2.practiceStrategy === "srs") {
         return filterRomajiForCurrentKanaSet(srsManager.getDueRomajiList()).slice(0, 30);
       }
       const totalAttempts = srsManager.getTotalAttempts();
@@ -12584,7 +17069,7 @@
       const due = srsManager.getDueRomajiList().length;
       const mistakes = getMistakeEntriesForKind(questionKind).length;
       const frequentMistakes = getFrequentMistakesRomajiList(questionKind).length;
-      const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "frequentMistakes" ? `Frequent mistakes: ${frequentMistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
+      const strategy = state2.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state2.practiceStrategy === "frequentMistakes" ? `Frequent mistakes: ${frequentMistakes}` : state2.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
       elements.queueMeta.textContent = strategy;
     }
     return {
@@ -12600,7 +17085,7 @@
   });
 
   // js/features/audio.js
-  function createAudioManager(state, elements) {
+  function createAudioManager(state2, elements) {
     function getAudioTextForQuestion(question) {
       if (!question) {
         return "";
@@ -12614,13 +17099,13 @@
       return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
     }
     function playCurrentAudio() {
-      if (state.audioMuted) {
+      if (state2.audioMuted) {
         return;
       }
       if (!window.speechSynthesis) {
         return;
       }
-      const text = getAudioTextForQuestion(state.currentQuestion);
+      const text = getAudioTextForQuestion(state2.currentQuestion);
       if (!text) {
         return;
       }
@@ -12646,11 +17131,11 @@
       }
     }
     function refreshAudioButton() {
-      elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
-      elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
+      elements.muteAudioBtn.textContent = state2.audioMuted ? "Audio: Off" : "Audio: On";
+      elements.muteAudioBtn.setAttribute("aria-pressed", String(state2.audioMuted));
     }
     function toggleAudioMute() {
-      state.audioMuted = !state.audioMuted;
+      state2.audioMuted = !state2.audioMuted;
       refreshAudioButton();
     }
     return {
@@ -12667,18 +17152,16 @@
 
   // js/features/answering.js
   function createAnsweringManager({
-    state,
+    state: state2,
     elements,
     srsManager,
     queueManager,
+    hintsManager,
     showResult: showResult2,
     showTypingMistake: showTypingMistake2,
-    updateStats: updateStats2,
     updateBacklog: updateBacklog2,
     addDailyAttemptFn,
-    renderBacklogViewFn,
-    refreshProgressViewFn,
-    persistStateFn
+    eventBus: eventBus2
   }) {
     function getAcceptedRomajiSet(question) {
       const primary = String(question.romaji || "");
@@ -12694,6 +17177,18 @@
       }
       return accepted;
     }
+    function recordDailyDetail(romaji, wasCorrect) {
+      if (!state2.dailyDetailStats) state2.dailyDetailStats = {};
+      const todayKey = getTodayKey();
+      if (!state2.dailyDetailStats[todayKey]) state2.dailyDetailStats[todayKey] = {};
+      const entry = state2.dailyDetailStats[todayKey][romaji] || { right: 0, wrong: 0 };
+      if (wasCorrect) {
+        entry.right += 1;
+      } else {
+        entry.wrong += 1;
+      }
+      state2.dailyDetailStats[todayKey][romaji] = entry;
+    }
     function validateTypingAnswer(romaji) {
       if (!romaji) {
         return { correct: false, answer: "", reason: "Type a romaji answer" };
@@ -12701,7 +17196,7 @@
       return { correct: true, answer: romaji };
     }
     function processTypingAnswer(userRomaji) {
-      if (!state.currentQuestion) {
+      if (!state2.currentQuestion) {
         showResult2(elements, "Create a question first.", false);
         return { accepted: false, correct: false };
       }
@@ -12710,58 +17205,56 @@
         showResult2(elements, validation.reason, false);
         return { accepted: false, correct: false };
       }
-      const correctAnswer = state.currentQuestion.romaji;
-      const trackingRomaji = state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
-      const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
+      const correctAnswer = state2.currentQuestion.romaji;
+      const trackingRomaji = state2.currentQuestion.trackingRomaji || state2.currentQuestion.romaji;
+      const acceptedAnswers = getAcceptedRomajiSet(state2.currentQuestion);
       const correct = acceptedAnswers.has(userRomaji);
+      const hintUsed = hintsManager && hintsManager.getHintsUsed() > 0;
       if (correct) {
-        state.typingRightCount += 1;
+        state2.typingRightCount += 1;
         showResult2(elements, "Correct!", true);
       } else {
-        state.typingWrongCount += 1;
+        state2.typingWrongCount += 1;
         showTypingMistake2(elements, userRomaji, correctAnswer);
+        if (userRomaji) {
+          if (!state2.confusionPairs[trackingRomaji]) {
+            state2.confusionPairs[trackingRomaji] = {};
+          }
+          state2.confusionPairs[trackingRomaji][userRomaji] = (state2.confusionPairs[trackingRomaji][userRomaji] || 0) + 1;
+        }
       }
       updateBacklog2({
-        backlog: state.backlog,
+        backlog: state2.backlog,
         romaji: trackingRomaji,
         wasCorrect: correct,
-        scriptContext: state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
+        scriptContext: state2.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
         answerMode: "typing"
       });
-      srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing");
-      addDailyAttemptFn(state, "typing", correct, trackingRomaji);
-      updateStats2(elements, state);
-      renderBacklogViewFn();
-      refreshProgressViewFn();
+      srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing", hintUsed);
+      addDailyAttemptFn(state2, "typing", correct, trackingRomaji);
+      recordDailyDetail(trackingRomaji, correct);
       queueManager.updateQueueMeta();
-      persistStateFn();
+      eventBus2.emit(correct ? "answer:correct" : "answer:wrong", { romaji: trackingRomaji, mode: "typing", userInput: userRomaji });
       return { accepted: true, correct, correctAnswer };
     }
     function processDrawingResult(wasCorrect, saveDrawingFn) {
-      if (!state.currentQuestion) {
+      if (!state2.currentQuestion) {
         showResult2(elements, "Create a question first.", false);
         return;
       }
       if (wasCorrect) {
-        state.drawingRightCount += 1;
+        state2.drawingRightCount += 1;
         saveDrawingFn();
       } else {
-        state.drawingWrongCount += 1;
+        state2.drawingWrongCount += 1;
       }
-      updateBacklog2({
-        backlog: state.backlog,
-        romaji: state.currentQuestion.romaji,
-        wasCorrect,
-        scriptContext: state.currentQuestion.canvasMode,
-        answerMode: "drawing"
-      });
-      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, wasCorrect, "drawing");
-      addDailyAttemptFn(state, "drawing", wasCorrect, state.currentQuestion.romaji);
-      updateStats2(elements, state);
-      renderBacklogViewFn();
-      refreshProgressViewFn();
+      const romaji = state2.currentQuestion.romaji;
+      updateBacklog2({ backlog: state2.backlog, romaji, wasCorrect, scriptContext: state2.currentQuestion.canvasMode, answerMode: "drawing" });
+      srsManager.updateSrsOnAttempt(romaji, wasCorrect, "drawing", false);
+      addDailyAttemptFn(state2, "drawing", wasCorrect, romaji);
+      recordDailyDetail(romaji, wasCorrect);
       queueManager.updateQueueMeta();
-      persistStateFn();
+      eventBus2.emit(wasCorrect ? "answer:correct" : "answer:wrong", { romaji, mode: "drawing" });
     }
     return {
       validateTypingAnswer,
@@ -12771,16 +17264,17 @@
   }
   var init_answering = __esm({
     "js/features/answering.js"() {
+      init_utils();
     }
   });
 
   // js/features/progressLayout.js
-  function createProgressLayoutManager({ state, elements, persistState }) {
+  function createProgressLayoutManager({ state: state2, elements, persistState }) {
     function normalizeState() {
       const validSubtabs = ["overview", "trends", "compare", "sync"];
-      state.progressSubtab = validSubtabs.includes(state.progressSubtab) ? state.progressSubtab : "overview";
-      if (!state.progressCollapsedSections || typeof state.progressCollapsedSections !== "object") {
-        state.progressCollapsedSections = {
+      state2.progressSubtab = validSubtabs.includes(state2.progressSubtab) ? state2.progressSubtab : "overview";
+      if (!state2.progressCollapsedSections || typeof state2.progressCollapsedSections !== "object") {
+        state2.progressCollapsedSections = {
           overview: false,
           trends: false,
           compare: false,
@@ -12788,11 +17282,11 @@
         };
         return;
       }
-      state.progressCollapsedSections = {
-        overview: Boolean(state.progressCollapsedSections.overview),
-        trends: Boolean(state.progressCollapsedSections.trends),
-        compare: Boolean(state.progressCollapsedSections.compare),
-        sync: Boolean(state.progressCollapsedSections.sync)
+      state2.progressCollapsedSections = {
+        overview: Boolean(state2.progressCollapsedSections.overview),
+        trends: Boolean(state2.progressCollapsedSections.trends),
+        compare: Boolean(state2.progressCollapsedSections.compare),
+        sync: Boolean(state2.progressCollapsedSections.sync)
       };
     }
     function render() {
@@ -12822,18 +17316,18 @@
         sync: elements.toggleSyncSectionBtn
       };
       Object.keys(tabMap).forEach((key) => {
-        const isActive = state.progressSubtab === key;
+        const isActive = state2.progressSubtab === key;
         tabMap[key].classList.toggle("active", isActive);
         tabMap[key].setAttribute("aria-selected", String(isActive));
         panelMap[key].classList.toggle("hidden", !isActive);
-        const isCollapsed = Boolean(state.progressCollapsedSections[key]);
+        const isCollapsed = Boolean(state2.progressCollapsedSections[key]);
         bodyMap[key].classList.toggle("hidden", isCollapsed);
         toggleMap[key].textContent = isCollapsed ? "Show" : "Hide";
         toggleMap[key].setAttribute("aria-expanded", String(!isCollapsed));
       });
     }
     function setActiveSubtab(subtabName, persist = false) {
-      state.progressSubtab = subtabName;
+      state2.progressSubtab = subtabName;
       render();
       if (persist) {
         persistState();
@@ -12841,13 +17335,13 @@
     }
     function toggleSection(sectionName) {
       normalizeState();
-      state.progressCollapsedSections[sectionName] = !state.progressCollapsedSections[sectionName];
+      state2.progressCollapsedSections[sectionName] = !state2.progressCollapsedSections[sectionName];
       render();
       persistState();
     }
     function openSyncSection() {
       normalizeState();
-      state.progressCollapsedSections.sync = false;
+      state2.progressCollapsedSections.sync = false;
       setActiveSubtab("sync", true);
     }
     return {
@@ -12872,7 +17366,7 @@
     return Math.max(min, Math.min(max, Math.round(parsed)));
   }
   function createProgressPreferencesManager({
-    state,
+    state: state2,
     elements,
     persistState,
     refreshProgressView,
@@ -12880,7 +17374,7 @@
     showResult: showResult2
   }) {
     function normalizeDailyGoalsFromState() {
-      const current = state.dailyGoals || {};
+      const current = state2.dailyGoals || {};
       const next = {
         total: clampDailyGoal(current.total, 5, 200, 25),
         typing: clampDailyGoal(current.typing, 0, 200, 12),
@@ -12889,20 +17383,20 @@
         dakuten: clampDailyGoal(current.dakuten, 0, 200, 6),
         yoon: clampDailyGoal(current.yoon, 0, 200, 6)
       };
-      state.dailyGoals = next;
-      state.dailyGoal = next.total;
+      state2.dailyGoals = next;
+      state2.dailyGoal = next.total;
     }
     function renderDailyGoalInputs() {
       normalizeDailyGoalsFromState();
-      elements.dailyGoalTotalInput.value = String(state.dailyGoals.total);
-      elements.dailyGoalTypingInput.value = String(state.dailyGoals.typing);
-      elements.dailyGoalDrawingInput.value = String(state.dailyGoals.drawing);
-      elements.dailyGoalNormalInput.value = String(state.dailyGoals.normal);
-      elements.dailyGoalDakutenInput.value = String(state.dailyGoals.dakuten);
-      elements.dailyGoalYoonInput.value = String(state.dailyGoals.yoon);
+      elements.dailyGoalTotalInput.value = String(state2.dailyGoals.total);
+      elements.dailyGoalTypingInput.value = String(state2.dailyGoals.typing);
+      elements.dailyGoalDrawingInput.value = String(state2.dailyGoals.drawing);
+      elements.dailyGoalNormalInput.value = String(state2.dailyGoals.normal);
+      elements.dailyGoalDakutenInput.value = String(state2.dailyGoals.dakuten);
+      elements.dailyGoalYoonInput.value = String(state2.dailyGoals.yoon);
     }
     function saveDailyGoalFromUi() {
-      state.dailyGoals = {
+      state2.dailyGoals = {
         total: clampDailyGoal(elements.dailyGoalTotalInput.value, 5, 200, 25),
         typing: clampDailyGoal(elements.dailyGoalTypingInput.value, 0, 200, 12),
         drawing: clampDailyGoal(elements.dailyGoalDrawingInput.value, 0, 200, 8),
@@ -12910,35 +17404,40 @@
         dakuten: clampDailyGoal(elements.dailyGoalDakutenInput.value, 0, 200, 6),
         yoon: clampDailyGoal(elements.dailyGoalYoonInput.value, 0, 200, 6)
       };
-      state.dailyGoal = state.dailyGoals.total;
+      state2.dailyGoal = state2.dailyGoals.total;
       renderDailyGoalInputs();
       persistState();
       refreshProgressView();
       showResult2(elements, "Daily goals saved.", true);
     }
     function resetBacklogFilters() {
-      state.backlogFilters = {
+      state2.backlogFilters = {
         status: "all",
         script: "all",
         weakness: "all",
-        minAttempts: 0
+        minAttempts: 0,
+        compact: false
       };
     }
     function renderBacklogFilterInputs() {
-      if (!state.backlogFilters || typeof state.backlogFilters !== "object") {
+      if (!state2.backlogFilters || typeof state2.backlogFilters !== "object") {
         resetBacklogFilters();
       }
-      elements.backlogStatusFilter.value = state.backlogFilters.status;
-      elements.backlogScriptFilter.value = state.backlogFilters.script;
-      elements.backlogWeaknessFilter.value = state.backlogFilters.weakness;
-      elements.backlogMinAttemptsFilter.value = String(state.backlogFilters.minAttempts);
+      elements.backlogStatusFilter.value = state2.backlogFilters.status;
+      elements.backlogScriptFilter.value = state2.backlogFilters.script;
+      elements.backlogWeaknessFilter.value = state2.backlogFilters.weakness;
+      elements.backlogMinAttemptsFilter.value = String(state2.backlogFilters.minAttempts);
+      if (elements.backlogCompactToggle) {
+        elements.backlogCompactToggle.checked = Boolean(state2.backlogFilters.compact);
+      }
     }
     function applyBacklogFiltersFromUi() {
-      state.backlogFilters = {
+      state2.backlogFilters = {
         status: elements.backlogStatusFilter.value,
         script: elements.backlogScriptFilter.value,
         weakness: elements.backlogWeaknessFilter.value,
-        minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0)
+        minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0),
+        compact: Boolean(elements.backlogCompactToggle && elements.backlogCompactToggle.checked)
       };
       renderBacklogFilterInputs();
       renderBacklogView();
@@ -12961,7 +17460,7 @@
 
   // js/features/backup.js
   function createBackupManager({
-    state,
+    state: state2,
     kanaData: kanaData2,
     MAX_DRAWINGS_PER_KANA: MAX_DRAWINGS_PER_KANA2,
     DAILY_HISTORY_LIMIT: DAILY_HISTORY_LIMIT2,
@@ -13072,22 +17571,22 @@
       if (!importedPayload || typeof importedPayload !== "object") {
         return;
       }
-      const localPayload = buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
-      state.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
-      state.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
-      state.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
-      state.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
-      Object.keys(state.srsByRomaji).forEach((romaji) => {
+      const localPayload = buildProgressPayload2({ state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      state2.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
+      state2.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
+      state2.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
+      state2.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
+      Object.keys(state2.srsByRomaji).forEach((romaji) => {
         const localEntry = localPayload.srsByRomaji && localPayload.srsByRomaji[romaji];
         const incomingEntry = importedPayload.srsByRomaji && importedPayload.srsByRomaji[romaji];
-        state.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
+        state2.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
       });
-      Object.keys(state.backlog).forEach((romaji) => {
+      Object.keys(state2.backlog).forEach((romaji) => {
         const incomingRow = importedPayload.backlog && importedPayload.backlog[romaji];
-        mergeBacklogRow(state.backlog[romaji], incomingRow);
+        mergeBacklogRow(state2.backlog[romaji], incomingRow);
       });
-      mergeDailyStats(state.dailyStats, importedPayload.dailyStats);
-      mergeDailyCategoryStats(state.dailyCategoryStats, importedPayload.dailyCategoryStats);
+      mergeDailyStats(state2.dailyStats, importedPayload.dailyStats);
+      mergeDailyCategoryStats(state2.dailyCategoryStats, importedPayload.dailyCategoryStats);
       const combinedTypingMistakes = [
         ...Array.isArray(importedPayload.recentTypingMistakes) ? importedPayload.recentTypingMistakes : [],
         ...Array.isArray(localPayload.recentTypingMistakes) ? localPayload.recentTypingMistakes : []
@@ -13096,14 +17595,14 @@
         ...Array.isArray(importedPayload.recentDrawingMistakes) ? importedPayload.recentDrawingMistakes : [],
         ...Array.isArray(localPayload.recentDrawingMistakes) ? localPayload.recentDrawingMistakes : []
       ].filter((value) => typeof value === "string");
-      state.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
-      state.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
-      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
+      state2.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
+      state2.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
+      state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes, ...state2.recentDrawingMistakes])].slice(0, 120);
       if (importedPayload.drawingsByKana && typeof importedPayload.drawingsByKana === "object") {
         Object.keys(importedPayload.drawingsByKana).forEach((kanaChar) => {
-          const localList = Array.isArray(state.drawingsByKana[kanaChar]) ? state.drawingsByKana[kanaChar] : [];
+          const localList = Array.isArray(state2.drawingsByKana[kanaChar]) ? state2.drawingsByKana[kanaChar] : [];
           const incomingList = Array.isArray(importedPayload.drawingsByKana[kanaChar]) ? importedPayload.drawingsByKana[kanaChar].filter((value) => typeof value === "string") : [];
-          state.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA2);
+          state2.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA2);
         });
       }
       const localGoals = localPayload.dailyGoals && typeof localPayload.dailyGoals === "object" ? localPayload.dailyGoals : { total: localPayload.dailyGoal };
@@ -13111,7 +17610,7 @@
       const localTotalGoal = clampDailyGoal(localGoals.total, 5, 200, 25);
       const importedTotalGoal = clampDailyGoal(incomingGoals.total, 5, 200, 25);
       const shouldUseImportedGoals = localTotalGoal === 25 && importedTotalGoal !== 25;
-      state.dailyGoals = {
+      state2.dailyGoals = {
         total: shouldUseImportedGoals ? importedTotalGoal : localTotalGoal,
         typing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.typing, 0, 200, 12) : clampDailyGoal(localGoals.typing, 0, 200, 12),
         drawing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.drawing, 0, 200, 8) : clampDailyGoal(localGoals.drawing, 0, 200, 8),
@@ -13119,8 +17618,39 @@
         dakuten: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.dakuten, 0, 200, 6) : clampDailyGoal(localGoals.dakuten, 0, 200, 6),
         yoon: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.yoon, 0, 200, 6) : clampDailyGoal(localGoals.yoon, 0, 200, 6)
       };
-      state.dailyGoal = state.dailyGoals.total;
-      state.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
+      state2.dailyGoal = state2.dailyGoals.total;
+      state2.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
+    }
+    function validateStateSchema(payload) {
+      if (!payload || typeof payload !== "object") {
+        return { ok: false, reason: "Payload is not an object." };
+      }
+      if (payload.backlog && typeof payload.backlog !== "object") {
+        return { ok: false, reason: "backlog must be an object." };
+      }
+      if (payload.srsByRomaji && typeof payload.srsByRomaji !== "object") {
+        return { ok: false, reason: "srsByRomaji must be an object." };
+      }
+      if (payload.dailyStats && typeof payload.dailyStats !== "object") {
+        return { ok: false, reason: "dailyStats must be an object." };
+      }
+      if (payload.dailyCategoryStats && typeof payload.dailyCategoryStats !== "object") {
+        return { ok: false, reason: "dailyCategoryStats must be an object." };
+      }
+      if (payload.drawingsByKana && typeof payload.drawingsByKana !== "object") {
+        return { ok: false, reason: "drawingsByKana must be an object." };
+      }
+      const arraysToCheck = [
+        ["recentTypingMistakes", payload.recentTypingMistakes],
+        ["recentDrawingMistakes", payload.recentDrawingMistakes],
+        ["recentMistakes", payload.recentMistakes]
+      ];
+      for (const [name4, value] of arraysToCheck) {
+        if (value !== void 0 && !Array.isArray(value)) {
+          return { ok: false, reason: `${name4} must be an array.` };
+        }
+      }
+      return { ok: true };
     }
     function downloadTextFile(filename, content, mimeType) {
       const blob = new Blob([content], { type: mimeType });
@@ -13134,7 +17664,7 @@
       URL.revokeObjectURL(url);
     }
     function exportLocalProgress() {
-      const payload = buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      const payload = buildProgressPayload2({ state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
       const now = /* @__PURE__ */ new Date();
       const timestamp = [
         now.getFullYear(),
@@ -13157,12 +17687,17 @@
       try {
         const raw = await file.text();
         payload = JSON.parse(raw);
-      } catch (e) {
+      } catch {
         showResultFn("Import failed: invalid JSON file.", false);
         return;
       }
       if (!payload || typeof payload !== "object") {
         showResultFn("Import failed: backup format is not valid.", false);
+        return;
+      }
+      const schemaCheck = validateStateSchema(payload);
+      if (!schemaCheck.ok) {
+        showResultFn(`Import failed: ${schemaCheck.reason}`, false);
         return;
       }
       const shouldMerge = window.confirm(
@@ -13177,7 +17712,7 @@
         }
         applyProgressPayload2({
           payload,
-          state,
+          state: state2,
           kanaData: kanaData2,
           maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA2,
           dailyHistoryLimit: DAILY_HISTORY_LIMIT2
@@ -13190,12 +17725,12 @@
       );
     }
     function getLocalPayload() {
-      return buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      return buildProgressPayload2({ state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
     }
     function applyRemotePayload(payload) {
       applyProgressPayload2({
         payload,
-        state,
+        state: state2,
         kanaData: kanaData2,
         maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA2,
         dailyHistoryLimit: DAILY_HISTORY_LIMIT2
@@ -13215,7 +17750,7 @@
   });
 
   // js/features/distractors.js
-  function createDistractorRenderer({ elements, state, kanaData: kanaData2 }) {
+  function createDistractorRenderer({ elements, state: state2, kanaData: kanaData2 }) {
     function getLastVowel(romaji) {
       const match = String(romaji).match(/[aiueo](?!.*[aiueo])/);
       return match ? match[0] : "";
@@ -13277,21 +17812,21 @@
       }
       return arr;
     }
-    function pickRandomDistinct(source, count, excluded = /* @__PURE__ */ new Set()) {
+    function pickRandomDistinct(source, count2, excluded = /* @__PURE__ */ new Set()) {
       const filtered = source.filter((item) => !excluded.has(item));
       const shuffled = shuffleArray(filtered);
-      return shuffled.slice(0, count);
+      return shuffled.slice(0, count2);
     }
     function renderQuickAnswerOptions() {
       if (!elements.quickAnswerOptions) {
         return;
       }
-      if (!state.currentQuestion || state.currentQuestion.kind !== "typing") {
+      if (!state2.currentQuestion || state2.currentQuestion.kind !== "typing") {
         elements.quickAnswerOptions.innerHTML = "";
         elements.quickAnswerOptions.classList.add("hidden");
         return;
       }
-      const correct = state.currentQuestion.romaji;
+      const correct = state2.currentQuestion.romaji;
       const allRomaji = kanaData2.map((item) => item.romaji).filter((romaji) => romaji !== correct);
       const ranked = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score);
       let similarPool = ranked.filter((item) => item.score >= 3).map((item) => item.romaji);
@@ -13299,7 +17834,11 @@
         similarPool = ranked.slice(0, 12).map((item) => item.romaji);
       }
       const distractorSet = /* @__PURE__ */ new Set();
-      pickRandomDistinct(similarPool, 2).forEach((romaji) => distractorSet.add(romaji));
+      const confusionPairs = state2.confusionPairs && state2.confusionPairs[correct] || {};
+      const confusedRomaji = Object.entries(confusionPairs).sort((a, b2) => b2[1] - a[1]).map(([romaji]) => romaji).filter((romaji) => romaji !== correct && kanaData2.some((k2) => k2.romaji === romaji));
+      confusedRomaji.slice(0, 2).forEach((romaji) => distractorSet.add(romaji));
+      const similarNeeded = Math.max(0, 2 - distractorSet.size);
+      pickRandomDistinct(similarPool, similarNeeded, distractorSet).forEach((romaji) => distractorSet.add(romaji));
       pickRandomDistinct(allRomaji, 1, distractorSet).forEach((romaji) => distractorSet.add(romaji));
       if (distractorSet.size < 3) {
         pickRandomDistinct(allRomaji, 3 - distractorSet.size, distractorSet).forEach(
@@ -13319,13 +17858,382 @@
     }
   });
 
-  // js/app.js
-  var require_app = __commonJS({
-    "js/app.js"() {
+  // js/features/hints.js
+  function createHintsManager() {
+    let _fullAnswer = "";
+    let _revealed = 0;
+    function setQuestion(question) {
+      _fullAnswer = String(question && question.romaji ? question.romaji : "");
+      _revealed = 0;
+    }
+    function reset() {
+      _fullAnswer = "";
+      _revealed = 0;
+    }
+    function getHintsUsed() {
+      return _revealed;
+    }
+    function getTotalHints() {
+      return _fullAnswer.length;
+    }
+    function isExhausted() {
+      return _revealed >= _fullAnswer.length && _fullAnswer.length > 0;
+    }
+    function revealNext() {
+      if (!_fullAnswer) return null;
+      if (_revealed < _fullAnswer.length) _revealed += 1;
+      return _fullAnswer.slice(0, _revealed);
+    }
+    function getNextHint() {
+      if (!_fullAnswer) return null;
+      return _fullAnswer.slice(0, _revealed + 1);
+    }
+    function getFullHint() {
+      return _fullAnswer;
+    }
+    return {
+      setQuestion,
+      reset,
+      getHintsUsed,
+      getTotalHints,
+      isExhausted,
+      revealNext,
+      getNextHint,
+      getFullHint
+    };
+  }
+  var init_hints = __esm({
+    "js/features/hints.js"() {
+    }
+  });
+
+  // js/core/keyboard.js
+  var KeyboardController;
+  var init_keyboard = __esm({
+    "js/core/keyboard.js"() {
+      KeyboardController = class {
+        /**
+         * @param {HTMLElement} inputElement - The typing answer input element.
+         *   Shortcuts are suppressed while this element has focus.
+         */
+        constructor(inputElement) {
+          this._input = inputElement;
+          this._handlers = /* @__PURE__ */ new Map();
+          this._listener = this._onKeyDown.bind(this);
+          document.addEventListener("keydown", this._listener);
+        }
+        /**
+         * Register a keyboard shortcut.
+         * @param {string} code - KeyboardEvent.code value, e.g. "Space", "KeyR"
+         * @param {function} handler
+         */
+        register(code, handler) {
+          this._handlers.set(code, handler);
+        }
+        /** Remove a registered shortcut. */
+        unregister(code) {
+          this._handlers.delete(code);
+        }
+        /** Detach the global listener (call on teardown). */
+        destroy() {
+          document.removeEventListener("keydown", this._listener);
+        }
+        _onKeyDown(event) {
+          if (document.querySelector(".confirm-overlay")) {
+            return;
+          }
+          const active = document.activeElement;
+          if (active === this._input || active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+            return;
+          }
+          const handler = this._handlers.get(event.code);
+          if (!handler) return;
+          event.preventDefault();
+          try {
+            handler(event);
+          } catch (err) {
+            console.error(`[KeyboardController] Error in handler for "${event.code}":`, err);
+          }
+        }
+      };
+    }
+  });
+
+  // js/core/swipe.js
+  function createSwipeDetector(element, options = {}) {
+    const minDistance = options.minDistance ?? DEFAULT_MIN_DISTANCE;
+    const onSwipeLeft = options.onSwipeLeft || null;
+    const onSwipeRight = options.onSwipeRight || null;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    function onPointerDown(event) {
+      if (!event.isPrimary) return;
+      startX = event.clientX;
+      startY = event.clientY;
+      tracking = true;
+    }
+    function onPointerUp(event) {
+      if (!tracking || !event.isPrimary) return;
+      tracking = false;
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+      if (Math.abs(dx) < minDistance) return;
+      if (Math.abs(dy) > Math.abs(dx) * DEFAULT_MAX_VERTICAL_RATIO) return;
+      if (dx > 0 && onSwipeRight) {
+        try {
+          onSwipeRight();
+        } catch (err) {
+          console.error("[SwipeDetector] onSwipeRight error:", err);
+        }
+      } else if (dx < 0 && onSwipeLeft) {
+        try {
+          onSwipeLeft();
+        } catch (err) {
+          console.error("[SwipeDetector] onSwipeLeft error:", err);
+        }
+      }
+    }
+    function onPointerCancel() {
+      tracking = false;
+    }
+    element.addEventListener("pointerdown", onPointerDown);
+    element.addEventListener("pointerup", onPointerUp);
+    element.addEventListener("pointercancel", onPointerCancel);
+    return {
+      destroy() {
+        element.removeEventListener("pointerdown", onPointerDown);
+        element.removeEventListener("pointerup", onPointerUp);
+        element.removeEventListener("pointercancel", onPointerCancel);
+      }
+    };
+  }
+  var DEFAULT_MIN_DISTANCE, DEFAULT_MAX_VERTICAL_RATIO;
+  var init_swipe = __esm({
+    "js/core/swipe.js"() {
+      DEFAULT_MIN_DISTANCE = 60;
+      DEFAULT_MAX_VERTICAL_RATIO = 0.6;
+    }
+  });
+
+  // js/core/confirm.js
+  function showConfirm(message, confirmLabel = "Confirm", cancelLabel = "Cancel") {
+    return new Promise((resolve) => {
+      const overlay = document.createElement("div");
+      overlay.className = "confirm-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-label", "Confirmation");
+      const dialog = document.createElement("div");
+      dialog.className = "confirm-dialog";
+      const msg = document.createElement("p");
+      msg.className = "confirm-message";
+      msg.textContent = message;
+      const actions = document.createElement("div");
+      actions.className = "confirm-actions";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "btn-secondary confirm-cancel";
+      cancelBtn.textContent = cancelLabel;
+      const confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.className = "btn-danger confirm-ok";
+      confirmBtn.textContent = confirmLabel;
+      actions.append(cancelBtn, confirmBtn);
+      dialog.append(msg, actions);
+      overlay.append(dialog);
+      document.body.append(overlay);
+      cancelBtn.focus();
+      function cleanup(result) {
+        overlay.remove();
+        resolve(result);
+      }
+      confirmBtn.addEventListener("click", () => cleanup(true));
+      cancelBtn.addEventListener("click", () => cleanup(false));
+      overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) cleanup(false);
+      });
+      function onKeyDown(event) {
+        if (event.key === "Escape") {
+          document.removeEventListener("keydown", onKeyDown);
+          cleanup(false);
+        }
+      }
+      document.addEventListener("keydown", onKeyDown);
+    });
+  }
+  var init_confirm = __esm({
+    "js/core/confirm.js"() {
+    }
+  });
+
+  // js/init/eventBinder.js
+  function bindEvents(elements, state2) {
+    elements.newQuestionBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
+    elements.modeSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_MODE_CHANGED));
+    elements.scriptSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
+    elements.kanaSetSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_KANA_SET_CHANGED));
+    elements.practiceStrategySelect.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.QUIZ_STRATEGY_CHANGED)
+    );
+    elements.writingScriptSelect.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.QUIZ_WRITING_SCRIPT_CHANGED)
+    );
+    elements.checkBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_CHECK_ANSWER));
+    elements.answerInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        eventBus.emit(EVENT_NAMES.QUIZ_CHECK_ANSWER);
+      }
+    });
+    elements.answerInput.addEventListener("input", () => {
+      const el = elements.answerInput;
+      const current = "value" in el ? el.value : el.textContent || "";
+      const cleaned = current.replace(/[\r\n]+/g, "");
+      if (cleaned !== current) {
+        if ("value" in el) {
+          el.value = cleaned;
+        } else {
+          el.textContent = cleaned;
+        }
+      }
+    });
+    if (elements.quickAnswerOptions) {
+      elements.quickAnswerOptions.addEventListener("click", (event) => {
+        const button = event.target.closest(".quick-answer-btn");
+        if (!button || button.disabled) return;
+        eventBus.emit(EVENT_NAMES.QUIZ_QUICK_ANSWER, { answer: button.dataset.answer || "" });
+      });
+    }
+    elements.revealBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_REVEAL_DRAWING));
+    elements.clearCanvasBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_CLEAR_CANVAS));
+    elements.markRightBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT));
+    elements.markWrongBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG));
+    elements.playAudioBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.AUDIO_PLAY));
+    elements.muteAudioBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.AUDIO_TOGGLE_MUTE));
+    elements.backlogTabBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.TAB_BACKLOG));
+    elements.dailyProgressTabBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.TAB_PROGRESS));
+    elements.openSyncBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.TAB_SYNC));
+    elements.progressOverviewTabBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_TAB_CHANGED, { tab: "overview" })
+    );
+    elements.progressTrendsTabBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_TAB_CHANGED, { tab: "trends" })
+    );
+    elements.progressCompareTabBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_TAB_CHANGED, { tab: "compare" })
+    );
+    elements.progressSyncTabBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_TAB_CHANGED, { tab: "sync" })
+    );
+    elements.toggleOverviewSectionBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_SECTION_TOGGLED, { section: "overview" })
+    );
+    elements.toggleTrendsSectionBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_SECTION_TOGGLED, { section: "trends" })
+    );
+    elements.toggleCompareSectionBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_SECTION_TOGGLED, { section: "compare" })
+    );
+    elements.toggleSyncSectionBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.PROGRESS_SECTION_TOGGLED, { section: "sync" })
+    );
+    elements.backlogStatusFilter.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.BACKLOG_FILTER_CHANGED)
+    );
+    elements.backlogScriptFilter.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.BACKLOG_FILTER_CHANGED)
+    );
+    elements.backlogWeaknessFilter.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.BACKLOG_FILTER_CHANGED)
+    );
+    elements.backlogMinAttemptsFilter.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.BACKLOG_FILTER_CHANGED)
+    );
+    elements.backlogCompactToggle.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.BACKLOG_FILTER_CHANGED)
+    );
+    elements.resetBacklogFiltersBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.BACKLOG_FILTER_RESET)
+    );
+    elements.saveDailyGoalBtn.addEventListener(
+      "click",
+      () => eventBus.emit(EVENT_NAMES.SETTINGS_SAVE_GOAL)
+    );
+    [
+      elements.dailyGoalTotalInput,
+      elements.dailyGoalTypingInput,
+      elements.dailyGoalDrawingInput,
+      elements.dailyGoalNormalInput,
+      elements.dailyGoalDakutenInput,
+      elements.dailyGoalYoonInput
+    ].forEach((input) => {
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          eventBus.emit(EVENT_NAMES.SETTINGS_SAVE_GOAL);
+        }
+      });
+    });
+    elements.drawGuideToggle.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.SETTINGS_DRAW_GUIDE_CHANGED)
+    );
+    elements.exportDataBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.DATA_EXPORT));
+    elements.importDataBtn.addEventListener("click", () => elements.importDataInput.click());
+    elements.importDataInput.addEventListener("change", () => {
+      const file = elements.importDataInput.files && elements.importDataInput.files[0] ? elements.importDataInput.files[0] : null;
+      eventBus.emit(EVENT_NAMES.DATA_IMPORT, { file });
+      elements.importDataInput.value = "";
+    });
+    elements.resetAllDataBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_RESET_ALL));
+    elements.backlogPanel.addEventListener("click", (event) => {
+      const button = event.target.closest(".view-drawings-btn");
+      if (!button) return;
+      const kanaChar = button.dataset.kana;
+      if (kanaChar) eventBus.emit(EVENT_NAMES.GALLERY_OPEN, { kanaChar });
+    });
+    elements.closeGalleryBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.GALLERY_CLOSE));
+    window.addEventListener("resize", () => {
+      redrawProgressGraph(elements, state2);
+      eventBus.emit(EVENT_NAMES.UI_RESIZE);
+    });
+    window.addEventListener("visibilitychange", () => {
+      if (!document.hidden) eventBus.emit(EVENT_NAMES.UI_VISIBLE);
+    });
+    bindProgressCompareSelectors(elements, state2);
+  }
+  var init_eventBinder = __esm({
+    "js/init/eventBinder.js"() {
+      init_eventBus();
+      init_progress();
+    }
+  });
+
+  // js/init/bootstrap.js
+  var require_bootstrap = __commonJS({
+    "js/init/bootstrap.js"() {
       init_kanaData();
       init_elements();
       init_state();
       init_utils();
+      init_eventBus();
       init_ui();
       init_backlog();
       init_quiz();
@@ -13341,32 +18249,38 @@
       init_progressPreferences();
       init_backup();
       init_distractors();
+      init_hints();
+      init_keyboard();
+      init_swipe();
+      init_confirm();
+      init_eventBinder();
       var elements = getElements();
-      var state = createState(kanaData);
+      var state2 = createState(kanaData);
       var drawingFeature = createDrawingFeature({
         elements,
-        state,
-        maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA
+        state: state2,
+        maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
+        eventBus,
+        EVENT_NAMES
       });
       var getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
-      var srsManager = createSrsManager(state);
-      var queueManager = createQueueManager(state, elements, srsManager, getKanaCategoryFn);
-      var audioManager = createAudioManager(state, elements);
+      var srsManager = createSrsManager(state2);
+      var queueManager = createQueueManager(state2, elements, srsManager, getKanaCategoryFn);
+      var audioManager = createAudioManager(state2, elements);
+      var hintsManager = createHintsManager();
       var answeringManager = createAnsweringManager({
-        state,
+        state: state2,
         elements,
         srsManager,
         queueManager,
-        showResult,
-        showTypingMistake,
-        updateStats,
+        hintsManager,
+        showResult: (msg, ok) => showResult(elements, msg, ok),
+        showTypingMistake: (user, correct) => showTypingMistake(elements, user, correct),
         updateBacklog,
         addDailyAttemptFn: (targetState, mode, wasCorrect, romaji) => {
           addDailyAttempt(targetState, mode, wasCorrect, getKanaCategoryFn(romaji));
         },
-        renderBacklogViewFn: () => renderBacklogView(),
-        refreshProgressViewFn: () => refreshProgressView(),
-        persistStateFn: () => persistState()
+        eventBus
       });
       var cloudSync = { queueUpload() {
       }, async syncNow() {
@@ -13378,17 +18292,15 @@
       var deferredInstallPrompt = null;
       var isCoarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
       function getAnswerInputValue() {
-        if ("value" in elements.answerInput) {
-          return elements.answerInput.value;
-        }
+        if ("value" in elements.answerInput) return elements.answerInput.value;
         return elements.answerInput.textContent || "";
       }
       function setAnswerInputValue(value) {
         if ("value" in elements.answerInput) {
           elements.answerInput.value = value;
-          return;
+        } else {
+          elements.answerInput.textContent = value;
         }
-        elements.answerInput.textContent = value;
       }
       function focusAnswerInput() {
         elements.answerInput.focus();
@@ -13401,9 +18313,7 @@
         const muteAudioBtn = document.getElementById("muteAudioBtn");
         const promptWrap = document.querySelector(".prompt-wrap");
         const quizCard = promptWrap ? promptWrap.closest(".quiz") : null;
-        if (!playAudioBtn || !muteAudioBtn || !promptWrap || !quizCard) {
-          return;
-        }
+        if (!playAudioBtn || !muteAudioBtn || !promptWrap || !quizCard) return;
         let quickActions = quizCard.querySelector(".quiz-quick-actions");
         if (!quickActions) {
           quickActions = document.createElement("div");
@@ -13413,9 +18323,7 @@
         quizCard.insertBefore(quickActions, promptWrap);
       }
       function setupPwaInstall() {
-        if (!("serviceWorker" in navigator)) {
-          return;
-        }
+        if (!("serviceWorker" in navigator)) return;
         navigator.serviceWorker.register("sw.js").catch(() => {
         });
         window.addEventListener("beforeinstallprompt", (event) => {
@@ -13424,9 +18332,7 @@
           elements.installAppBtn.classList.remove("hidden");
         });
         elements.installAppBtn.addEventListener("click", async () => {
-          if (!deferredInstallPrompt) {
-            return;
-          }
+          if (!deferredInstallPrompt) return;
           deferredInstallPrompt.prompt();
           await deferredInstallPrompt.userChoice;
           deferredInstallPrompt = null;
@@ -13440,126 +18346,66 @@
       function renderBacklogView() {
         renderBacklog({
           kanaData,
-          backlog: state.backlog,
-          drawingsByKana: state.drawingsByKana,
+          backlog: state2.backlog,
+          drawingsByKana: state2.drawingsByKana,
           getKanaCategoryFn,
-          filters: state.backlogFilters
+          filters: state2.backlogFilters,
+          srsByRomaji: state2.srsByRomaji
         });
       }
       function persistState() {
         saveProgress({
           storageKey: STORAGE_KEY,
-          state,
+          state: state2,
           dailyHistoryLimit: DAILY_HISTORY_LIMIT
         });
         cloudSync.queueUpload();
       }
-      function normalizeDailyGoalsFromState() {
-        progressPreferencesManager.normalizeDailyGoalsFromState();
-      }
-      function renderDailyGoalInputs() {
-        progressPreferencesManager.renderDailyGoalInputs();
-      }
-      function saveDailyGoalFromUi() {
-        progressPreferencesManager.saveDailyGoalFromUi();
-      }
-      function resetBacklogFilters() {
-        progressPreferencesManager.resetBacklogFilters();
-      }
-      function renderBacklogFilterInputs() {
-        progressPreferencesManager.renderBacklogFilterInputs();
-      }
-      function applyBacklogFiltersFromUi() {
-        progressPreferencesManager.applyBacklogFiltersFromUi();
-      }
-      function normalizeProgressLayoutState() {
-        progressLayoutManager.normalizeState();
-      }
-      function renderProgressSubtabUi() {
-        progressLayoutManager.render();
-      }
-      function setActiveProgressSubtab(subtabName) {
-        progressLayoutManager.setActiveSubtab(subtabName);
-      }
-      function toggleProgressSection(sectionName) {
-        progressLayoutManager.toggleSection(sectionName);
-      }
-      function exportLocalProgress() {
-        backupManager.exportLocalProgress();
-      }
-      async function importLocalProgressFromFile(file) {
-        await backupManager.importLocalProgressFromFile(file);
-      }
-      function getLocalPayload() {
-        return backupManager.getLocalPayload();
-      }
-      function applyRemotePayload(payload) {
-        backupManager.applyRemotePayload(payload);
-      }
       function refreshProgressView() {
-        renderDailyProgress({ elements, state, setActiveProgressTab });
-        renderProgressSubtabUi();
+        renderDailyProgress({ elements, state: state2, setActiveProgressTab });
+        renderGoalProgress(elements, state2);
+        progressLayoutManager && progressLayoutManager.render();
       }
       function ensureTodayEntry() {
         const todayKey = getTodayKey();
-        if (!state.dailyStats[todayKey]) {
-          state.dailyStats[todayKey] = {
+        if (!state2.dailyStats[todayKey]) {
+          state2.dailyStats[todayKey] = {
             typingRight: 0,
             typingWrong: 0,
             drawingRight: 0,
             drawingWrong: 0
           };
         }
-        if (!state.dailyCategoryStats[todayKey]) {
-          state.dailyCategoryStats[todayKey] = {
+        if (!state2.dailyCategoryStats[todayKey]) {
+          state2.dailyCategoryStats[todayKey] = {
             normal: 0,
             dakuten: 0,
             yoon: 0
           };
         }
       }
-      function setupAnswerInputGuards() {
-        const input = elements.answerInput;
-        function looksLikeCredential(value) {
-          if (!value) {
-            return false;
-          }
-          if (value.length > 24) {
-            return true;
-          }
-          return /@|\s|https?:\/\//i.test(value) || /[^a-z-]/i.test(value);
+      function updateStreak() {
+        const todayKey = getTodayKey();
+        const streak = state2.streakData || { current: 0, best: 0, lastPracticeDate: "" };
+        if (streak.lastPracticeDate === todayKey) return;
+        const yesterday = (() => {
+          const d2 = new Date(todayKey);
+          d2.setDate(d2.getDate() - 1);
+          return d2.toISOString().slice(0, 10);
+        })();
+        if (streak.lastPracticeDate === yesterday) {
+          streak.current += 1;
+        } else {
+          streak.current = 1;
         }
-        function clearCredentialLikeValue() {
-          const currentValue = "value" in input ? input.value : input.textContent || "";
-          if (looksLikeCredential(currentValue)) {
-            if ("value" in input) {
-              input.value = "";
-            } else {
-              input.textContent = "";
-            }
-          }
-        }
-        input.addEventListener("focus", clearCredentialLikeValue);
-        input.addEventListener("pointerdown", clearCredentialLikeValue);
-        input.addEventListener("touchstart", clearCredentialLikeValue);
-        input.addEventListener("keydown", clearCredentialLikeValue);
-        setTimeout(() => {
-          clearCredentialLikeValue();
-        }, 200);
-      }
-      function scheduleNextTypingQuestion(delayMs = 700) {
-        if (state.nextQuestionTimer) {
-          clearTimeout(state.nextQuestionTimer);
-        }
-        state.nextQuestionTimer = setTimeout(() => {
-          state.nextQuestionTimer = null;
-          newQuestion();
-        }, delayMs);
+        streak.best = Math.max(streak.best, streak.current);
+        streak.lastPracticeDate = todayKey;
+        state2.streakData = streak;
       }
       function switchModeUI() {
         const mode = elements.modeSelect.value;
         const isMixedMode = mode === "mixedPractice";
-        const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
+        const activeQuestionKind = state2.currentQuestion ? state2.currentQuestion.kind : "typing";
         const isTypingQuestion = mode === "kanaToRomaji" || isMixedMode && activeQuestionKind === "typing";
         const isDrawingQuestion = mode === "romajiToKana" || isMixedMode && activeQuestionKind === "drawing";
         elements.typingArea.classList.toggle("hidden", !isTypingQuestion);
@@ -13568,56 +18414,53 @@
         elements.writingScriptGroup.classList.toggle("hidden", !isDrawingQuestion);
         drawingFeature.setDrawingMarkButtonsEnabled(false);
         if (isDrawingQuestion) {
-          const currentMode = state.currentQuestion && state.currentQuestion.canvasMode ? state.currentQuestion.canvasMode : elements.writingScriptSelect.value === "mixed" ? "both" : elements.writingScriptSelect.value;
+          const currentMode = state2.currentQuestion && state2.currentQuestion.canvasMode ? state2.currentQuestion.canvasMode : elements.writingScriptSelect.value === "mixed" ? "both" : elements.writingScriptSelect.value;
           drawingFeature.setDrawingCanvasVisibility(currentMode);
         }
         if (isTypingQuestion) {
-          if (shouldAutoFocusAnswer()) {
-            focusAnswerInput();
-          }
-          if (elements.quickAnswerOptions) {
-            elements.quickAnswerOptions.classList.remove("hidden");
-          }
+          if (shouldAutoFocusAnswer()) focusAnswerInput();
+          if (elements.quickAnswerOptions) elements.quickAnswerOptions.classList.remove("hidden");
         } else if (elements.quickAnswerOptions) {
           elements.quickAnswerOptions.classList.add("hidden");
         }
         resetResult(elements);
       }
       function newQuestion() {
-        if (state.nextQuestionTimer) {
-          clearTimeout(state.nextQuestionTimer);
-          state.nextQuestionTimer = null;
+        if (state2.nextQuestionTimer) {
+          clearTimeout(state2.nextQuestionTimer);
+          state2.nextQuestionTimer = null;
         }
+        hintsManager.reset();
         try {
           const mode = elements.modeSelect.value;
           const nextQuestionKind = mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing";
-          const previousRomaji = state.currentQuestion ? state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null : null;
+          const previousRomaji = state2.currentQuestion ? state2.currentQuestion.trackingRomaji || state2.currentQuestion.romaji || null : null;
           const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
           if (nextQuestionKind === "typing") {
-            state.currentQuestion = pickTypingQuestion({
+            state2.currentQuestion = pickTypingQuestion({
               kanaData,
               scriptMode: elements.scriptSelect.value,
               kanaSet: elements.kanaSetSelect.value,
               getKanaCategoryFn,
               getQuestionWeightFn: getQuestionWeight,
-              backlog: state.backlog,
+              backlog: state2.backlog,
               preferredRomajiList,
               avoidRomaji: previousRomaji
             });
           } else {
-            state.currentQuestion = pickWritingQuestion({
+            state2.currentQuestion = pickWritingQuestion({
               kanaData,
               writingMode: elements.writingScriptSelect.value,
               kanaSet: elements.kanaSetSelect.value,
               getKanaCategoryFn,
               getQuestionWeightFn: getQuestionWeight,
-              backlog: state.backlog,
+              backlog: state2.backlog,
               preferredRomajiList,
               avoidRomaji: previousRomaji
             });
           }
         } catch (error) {
-          state.currentQuestion = null;
+          state2.currentQuestion = null;
           showResult(elements, `Question error: ${error.message}`, false);
           return;
         }
@@ -13626,35 +18469,61 @@
         setAnswerInputValue("");
         drawingFeature.clearAllCanvases();
         drawingFeature.setDrawingMarkButtonsEnabled(false);
-        if (state.currentQuestion.kind === "typing") {
-          elements.promptElement.textContent = state.currentQuestion.kana;
-          if (shouldAutoFocusAnswer()) {
-            focusAnswerInput();
-          }
+        if (state2.currentQuestion.kind === "typing") {
+          elements.promptElement.textContent = state2.currentQuestion.kana;
+          hintsManager.setQuestion(state2.currentQuestion);
+          updateHintButton();
+          if (shouldAutoFocusAnswer()) focusAnswerInput();
         } else {
-          drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
-          elements.promptElement.textContent = state.currentQuestion.promptText;
+          drawingFeature.setDrawingCanvasVisibility(state2.currentQuestion.canvasMode);
+          elements.promptElement.textContent = state2.currentQuestion.promptText;
         }
-        distractorRenderer.renderQuickAnswerOptions();
+        distractorRenderer && distractorRenderer.renderQuickAnswerOptions();
         queueManager.updateQueueMeta();
+        eventBus.emit(EVENT_NAMES.QUESTION_NEW);
+      }
+      function updateHintButton() {
+        const btn = document.getElementById("hintBtn");
+        if (!btn) return;
+        const hintText = hintsManager.getNextHint();
+        if (hintText === null) {
+          btn.textContent = "Hint";
+          btn.disabled = false;
+          btn.classList.remove("hint-exhausted");
+          return;
+        }
+        if (hintsManager.isExhausted()) {
+          btn.textContent = hintsManager.getFullHint();
+          btn.disabled = true;
+          btn.classList.add("hint-exhausted");
+          return;
+        }
+        btn.disabled = false;
+        btn.classList.remove("hint-exhausted");
+        btn.textContent = `Hint (${hintsManager.getHintsUsed()}/${hintsManager.getTotalHints()})`;
+      }
+      function scheduleNextTypingQuestion(delayMs = 700) {
+        if (state2.nextQuestionTimer) clearTimeout(state2.nextQuestionTimer);
+        state2.nextQuestionTimer = setTimeout(() => {
+          state2.nextQuestionTimer = null;
+          newQuestion();
+        }, delayMs);
       }
       function checkTypingAnswer(forcedAnswer = null) {
         const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : getAnswerInputValue();
         const userAnswer = sanitizeRomaji(rawAnswer);
         const outcome = answeringManager.processTypingAnswer(userAnswer);
-        if (!outcome || !outcome.accepted) {
-          return null;
-        }
+        if (!outcome || !outcome.accepted) return null;
         setAnswerInputValue("");
         scheduleNextTypingQuestion(outcome.correct ? 850 : 2200);
         return outcome;
       }
       function revealDrawingAnswer() {
-        if (!state.currentQuestion) {
+        if (!state2.currentQuestion) {
           showResult(elements, "Create a question first.", false);
           return;
         }
-        showResult(elements, state.currentQuestion.revealText, true);
+        showResult(elements, state2.currentQuestion.revealText, true);
         drawingFeature.setDrawingMarkButtonsEnabled(true);
       }
       function markDrawingResult(wasCorrect) {
@@ -13667,22 +18536,22 @@
         );
         newQuestion();
       }
-      function resetAllData() {
-        const shouldReset = window.confirm("Reset all quiz data, including backlog, drawings, and daily history?");
-        if (!shouldReset) {
-          return;
-        }
-        state.typingRightCount = 0;
-        state.typingWrongCount = 0;
-        state.drawingRightCount = 0;
-        state.drawingWrongCount = 0;
-        state.recentMistakes = [];
-        state.recentTypingMistakes = [];
-        state.recentDrawingMistakes = [];
-        state.practiceStrategy = "srs";
-        state.lastCloudSyncAt = 0;
-        state.syncUserEmail = "";
-        state.dailyGoals = {
+      async function resetAllData() {
+        const confirmed = await showConfirm(
+          "Reset all quiz data, including backlog, drawings, and daily history?"
+        );
+        if (!confirmed) return;
+        state2.typingRightCount = 0;
+        state2.typingWrongCount = 0;
+        state2.drawingRightCount = 0;
+        state2.drawingWrongCount = 0;
+        state2.recentMistakes = [];
+        state2.recentTypingMistakes = [];
+        state2.recentDrawingMistakes = [];
+        state2.practiceStrategy = "srs";
+        state2.lastCloudSyncAt = 0;
+        state2.syncUserEmail = "";
+        state2.dailyGoals = {
           total: 25,
           typing: 12,
           drawing: 8,
@@ -13690,25 +18559,29 @@
           dakuten: 6,
           yoon: 6
         };
-        state.dailyGoal = 25;
-        resetBacklogFilters();
-        state.progressSubtab = "overview";
-        state.progressCollapsedSections = {
+        state2.dailyGoal = 25;
+        state2.confusionPairs = {};
+        state2.srsAccuracyWindow = {};
+        state2.dailyDetailStats = {};
+        state2.streakData = { current: 0, best: 0, lastPracticeDate: "" };
+        progressPreferencesManager && progressPreferencesManager.resetBacklogFilters();
+        state2.progressSubtab = "overview";
+        state2.progressCollapsedSections = {
           overview: false,
           trends: false,
           compare: false,
           sync: false
         };
-        Object.keys(state.srsByRomaji).forEach((romaji) => {
-          state.srsByRomaji[romaji] = {
+        Object.keys(state2.srsByRomaji).forEach((romaji) => {
+          state2.srsByRomaji[romaji] = {
             dueAt: 0,
             intervalHours: 0,
             lastSeenAt: 0,
             lastCorrect: false
           };
         });
-        Object.keys(state.backlog).forEach((romaji) => {
-          const row = state.backlog[romaji];
+        Object.keys(state2.backlog).forEach((romaji) => {
+          const row = state2.backlog[romaji];
           row.right = 0;
           row.wrong = 0;
           row.typingRight = 0;
@@ -13728,23 +18601,18 @@
           row.katakanaRight = 0;
           row.katakanaWrong = 0;
         });
-        Object.keys(state.drawingsByKana).forEach((kanaChar) => {
-          delete state.drawingsByKana[kanaChar];
-        });
-        Object.keys(state.dailyStats).forEach((dateKey) => {
-          delete state.dailyStats[dateKey];
-        });
-        Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
-          delete state.dailyCategoryStats[dateKey];
-        });
-        state.progressUiDayMarker = getTodayKey();
-        state.lastSavedAt = 0;
+        Object.keys(state2.drawingsByKana).forEach((k2) => delete state2.drawingsByKana[k2]);
+        Object.keys(state2.dailyStats).forEach((k2) => delete state2.dailyStats[k2]);
+        Object.keys(state2.dailyCategoryStats).forEach((k2) => delete state2.dailyCategoryStats[k2]);
+        state2.progressUiDayMarker = getTodayKey();
+        state2.lastSavedAt = 0;
         localStorage.removeItem(STORAGE_KEY);
-        elements.practiceStrategySelect.value = state.practiceStrategy;
-        renderDailyGoalInputs();
-        renderBacklogFilterInputs();
+        elements.practiceStrategySelect.value = state2.practiceStrategy;
+        progressPreferencesManager && progressPreferencesManager.renderDailyGoalInputs();
+        progressPreferencesManager && progressPreferencesManager.renderBacklogFilterInputs();
         queueManager.updateQueueMeta();
-        updateStats(elements, state);
+        updateStats(elements, state2);
+        renderGoalProgress(elements, state2);
         renderBacklogView();
         refreshProgressView();
         drawingFeature.clearAllCanvases();
@@ -13752,189 +18620,256 @@
         setActiveProgressTab(elements, "backlog");
         showResult(elements, "All saved progress has been reset.", true);
       }
-      function bindEvents() {
-        elements.newQuestionBtn.addEventListener("click", newQuestion);
-        elements.modeSelect.addEventListener("change", () => {
+      function setupAnswerInputGuards() {
+        const input = elements.answerInput;
+        function looksLikeCredential(value) {
+          if (!value) return false;
+          if (value.length > 24) return true;
+          return /@|\s|https?:\/\//i.test(value) || /[^a-z-]/i.test(value);
+        }
+        function clearCredentialLikeValue() {
+          const current = "value" in input ? input.value : input.textContent || "";
+          if (looksLikeCredential(current)) {
+            if ("value" in input) input.value = "";
+            else input.textContent = "";
+          }
+        }
+        input.addEventListener("focus", clearCredentialLikeValue);
+        input.addEventListener("pointerdown", clearCredentialLikeValue);
+        input.addEventListener("touchstart", clearCredentialLikeValue);
+        input.addEventListener("keydown", clearCredentialLikeValue);
+        setTimeout(clearCredentialLikeValue, 200);
+      }
+      function normalizeDailyGoalsFromState() {
+        progressPreferencesManager && progressPreferencesManager.normalizeDailyGoalsFromState();
+      }
+      function renderDailyGoalInputs() {
+        progressPreferencesManager && progressPreferencesManager.renderDailyGoalInputs();
+      }
+      function saveDailyGoalFromUi() {
+        progressPreferencesManager && progressPreferencesManager.saveDailyGoalFromUi();
+      }
+      function resetBacklogFilters() {
+        progressPreferencesManager && progressPreferencesManager.resetBacklogFilters();
+      }
+      function renderBacklogFilterInputs() {
+        progressPreferencesManager && progressPreferencesManager.renderBacklogFilterInputs();
+      }
+      function applyBacklogFiltersFromUi() {
+        progressPreferencesManager && progressPreferencesManager.applyBacklogFiltersFromUi();
+      }
+      function normalizeProgressLayoutState() {
+        progressLayoutManager && progressLayoutManager.normalizeState();
+      }
+      function renderProgressSubtabUi() {
+        progressLayoutManager && progressLayoutManager.render();
+      }
+      function setActiveProgressSubtab(subtabName) {
+        progressLayoutManager && progressLayoutManager.setActiveSubtab(subtabName);
+      }
+      function toggleProgressSection(sectionName) {
+        progressLayoutManager && progressLayoutManager.toggleSection(sectionName);
+      }
+      function exportLocalProgress() {
+        backupManager && backupManager.exportLocalProgress();
+      }
+      async function importLocalProgressFromFile(file) {
+        backupManager && await backupManager.importLocalProgressFromFile(file);
+      }
+      function getLocalPayload() {
+        return backupManager ? backupManager.getLocalPayload() : {};
+      }
+      function applyRemotePayload(payload) {
+        backupManager && backupManager.applyRemotePayload(payload);
+      }
+      function subscribeToEvents() {
+        const onAnswerProcessed = () => {
+          updateStreak();
+          updateStats(elements, state2);
+          renderGoalProgress(elements, state2);
+          renderBacklogView();
+          refreshProgressView();
+          persistState();
+        };
+        eventBus.on(EVENT_NAMES.ANSWER_CORRECT, onAnswerProcessed);
+        eventBus.on(EVENT_NAMES.ANSWER_WRONG, onAnswerProcessed);
+        eventBus.on(EVENT_NAMES.QUIZ_REQUEST_NEW, () => newQuestion());
+        eventBus.on(EVENT_NAMES.QUIZ_MODE_CHANGED, () => {
           switchModeUI();
           newQuestion();
         });
-        elements.scriptSelect.addEventListener("change", newQuestion);
-        elements.kanaSetSelect.addEventListener("change", () => {
+        eventBus.on(EVENT_NAMES.QUIZ_KANA_SET_CHANGED, () => {
           queueManager.updateQueueMeta();
           newQuestion();
         });
-        elements.practiceStrategySelect.addEventListener("change", () => {
-          state.practiceStrategy = elements.practiceStrategySelect.value;
+        eventBus.on(EVENT_NAMES.QUIZ_STRATEGY_CHANGED, () => {
+          state2.practiceStrategy = elements.practiceStrategySelect.value;
           queueManager.updateQueueMeta();
           persistState();
           newQuestion();
         });
-        elements.writingScriptSelect.addEventListener("change", () => {
-          if (elements.modeSelect.value === "romajiToKana" || elements.modeSelect.value === "mixedPractice") {
-            newQuestion();
-          }
+        eventBus.on(EVENT_NAMES.QUIZ_WRITING_SCRIPT_CHANGED, () => {
+          const mode = elements.modeSelect.value;
+          if (mode === "romajiToKana" || mode === "mixedPractice") newQuestion();
         });
-        elements.backlogTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "backlog"));
-        elements.dailyProgressTabBtn.addEventListener("click", () => setActiveProgressTab(elements, "daily"));
-        elements.openSyncBtn.addEventListener("click", () => {
+        eventBus.on(EVENT_NAMES.QUIZ_CHECK_ANSWER, () => checkTypingAnswer());
+        eventBus.on(EVENT_NAMES.QUIZ_QUICK_ANSWER, ({ answer }) => {
+          setAnswerInputValue(answer);
+          const outcome = checkTypingAnswer(answer);
+          if (!outcome || !outcome.accepted) return;
+          const optionButtons = elements.quickAnswerOptions ? Array.from(elements.quickAnswerOptions.querySelectorAll(".quick-answer-btn")) : [];
+          optionButtons.forEach((btn) => {
+            btn.disabled = true;
+          });
+          if (outcome.correct) {
+            const clicked2 = optionButtons.find((btn) => btn.dataset.answer === answer);
+            if (clicked2) clicked2.classList.add("is-correct");
+            return;
+          }
+          const clicked = optionButtons.find((btn) => btn.dataset.answer === answer);
+          if (clicked) clicked.classList.add("is-wrong");
+          const correctBtn = optionButtons.find((btn) => btn.dataset.answer === outcome.correctAnswer);
+          if (correctBtn) correctBtn.classList.add("is-correct");
+        });
+        eventBus.on(EVENT_NAMES.QUIZ_REVEAL_DRAWING, () => revealDrawingAnswer());
+        eventBus.on(EVENT_NAMES.QUIZ_CLEAR_CANVAS, () => drawingFeature.clearAllCanvases());
+        eventBus.on(EVENT_NAMES.QUIZ_MARK_RIGHT, () => markDrawingResult(true));
+        eventBus.on(EVENT_NAMES.QUIZ_MARK_WRONG, () => markDrawingResult(false));
+        eventBus.on(EVENT_NAMES.QUIZ_RESET_ALL, () => resetAllData());
+        eventBus.on(EVENT_NAMES.TAB_BACKLOG, () => setActiveProgressTab(elements, "backlog"));
+        eventBus.on(EVENT_NAMES.TAB_PROGRESS, () => setActiveProgressTab(elements, "daily"));
+        eventBus.on(EVENT_NAMES.TAB_SYNC, () => {
           setActiveProgressTab(elements, "daily");
-          progressLayoutManager.openSyncSection();
+          progressLayoutManager && progressLayoutManager.openSyncSection();
           elements.syncCard.scrollIntoView({ behavior: "smooth", block: "start" });
           elements.syncEmail.focus();
         });
-        elements.resetAllDataBtn.addEventListener("click", resetAllData);
-        elements.saveDailyGoalBtn.addEventListener("click", saveDailyGoalFromUi);
-        [
-          elements.dailyGoalTotalInput,
-          elements.dailyGoalTypingInput,
-          elements.dailyGoalDrawingInput,
-          elements.dailyGoalNormalInput,
-          elements.dailyGoalDakutenInput,
-          elements.dailyGoalYoonInput
-        ].forEach((input) => {
-          input.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              saveDailyGoalFromUi();
-            }
-          });
+        eventBus.on(EVENT_NAMES.PROGRESS_TAB_CHANGED, ({ tab }) => {
+          setActiveProgressSubtab(tab);
+          persistState();
         });
-        elements.backlogStatusFilter.addEventListener("change", applyBacklogFiltersFromUi);
-        elements.backlogScriptFilter.addEventListener("change", applyBacklogFiltersFromUi);
-        elements.backlogWeaknessFilter.addEventListener("change", applyBacklogFiltersFromUi);
-        elements.backlogMinAttemptsFilter.addEventListener("change", applyBacklogFiltersFromUi);
-        elements.resetBacklogFiltersBtn.addEventListener("click", () => {
+        eventBus.on(EVENT_NAMES.PROGRESS_SECTION_TOGGLED, ({ section }) => {
+          toggleProgressSection(section);
+        });
+        eventBus.on(EVENT_NAMES.BACKLOG_FILTER_CHANGED, () => applyBacklogFiltersFromUi());
+        eventBus.on(EVENT_NAMES.BACKLOG_FILTER_RESET, () => {
           resetBacklogFilters();
           renderBacklogFilterInputs();
           renderBacklogView();
           persistState();
         });
-        elements.progressOverviewTabBtn.addEventListener("click", () => {
-          setActiveProgressSubtab("overview");
+        eventBus.on(EVENT_NAMES.SETTINGS_SAVE_GOAL, () => saveDailyGoalFromUi());
+        eventBus.on(EVENT_NAMES.SETTINGS_DRAW_GUIDE_CHANGED, () => {
+          state2.drawGuideEnabled = elements.drawGuideToggle.checked;
+          drawingFeature.setGuideEnabled(state2.drawGuideEnabled);
           persistState();
         });
-        elements.progressTrendsTabBtn.addEventListener("click", () => {
-          setActiveProgressSubtab("trends");
-          persistState();
-        });
-        elements.progressCompareTabBtn.addEventListener("click", () => {
-          setActiveProgressSubtab("compare");
-          persistState();
-        });
-        elements.progressSyncTabBtn.addEventListener("click", () => {
-          setActiveProgressSubtab("sync");
-          persistState();
-        });
-        elements.toggleOverviewSectionBtn.addEventListener("click", () => toggleProgressSection("overview"));
-        elements.toggleTrendsSectionBtn.addEventListener("click", () => toggleProgressSection("trends"));
-        elements.toggleCompareSectionBtn.addEventListener("click", () => toggleProgressSection("compare"));
-        elements.toggleSyncSectionBtn.addEventListener("click", () => toggleProgressSection("sync"));
-        elements.exportDataBtn.addEventListener("click", exportLocalProgress);
-        elements.importDataBtn.addEventListener("click", () => {
-          elements.importDataInput.click();
-        });
-        elements.importDataInput.addEventListener("change", async () => {
-          const file = elements.importDataInput.files && elements.importDataInput.files[0] ? elements.importDataInput.files[0] : null;
+        eventBus.on(EVENT_NAMES.DATA_EXPORT, () => exportLocalProgress());
+        eventBus.on(EVENT_NAMES.DATA_IMPORT, async ({ file }) => {
           await importLocalProgressFromFile(file);
-          elements.importDataInput.value = "";
         });
-        bindProgressCompareSelectors(elements, state);
-        elements.checkBtn.addEventListener("click", checkTypingAnswer);
-        elements.playAudioBtn.addEventListener("click", () => audioManager.playCurrentAudio());
-        elements.muteAudioBtn.addEventListener("click", () => {
+        eventBus.on(EVENT_NAMES.AUDIO_PLAY, () => audioManager.playCurrentAudio());
+        eventBus.on(EVENT_NAMES.AUDIO_TOGGLE_MUTE, () => {
           audioManager.toggleAudioMute();
           persistState();
         });
-        elements.revealBtn.addEventListener("click", revealDrawingAnswer);
-        elements.clearCanvasBtn.addEventListener("click", drawingFeature.clearAllCanvases);
-        elements.markRightBtn.addEventListener("click", () => markDrawingResult(true));
-        elements.markWrongBtn.addEventListener("click", () => markDrawingResult(false));
-        elements.drawGuideToggle.addEventListener("change", () => {
-          state.drawGuideEnabled = elements.drawGuideToggle.checked;
-          drawingFeature.setGuideEnabled(state.drawGuideEnabled);
-          persistState();
+        eventBus.on(EVENT_NAMES.GALLERY_OPEN, ({ kanaChar }) => drawingFeature.openDrawingGallery(kanaChar));
+        eventBus.on(EVENT_NAMES.GALLERY_CLOSE, () => elements.drawingGalleryDialog.close());
+        eventBus.on(EVENT_NAMES.UI_VISIBLE, () => refreshProgressView());
+        eventBus.on(EVENT_NAMES.SYNC_CONFLICT_APPLIED, () => {
+          showConflictToast("Cloud data was newer \u2014 your local progress was updated from the cloud.");
         });
-        elements.closeGalleryBtn.addEventListener("click", () => elements.drawingGalleryDialog.close());
-        window.addEventListener("resize", () => redrawProgressGraph(elements, state));
-        window.addEventListener("visibilitychange", () => {
-          if (!document.hidden) {
-            refreshProgressView();
-          }
-        });
-        elements.backlogPanel.addEventListener("click", (event) => {
-          const button = event.target.closest(".view-drawings-btn");
-          if (!button) {
-            return;
-          }
-          const kanaChar = button.dataset.kana;
-          if (kanaChar) {
-            drawingFeature.openDrawingGallery(kanaChar);
-          }
-        });
-        elements.answerInput.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            checkTypingAnswer();
-          }
-        });
-        elements.answerInput.addEventListener("input", () => {
-          const value = getAnswerInputValue().replace(/[\r\n]+/g, "");
-          if (value !== getAnswerInputValue()) {
-            setAnswerInputValue(value);
-          }
-        });
-        if (elements.quickAnswerOptions) {
-          elements.quickAnswerOptions.addEventListener("click", (event) => {
-            const button = event.target.closest(".quick-answer-btn");
-            if (!button || button.disabled) {
-              return;
+        const hintBtn = document.getElementById("hintBtn");
+        if (hintBtn) {
+          hintBtn.addEventListener("click", () => {
+            const reveal = hintsManager.revealNext();
+            if (reveal) {
+              elements.answerInput.placeholder = reveal;
             }
-            const answer = button.dataset.answer || "";
-            setAnswerInputValue(answer);
-            const outcome = checkTypingAnswer(answer);
-            if (!outcome || !outcome.accepted) {
-              return;
-            }
-            const optionButtons = Array.from(elements.quickAnswerOptions.querySelectorAll(".quick-answer-btn"));
-            optionButtons.forEach((optBtn) => {
-              optBtn.disabled = true;
-            });
-            if (outcome.correct) {
-              button.classList.add("is-correct");
-              return;
-            }
-            button.classList.add("is-wrong");
-            const correctButton = optionButtons.find((optBtn) => optBtn.dataset.answer === outcome.correctAnswer);
-            if (correctButton) {
-              correctButton.classList.add("is-correct");
-            }
+            updateHintButton();
           });
         }
-        drawingFeature.bindCanvasEvents();
+      }
+      function showConflictToast(message) {
+        const existing = document.getElementById("syncConflictToast");
+        if (existing) existing.remove();
+        const toast = document.createElement("div");
+        toast.id = "syncConflictToast";
+        toast.className = "conflict-toast";
+        toast.setAttribute("role", "alert");
+        toast.innerHTML = `
+    <span>${message}</span>
+    <button type="button" class="conflict-toast-close" aria-label="Dismiss">\u2715</button>
+  `;
+        toast.querySelector(".conflict-toast-close").addEventListener("click", () => toast.remove());
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          if (toast.parentNode) toast.remove();
+        }, 7e3);
+      }
+      function setupKeyboardShortcuts() {
+        const keyboard = new KeyboardController(elements.answerInput);
+        keyboard.register("Space", () => {
+          const mode = elements.modeSelect.value;
+          if (mode === "romajiToKana" || mode === "mixedPractice") {
+            eventBus.emit(EVENT_NAMES.QUIZ_REVEAL_DRAWING);
+          }
+        });
+        keyboard.register("KeyR", () => {
+          const mode = elements.modeSelect.value;
+          if (mode === "romajiToKana" || mode === "mixedPractice") {
+            if (!elements.markRightBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT);
+          }
+        });
+        keyboard.register("KeyW", () => {
+          const mode = elements.modeSelect.value;
+          if (mode === "romajiToKana" || mode === "mixedPractice") {
+            if (!elements.markWrongBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG);
+          }
+        });
+        keyboard.register("KeyN", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
+      }
+      function setupSwipeGestures() {
+        const questionCard = document.querySelector(".quiz.card");
+        if (!questionCard) return;
+        createSwipeDetector(questionCard, {
+          onSwipeRight() {
+            const mode = elements.modeSelect.value;
+            if (mode === "romajiToKana" || mode === "mixedPractice") {
+              if (!elements.markRightBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT);
+            }
+          },
+          onSwipeLeft() {
+            const mode = elements.modeSelect.value;
+            if (mode === "romajiToKana" || mode === "mixedPractice") {
+              if (!elements.markWrongBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG);
+            }
+          }
+        });
       }
       function init() {
         loadProgress({
           storageKey: STORAGE_KEY,
-          state,
+          state: state2,
           kanaData,
           maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
           dailyHistoryLimit: DAILY_HISTORY_LIMIT
         });
         progressPreferencesManager = createProgressPreferencesManager({
-          state,
+          state: state2,
           elements,
           persistState,
           refreshProgressView,
           renderBacklogView,
-          showResult
+          showResult: (msg, ok) => showResult(elements, msg, ok)
         });
         progressLayoutManager = createProgressLayoutManager({
-          state,
+          state: state2,
           elements,
           persistState
         });
         backupManager = createBackupManager({
-          state,
+          state: state2,
           kanaData,
           MAX_DRAWINGS_PER_KANA,
           DAILY_HISTORY_LIMIT,
@@ -13943,65 +18878,80 @@
           applyProgressPayload,
           onImportComplete() {
             ensureTodayEntry();
-            elements.practiceStrategySelect.value = state.practiceStrategy;
-            elements.drawGuideToggle.checked = state.drawGuideEnabled;
+            elements.practiceStrategySelect.value = state2.practiceStrategy;
+            elements.drawGuideToggle.checked = state2.drawGuideEnabled;
             renderDailyGoalInputs();
             renderBacklogFilterInputs();
-            drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+            drawingFeature.setGuideEnabled(state2.drawGuideEnabled);
             audioManager.refreshAudioButton();
-            updateStats(elements, state);
+            updateStats(elements, state2);
+            renderGoalProgress(elements, state2);
             renderBacklogView();
             refreshProgressView();
             queueManager.updateQueueMeta();
             persistState();
           }
         });
-        distractorRenderer = createDistractorRenderer({ elements, state, kanaData });
+        distractorRenderer = createDistractorRenderer({ elements, state: state2, kanaData });
         ensureTodayEntry();
         setupCloudSync({
           elements,
-          state,
+          state: state2,
           getLocalPayload,
           applyRemotePayload,
           onLocalStateApplied() {
-            updateStats(elements, state);
+            updateStats(elements, state2);
+            renderGoalProgress(elements, state2);
             renderBacklogView();
             refreshProgressView();
             queueManager.updateQueueMeta();
-            saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+            saveProgress({ storageKey: STORAGE_KEY, state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
           },
           onLocalStateSaved(payload) {
-            state.lastSavedAt = Number(payload.savedAt || state.lastSavedAt || 0);
-            state.lastCloudSyncAt = Number(payload.cloudSyncedAt || state.lastCloudSyncAt || 0);
-            state.syncUserEmail = payload.userEmail || state.syncUserEmail || "";
-          }
+            state2.lastSavedAt = Number(payload.savedAt || state2.lastSavedAt || 0);
+            state2.lastCloudSyncAt = Number(payload.cloudSyncedAt || state2.lastCloudSyncAt || 0);
+            state2.syncUserEmail = payload.userEmail || state2.syncUserEmail || "";
+          },
+          eventBus
         }).then((syncApi) => {
           cloudSync = syncApi;
         }).catch((error) => {
           elements.syncStatus.textContent = `Cloud sync unavailable: ${error.message}`;
         });
-        bindEvents();
+        subscribeToEvents();
+        bindEvents(elements, state2);
+        drawingFeature.bindCanvasEvents();
+        setupKeyboardShortcuts();
+        setupSwipeGestures();
         ensureAudioButtonsAboveKanaBox();
         setupAnswerInputGuards();
         setupPwaInstall();
-        elements.practiceStrategySelect.value = state.practiceStrategy;
-        elements.drawGuideToggle.checked = state.drawGuideEnabled;
+        elements.practiceStrategySelect.value = state2.practiceStrategy;
+        elements.drawGuideToggle.checked = state2.drawGuideEnabled;
         normalizeDailyGoalsFromState();
         normalizeProgressLayoutState();
         renderDailyGoalInputs();
         renderBacklogFilterInputs();
         renderProgressSubtabUi();
-        drawingFeature.setGuideEnabled(state.drawGuideEnabled);
+        drawingFeature.setGuideEnabled(state2.drawGuideEnabled);
         audioManager.refreshAudioButton();
         queueManager.updateQueueMeta();
         switchModeUI();
         drawingFeature.clearAllCanvases();
-        updateStats(elements, state);
+        updateStats(elements, state2);
+        renderGoalProgress(elements, state2);
         renderBacklogView();
         refreshProgressView();
         setActiveProgressTab(elements, "backlog");
       }
       init();
+    }
+  });
+
+  // js/app.js
+  var require_app = __commonJS({
+    "js/app.js"() {
+      var import_bootstrap = __toESM(require_bootstrap());
     }
   });
   require_app();

@@ -63,7 +63,8 @@ export function createState(kanaData) {
       status: "all",
       script: "all",
       weakness: "all",
-      minAttempts: 0
+      minAttempts: 0,
+      compact: false
     },
     installPromptSeen: false,
     typingRightCount: 0,
@@ -86,4 +87,33 @@ export function createState(kanaData) {
     },
     backlog: createBacklog(kanaData)
   };
+
+  // New fields for Phase 2–3 features. Added via Object.assign so existing
+  // state objects loaded from localStorage pick them up via applyProgressPayload.
+  const extensions = {
+    // Phase 2: smarter distractors — tracks which romaji the user has confused together.
+    // Shape: { [correctRomaji]: { [wrongInput]: count } }
+    confusionPairs: {},
+    // Phase 2: adaptive SRS — rolling window of last 10 attempt outcomes per romaji.
+    // Shape: { [romaji]: boolean[] }  (true = correct)
+    srsAccuracyWindow: {},
+    // Phase 3: per-day per-romaji detail for drill-down view.
+    // Shape: { [dateKey]: { [romaji]: { right: number, wrong: number } } }
+    dailyDetailStats: {},
+    // Phase 3: streak tracking.
+    streakData: { current: 0, best: 0, lastPracticeDate: "" }
+  };
+
+  Object.assign(state, extensions);
+
+  /**
+   * Merge a partial patch into state.
+   * Prefer mutate() for new code; old direct assignments remain valid.
+   * @param {object} patch
+   */
+  state.mutate = function mutate(patch) {
+    Object.assign(this, patch);
+  };
+
+  return state;
 }

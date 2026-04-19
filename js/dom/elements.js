@@ -59,6 +59,7 @@ export function getElements() {
     backlogScriptFilter: document.getElementById("backlogScriptFilter"),
     backlogWeaknessFilter: document.getElementById("backlogWeaknessFilter"),
     backlogMinAttemptsFilter: document.getElementById("backlogMinAttemptsFilter"),
+    backlogCompactToggle: document.getElementById("backlogCompactToggle"),
     resetBacklogFiltersBtn: document.getElementById("resetBacklogFiltersBtn"),
     compareDayASelect: document.getElementById("compareDayASelect"),
     compareDayBSelect: document.getElementById("compareDayBSelect"),
@@ -94,6 +95,10 @@ export function getElements() {
     canvasKatakana,
     ctxHiragana: canvasHiragana.getContext("2d"),
     ctxKatakana: canvasKatakana.getContext("2d"),
-    dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d")
+    dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d"),
+    goalProgressBar: document.getElementById("goalProgressBar"),
+    hintBtn: document.getElementById("hintBtn"),
+    streakDisplay: document.getElementById("streakDisplay"),
+    srsScheduleGraph: document.getElementById("srsScheduleGraph")
   };
 }

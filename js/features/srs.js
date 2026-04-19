@@ -4,6 +4,7 @@
  */
 
 const MAX_RECENT_MISTAKES = 120;
+const ACCURACY_WINDOW_SIZE = 10;
 
 export function createSrsManager(state) {
   function getMistakeKey(answerMode = "typing") {
@@ -56,11 +57,15 @@ export function createSrsManager(state) {
   }
 
   /**
-   * Update SRS intervals based on attempt correctness
-   * Correct: interval grows (1.5h → 3.75h → ... → 14 days)
-   * Wrong: interval resets to 0.5h (30 min retry), added to mistakes queue
+   * Update SRS intervals based on attempt correctness.
+   * Correct: interval grows — multiplier is adaptive based on rolling accuracy.
+   * Wrong: interval resets to 0.5h (30 min retry), added to mistakes queue.
+   * @param {string} romaji
+   * @param {boolean} wasCorrect
+   * @param {string} answerMode
+   * @param {boolean} [hintUsed] — halves the multiplier when true
    */
-  function updateSrsOnAttempt(romaji, wasCorrect, answerMode = "typing") {
+  function updateSrsOnAttempt(romaji, wasCorrect, answerMode = "typing", hintUsed = false) {
     const current = state.srsByRomaji[romaji] || {
       dueAt: 0,
       intervalHours: 0,
@@ -68,11 +73,34 @@ export function createSrsManager(state) {
       lastCorrect: false
     };
 
+    // Maintain rolling accuracy window
+    if (!state.srsAccuracyWindow) state.srsAccuracyWindow = {};
+    const window = Array.isArray(state.srsAccuracyWindow[romaji])
+      ? state.srsAccuracyWindow[romaji]
+      : [];
+    window.push(wasCorrect);
+    if (window.length > ACCURACY_WINDOW_SIZE) window.shift();
+    state.srsAccuracyWindow[romaji] = window;
+
     const now = Date.now();
     if (wasCorrect) {
       const previous = Number(current.intervalHours || 0);
-      // Aggressive intervals: 1.5h start, 2.5x multiplier, 14-day cap
-      const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * 2.5, 24 * 14);
+
+      // Adaptive multiplier based on rolling window accuracy
+      const accuracy = window.length > 0
+        ? window.filter(Boolean).length / window.length
+        : 0.5;
+      let baseMultiplier;
+      if (accuracy < 0.3) {
+        baseMultiplier = 1.2;
+      } else if (accuracy >= 0.7) {
+        baseMultiplier = 3.5;
+      } else {
+        baseMultiplier = 2.5;
+      }
+
+      const multiplier = hintUsed ? Math.min(baseMultiplier, 1.25) : baseMultiplier;
+      const nextInterval = previous <= 0 ? 1.5 : Math.min(previous * multiplier, 24 * 14);
       current.intervalHours = nextInterval;
       current.dueAt = now + nextInterval * 60 * 60 * 1000;
       removeRecentMistake(romaji, answerMode);

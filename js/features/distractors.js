@@ -115,8 +115,18 @@ export function createDistractorRenderer({ elements, state, kanaData }) {
 
     const distractorSet = new Set();
 
+    // Boost historically-confused items: pick up to 2 from confusion pairs (Phase 2)
+    const confusionPairs = (state.confusionPairs && state.confusionPairs[correct]) || {};
+    const confusedRomaji = Object.entries(confusionPairs)
+      .sort((a, b) => b[1] - a[1])          // most-confused first
+      .map(([romaji]) => romaji)
+      .filter((romaji) => romaji !== correct && kanaData.some((k) => k.romaji === romaji));
+
+    confusedRomaji.slice(0, 2).forEach((romaji) => distractorSet.add(romaji));
+
     // Keep most choices close to the target so they feel like genuine confusions.
-    pickRandomDistinct(similarPool, 2).forEach((romaji) => distractorSet.add(romaji));
+    const similarNeeded = Math.max(0, 2 - distractorSet.size);
+    pickRandomDistinct(similarPool, similarNeeded, distractorSet).forEach((romaji) => distractorSet.add(romaji));
 
     // Keep one option more random to avoid being too predictable.
     pickRandomDistinct(allRomaji, 1, distractorSet).forEach((romaji) => distractorSet.add(romaji));

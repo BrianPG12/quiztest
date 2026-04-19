@@ -216,6 +216,45 @@ export function createBackupManager({
     state.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
   }
 
+  /**
+   * Phase 5: lightweight schema guard for imported payloads.
+   * Returns { ok: boolean, reason?: string }.
+   */
+  function validateStateSchema(payload) {
+    if (!payload || typeof payload !== "object") {
+      return { ok: false, reason: "Payload is not an object." };
+    }
+
+    if (payload.backlog && typeof payload.backlog !== "object") {
+      return { ok: false, reason: "backlog must be an object." };
+    }
+    if (payload.srsByRomaji && typeof payload.srsByRomaji !== "object") {
+      return { ok: false, reason: "srsByRomaji must be an object." };
+    }
+    if (payload.dailyStats && typeof payload.dailyStats !== "object") {
+      return { ok: false, reason: "dailyStats must be an object." };
+    }
+    if (payload.dailyCategoryStats && typeof payload.dailyCategoryStats !== "object") {
+      return { ok: false, reason: "dailyCategoryStats must be an object." };
+    }
+    if (payload.drawingsByKana && typeof payload.drawingsByKana !== "object") {
+      return { ok: false, reason: "drawingsByKana must be an object." };
+    }
+
+    const arraysToCheck = [
+      ["recentTypingMistakes", payload.recentTypingMistakes],
+      ["recentDrawingMistakes", payload.recentDrawingMistakes],
+      ["recentMistakes", payload.recentMistakes]
+    ];
+    for (const [name, value] of arraysToCheck) {
+      if (value !== undefined && !Array.isArray(value)) {
+        return { ok: false, reason: `${name} must be an array.` };
+      }
+    }
+
+    return { ok: true };
+  }
+
   // ─── public api ─────────────────────────────────────────────────────────────
 
   function downloadTextFile(filename, content, mimeType) {
@@ -263,6 +302,12 @@ export function createBackupManager({
 
     if (!payload || typeof payload !== "object") {
       showResultFn("Import failed: backup format is not valid.", false);
+      return;
+    }
+
+    const schemaCheck = validateStateSchema(payload);
+    if (!schemaCheck.ok) {
+      showResultFn(`Import failed: ${schemaCheck.reason}`, false);
       return;
     }
 

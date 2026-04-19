@@ -1,4 +1,4 @@
-export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
+export function createDrawingFeature({ elements, state, maxDrawingsPerKana, eventBus, EVENT_NAMES }) {
   let drawing = false;
   let activeCanvas = null;
   let drawGuideEnabled = state.drawGuideEnabled !== false;
@@ -11,6 +11,10 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
   function setDrawingMarkButtonsEnabled(enabled) {
     elements.markRightBtn.disabled = !enabled;
     elements.markWrongBtn.disabled = !enabled;
+  }
+
+  function setRevealEnabled(enabled) {
+    elements.revealBtn.disabled = !enabled;
   }
 
   function setDrawingCanvasVisibility(mode) {
@@ -49,6 +53,8 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
 
   function clearAllCanvases() {
     canvases.forEach(({ canvas, ctx }) => clearCanvas(canvas, ctx));
+    // A fresh canvas has no ink — disable reveal until user draws
+    setRevealEnabled(false);
   }
 
   function setGuideEnabled(enabled) {
@@ -92,6 +98,14 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
   function endDraw() {
     drawing = false;
     activeCanvas = null;
+
+    // Enable Reveal Answer only if at least one visible canvas has ink
+    const visibleCanvases = canvases.filter(({ canvas }) => {
+      const pane = canvas.closest(".draw-pane");
+      return pane && !pane.classList.contains("hidden");
+    });
+    const anyInk = visibleCanvases.some(({ canvas, ctx }) => hasInk(canvas, ctx));
+    setRevealEnabled(anyInk);
   }
 
   function hasInk(canvas, ctx) {
@@ -143,16 +157,38 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
     if (drawings.length === 0) {
       elements.galleryBody.innerHTML = "<div class=\"gallery-empty\">No saved drawings yet for this kana.</div>";
     } else {
-      elements.galleryBody.innerHTML = drawings
-        .map((imageData, index) => `
-          <div class="gallery-item">
-            <img src="${imageData}" alt="Saved drawing ${index + 1} for ${kanaChar}" />
-          </div>
-        `)
-        .join("");
+      renderGalleryItems(kanaChar);
     }
 
     elements.drawingGalleryDialog.showModal();
+  }
+
+  function renderGalleryItems(kanaChar) {
+    const drawings = state.drawingsByKana[kanaChar] || [];
+    if (drawings.length === 0) {
+      elements.galleryBody.innerHTML = "<div class=\"gallery-empty\">No saved drawings yet for this kana.</div>";
+      return;
+    }
+    elements.galleryBody.innerHTML = drawings
+      .map((imageData, index) => `
+        <div class="gallery-item">
+          <img src="${imageData}" alt="Saved drawing ${index + 1} for ${kanaChar}" />
+          <button type="button" class="btn-danger gallery-delete-btn" data-index="${index}" data-kana="${kanaChar}" aria-label="Delete drawing ${index + 1}">✕</button>
+        </div>
+      `)
+      .join("");
+
+    // Wire delete buttons
+    elements.galleryBody.querySelectorAll(".gallery-delete-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.index);
+        const kana = btn.dataset.kana;
+        if (!state.drawingsByKana[kana]) return;
+        state.drawingsByKana[kana].splice(idx, 1);
+        if (state.drawingsByKana[kana].length === 0) delete state.drawingsByKana[kana];
+        renderGalleryItems(kana);
+      });
+    });
   }
 
   function bindCanvasEvents() {
@@ -162,6 +198,11 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
       canvas.addEventListener("pointerup", endDraw);
       canvas.addEventListener("pointerleave", endDraw);
     });
+
+    // Reset reveal button when a new question is shown
+    if (eventBus && EVENT_NAMES) {
+      eventBus.on(EVENT_NAMES.QUESTION_NEW, () => setRevealEnabled(false));
+    }
   }
 
   return {
@@ -171,6 +212,7 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana }) {
     clearAllCanvases,
     saveCurrentDrawingIfCorrect,
     openDrawingGallery,
-    bindCanvasEvents
+    bindCanvasEvents,
+    setRevealEnabled
   };
 }

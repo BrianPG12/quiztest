@@ -216,7 +216,7 @@ function renderDayComparison(elements, dailyStats) {
   `;
 }
 
-function renderDailyHistoryTable(elements, dailyStats) {
+function renderDailyHistoryTable(elements, dailyStats, dailyDetailStats = {}) {
   const dateKeys = getSortedDateKeys(dailyStats);
   if (dateKeys.length === 0) {
     elements.dailyHistoryTable.innerHTML = "<div class=\"compare-empty\">No daily history yet. Start practicing to populate this table.</div>";
@@ -238,17 +238,47 @@ function renderDailyHistoryTable(elements, dailyStats) {
           const day = dailyStats[dateKey];
           const totals = getDayTotals(day);
           return `
-            <tr>
+            <tr class="history-day-row" data-date="${dateKey}">
               <td>${formatDateLabel(dateKey)}</td>
               <td>${day.typingRight}/${totals.typingTotal} (${asPercent(day.typingRight, totals.typingTotal)})</td>
               <td>${day.drawingRight}/${totals.drawingTotal} (${asPercent(day.drawingRight, totals.drawingTotal)})</td>
               <td>${totals.allRight}/${totals.allTotal} (${asPercent(totals.allRight, totals.allTotal)})</td>
+            </tr>
+            <tr class="history-detail-row hidden" data-date-detail="${dateKey}">
+              <td colspan="4"><div class="drill-down-panel"></div></td>
             </tr>
           `;
         }).join("")}
       </tbody>
     </table>
   `;
+
+  const rows = elements.dailyHistoryTable.querySelectorAll(".history-day-row");
+  rows.forEach((row) => {
+    row.addEventListener("click", () => {
+      const dateKey = row.dataset.date;
+      const detailRow = elements.dailyHistoryTable.querySelector(`[data-date-detail="${dateKey}"]`);
+      if (!detailRow) return;
+      const panel = detailRow.querySelector(".drill-down-panel");
+      const details = dailyDetailStats[dateKey] || {};
+
+      if (!detailRow.classList.contains("hidden")) {
+        detailRow.classList.add("hidden");
+        panel.innerHTML = "";
+        return;
+      }
+
+      const detailItems = Object.entries(details)
+        .map(([romaji, entry]) => ({ romaji, right: Number(entry.right || 0), wrong: Number(entry.wrong || 0) }))
+        .sort((a, b) => (b.right + b.wrong) - (a.right + a.wrong));
+
+      panel.innerHTML = detailItems.length
+        ? `<strong>Attempt breakdown:</strong> ${detailItems.map((d) => `${d.romaji} (✓${d.right}/✗${d.wrong})`).join(", ")}`
+        : "No detailed per-kana stats stored for this day yet.";
+
+      detailRow.classList.remove("hidden");
+    });
+  });
 }
 
 function renderInsights(elements, state) {
@@ -430,6 +460,101 @@ function renderScriptHeatmap(elements, state) {
   `;
 }
 
+/**
+ * Phase 1 — Goal progress bar rendered directly inside the quiz card.
+ * Shows how close today's attempts are to each daily goal.
+ */
+export function renderGoalProgress(elements, state) {
+  const container = elements.goalProgressBar;
+  if (!container) return;
+
+  const todayKey = getTodayKey();
+  const today = state.dailyStats[todayKey] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+  const todayCategory = (state.dailyCategoryStats && state.dailyCategoryStats[todayKey]) || { normal: 0, dakuten: 0, yoon: 0 };
+  const goals = state.dailyGoals || {
+    total: Number(state.dailyGoal || 25),
+    typing: 12,
+    drawing: 8,
+    normal: 10,
+    dakuten: 6,
+    yoon: 6
+  };
+
+  const typingDone = today.typingRight + today.typingWrong;
+  const drawingDone = today.drawingRight + today.drawingWrong;
+  const totalDone = typingDone + drawingDone;
+
+  function bar(label, done, goal) {
+    const safeGoal = Number(goal || 1);
+    const pct = Math.min(100, Math.round((done / safeGoal) * 100));
+    const met = done >= safeGoal;
+    return `
+      <div class="goal-bar-wrap${met ? " goal-met" : ""}">
+        <span class="goal-bar-label">${label}</span>
+        <div class="goal-bar-track"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
+        <span class="goal-bar-count">${done}/${safeGoal}</span>
+      </div>`;
+  }
+
+  container.innerHTML =
+    bar("Total", totalDone, goals.total) +
+    bar("Typing", typingDone, goals.typing) +
+    bar("Drawing", drawingDone, goals.drawing) +
+    bar("Normal", todayCategory.normal || 0, goals.normal) +
+    bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) +
+    bar("Yoon", todayCategory.yoon || 0, goals.yoon);
+}
+
+/**
+ * Phase 3 — Streak badge: current streak and personal best.
+ */
+export function renderStreakDisplay(elements, state) {
+  const container = elements.streakDisplay;
+  if (!container) return;
+
+  const streak = state.streakData || { current: 0, best: 0, lastPracticeDate: "" };
+  container.innerHTML =
+    `<span class="streak-badge" title="Current streak">🔥 ${streak.current} day${streak.current !== 1 ? "s" : ""}</span>` +
+    (streak.best > 1 ? `<span class="streak-best">Best: ${streak.best}</span>` : "");
+}
+
+/**
+ * Phase 3 — SRS schedule: bar chart of items due per day for the next 7 days.
+ */
+export function renderSrsScheduleGraph(elements, state) {
+  const container = elements.srsScheduleGraph;
+  if (!container) return;
+
+  const now = Date.now();
+  const buckets = Array.from({ length: 7 }, (_, i) => {
+    const start = now + i * 86_400_000;
+    const end = start + 86_400_000;
+    return { label: i === 0 ? "Today" : i === 1 ? "Tmrw" : `+${i}d`, start, end, count: 0 };
+  });
+
+  Object.values(state.srsByRomaji || {}).forEach((entry) => {
+    const due = Number(entry.dueAt || 0);
+    if (due <= 0) return;
+    const bucket = buckets.find((b) => due >= b.start && due < b.end);
+    if (bucket) bucket.count += 1;
+  });
+
+  const max = Math.max(1, ...buckets.map((b) => b.count));
+
+  container.innerHTML = `
+    <div class="srs-schedule-graph">
+      ${buckets.map((b) => {
+        const height = Math.round((b.count / max) * 80);
+        return `
+          <div class="srs-bar-col">
+            <span class="srs-bar-val">${b.count}</span>
+            <div class="srs-bar" style="height:${height}px"></div>
+            <span class="srs-bar-label">${b.label}</span>
+          </div>`;
+      }).join("")}
+    </div>`;
+}
+
 export function addDailyAttempt(state, mode, wasCorrect, category = null) {
   const todayKey = getTodayKey();
   if (!state.dailyStats[todayKey]) {
@@ -482,9 +607,11 @@ export function renderDailyProgress({ elements, state, setActiveProgressTab }) {
 
   renderDailyProgressGraph(elements, state.dailyStats);
   renderDayComparison(elements, state.dailyStats);
-  renderDailyHistoryTable(elements, state.dailyStats);
+  renderDailyHistoryTable(elements, state.dailyStats, state.dailyDetailStats || {});
   renderInsights(elements, state);
   renderScriptHeatmap(elements, state);
+  renderStreakDisplay(elements, state);
+  renderSrsScheduleGraph(elements, state);
 }
 
 export function bindProgressCompareSelectors(elements, state) {

@@ -68,12 +68,13 @@ function getDisplayRomaji(item, scriptType) {
   return item.romaji;
 }
 
-export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCategoryFn, filters }) {
+export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCategoryFn, filters, srsByRomaji }) {
   const activeFilters = filters || {
     status: "all",
     script: "all",
     weakness: "all",
-    minAttempts: 0
+    minAttempts: 0,
+    compact: false
   };
 
   function passesFilters(stats) {
@@ -113,9 +114,34 @@ export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCatego
     const status = getCardStatus(stats);
     const drawingsCount = (drawingsByKana[kanaChar] || []).length;
 
-    return `<div class="kana-card ${status}">
+    // Phase 2 — SRS due badge
+    const srsEntry = srsByRomaji && srsByRomaji[romaji];
+    const dueAt = srsEntry ? Number(srsEntry.dueAt || 0) : 0;
+    const intervalHours = srsEntry ? Number(srsEntry.intervalHours || 0) : 0;
+    let srsBadge = "";
+    if (dueAt > 0) {
+      const now = Date.now();
+      if (dueAt <= now) {
+        srsBadge = `<span class="kana-srs-badge srs-due">due now</span>`;
+      } else {
+        const hoursLeft = Math.ceil((dueAt - now) / 3_600_000);
+        if (hoursLeft < 24) {
+          srsBadge = `<span class="kana-srs-badge srs-soon">due ${hoursLeft}h</span>`;
+        } else {
+          const daysLeft = Math.ceil(hoursLeft / 24);
+          srsBadge = `<span class="kana-srs-badge srs-later">due ${daysLeft}d</span>`;
+        }
+      }
+    } else if (intervalHours >= 1) {
+      srsBadge = `<span class="kana-srs-badge srs-ok">✓</span>`;
+    }
+
+    const compactClass = activeFilters.compact ? " compact" : "";
+
+    return `<div class="kana-card ${status}${compactClass}">
       <div class="kana-char">${kanaChar}</div>
       <div class="kana-romaji">${romaji}</div>
+      ${srsBadge}
       <div class="kana-stats">
         <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">\u2713${stats.typingRight}</span><span class="k-wrong">\u2717${stats.typingWrong}</span></div>
         <div class="mode-row"><span class="mode-tag">D</span><span class="k-right">\u2713${stats.drawingRight}</span><span class="k-wrong">\u2717${stats.drawingWrong}</span></div>
@@ -160,6 +186,29 @@ export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCatego
   fillSection("normal", "normal");
   fillSection("dakuten", "dakuten");
   fillSection("yoon", "yoon");
+
+  // Phase 4 — empty-state messaging when all grids are empty after filtering
+  const grids = document.querySelectorAll(
+    "#normalHiraganaGrid, #normalKatakanaGrid, #dakutenHiraganaGrid, #dakutenKatakanaGrid, #yoonHiraganaGrid, #yoonKatakanaGrid"
+  );
+  const allEmpty = Array.from(grids).every((g) => {
+    const cards = g.querySelectorAll(".kana-card:not(.empty-card)");
+    return cards.length === 0;
+  });
+
+  const existingMsg = document.getElementById("backlogEmptyState");
+  if (allEmpty) {
+    if (!existingMsg) {
+      const msg = document.createElement("div");
+      msg.id = "backlogEmptyState";
+      msg.className = "backlog-empty-state";
+      msg.textContent = "No kana match your current filters. Try adjusting the filters above.";
+      const panel = document.getElementById("backlogPanel");
+      if (panel) panel.appendChild(msg);
+    }
+  } else {
+    if (existingMsg) existingMsg.remove();
+  }
 }
 
 export function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answerMode }) {

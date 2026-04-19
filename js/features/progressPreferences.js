@@ -60,7 +60,8 @@ export function createProgressPreferencesManager({
       status: "all",
       script: "all",
       weakness: "all",
-      minAttempts: 0
+      minAttempts: 0,
+      compact: false
     };
   }
 
@@ -72,6 +73,9 @@ export function createProgressPreferencesManager({
     elements.backlogScriptFilter.value = state.backlogFilters.script;
     elements.backlogWeaknessFilter.value = state.backlogFilters.weakness;
     elements.backlogMinAttemptsFilter.value = String(state.backlogFilters.minAttempts);
+    if (elements.backlogCompactToggle) {
+      elements.backlogCompactToggle.checked = Boolean(state.backlogFilters.compact);
+    }
   }
 
   function applyBacklogFiltersFromUi() {
@@ -79,7 +83,8 @@ export function createProgressPreferencesManager({
       status: elements.backlogStatusFilter.value,
       script: elements.backlogScriptFilter.value,
       weakness: elements.backlogWeaknessFilter.value,
-      minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0)
+      minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0),
+      compact: Boolean(elements.backlogCompactToggle && elements.backlogCompactToggle.checked)
     };
     renderBacklogFilterInputs();
     renderBacklogView();

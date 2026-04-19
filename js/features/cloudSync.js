@@ -1,17 +1,4 @@
 import { syncConfig } from "../config/syncConfig.js";
-import { initializeApp, getApp, getApps } from "firebase/app";
-import {
-  getAuth,
-  onAuthStateChanged,
-  setPersistence,
-  browserLocalPersistence,
-  inMemoryPersistence,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail
-} from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore/lite";
 
 const MAX_CLOUD_PAYLOAD_BYTES = 850000;
 const COMPACT_DRAWING_BUDGET_BYTES = 220000;
@@ -22,7 +9,8 @@ export async function setupCloudSync({
   getLocalPayload,
   applyRemotePayload,
   onLocalStateApplied,
-  onLocalStateSaved
+  onLocalStateSaved,
+  eventBus
 }) {
   function estimatePayloadSize(payload) {
     try {
@@ -115,6 +103,25 @@ export async function setupCloudSync({
     return createNoopSync();
   }
 
+  // Phase 5: lazy import Firebase to keep initial bundle smaller.
+  const firebaseApp = await import("firebase/app");
+  const firebaseAuth = await import("firebase/auth");
+  const firebaseFirestore = await import("firebase/firestore/lite");
+
+  const { initializeApp, getApp, getApps } = firebaseApp;
+  const {
+    getAuth,
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence,
+    inMemoryPersistence,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    sendPasswordResetEmail
+  } = firebaseAuth;
+  const { getFirestore, doc, getDoc, setDoc } = firebaseFirestore;
+
   const app = getApps().length ? getApp() : initializeApp(syncConfig.firebase);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -149,6 +156,7 @@ export async function setupCloudSync({
     if (remoteSavedAt > localSavedAt) {
       applyRemotePayload(remotePayload);
       onLocalStateApplied();
+      if (eventBus) eventBus.emit("sync:conflictApplied");
       setStatus(`Connected: ${user.email || user.uid}. Downloaded newer cloud progress.`);
     } else {
       const writeResult = await writeCloudState(stateRef, localPayload);
@@ -173,6 +181,7 @@ export async function setupCloudSync({
 
     applyRemotePayload(remoteSnap.data());
     onLocalStateApplied();
+    if (eventBus) eventBus.emit("sync:conflictApplied");
     setStatus("Pulled cloud progress to this device.");
   }
 
