@@ -52,7 +52,7 @@ export function createProgressPreferencesManager({
     renderDailyGoalInputs();
     persistState();
     refreshProgressView();
-    showResult(elements, "Daily goals saved.", true);
+    showResult("Daily goals saved.", true);
   }
 
   function resetBacklogFilters() {

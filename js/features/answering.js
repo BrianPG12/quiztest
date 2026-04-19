@@ -66,13 +66,13 @@ export function createAnsweringManager({
 
   function processTypingAnswer(userRomaji) {
     if (!state.currentQuestion) {
-      showResult(elements, "Create a question first.", false);
+      showResult("Create a question first.", false);
       return { accepted: false, correct: false };
     }
 
     const validation = validateTypingAnswer(userRomaji);
     if (!validation.correct) {
-      showResult(elements, validation.reason, false);
+      showResult(validation.reason, false);
       return { accepted: false, correct: false };
     }
 
@@ -84,10 +84,10 @@ export function createAnsweringManager({
 
     if (correct) {
       state.typingRightCount += 1;
-      showResult(elements, "Correct!", true);
+      showResult("Correct!", true);
     } else {
       state.typingWrongCount += 1;
-      showTypingMistake(elements, userRomaji, correctAnswer);
+      showTypingMistake(userRomaji, correctAnswer);
 
       if (userRomaji) {
         if (!state.confusionPairs[trackingRomaji]) {
@@ -119,7 +119,7 @@ export function createAnsweringManager({
 
   function processDrawingResult(wasCorrect, saveDrawingFn) {
     if (!state.currentQuestion) {
-      showResult(elements, "Create a question first.", false);
+      showResult("Create a question first.", false);
       return;
     }
 

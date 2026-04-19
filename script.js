@@ -17197,12 +17197,12 @@
     }
     function processTypingAnswer(userRomaji) {
       if (!state2.currentQuestion) {
-        showResult2(elements, "Create a question first.", false);
+        showResult2("Create a question first.", false);
         return { accepted: false, correct: false };
       }
       const validation = validateTypingAnswer(userRomaji);
       if (!validation.correct) {
-        showResult2(elements, validation.reason, false);
+        showResult2(validation.reason, false);
         return { accepted: false, correct: false };
       }
       const correctAnswer = state2.currentQuestion.romaji;
@@ -17212,10 +17212,10 @@
       const hintUsed = hintsManager && hintsManager.getHintsUsed() > 0;
       if (correct) {
         state2.typingRightCount += 1;
-        showResult2(elements, "Correct!", true);
+        showResult2("Correct!", true);
       } else {
         state2.typingWrongCount += 1;
-        showTypingMistake2(elements, userRomaji, correctAnswer);
+        showTypingMistake2(userRomaji, correctAnswer);
         if (userRomaji) {
           if (!state2.confusionPairs[trackingRomaji]) {
             state2.confusionPairs[trackingRomaji] = {};
@@ -17239,7 +17239,7 @@
     }
     function processDrawingResult(wasCorrect, saveDrawingFn) {
       if (!state2.currentQuestion) {
-        showResult2(elements, "Create a question first.", false);
+        showResult2("Create a question first.", false);
         return;
       }
       if (wasCorrect) {
@@ -17408,7 +17408,7 @@
       renderDailyGoalInputs();
       persistState();
       refreshProgressView();
-      showResult2(elements, "Daily goals saved.", true);
+      showResult2("Daily goals saved.", true);
     }
     function resetBacklogFilters() {
       state2.backlogFilters = {
