@@ -310,7 +310,6 @@
       dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d"),
       goalProgressBar: document.getElementById("goalProgressBar"),
       hintBtn: document.getElementById("hintBtn"),
-      streakDisplay: document.getElementById("streakDisplay"),
       srsScheduleGraph: document.getElementById("srsScheduleGraph")
     };
   }
@@ -321,7 +320,17 @@
 
   // js/core/utils.js
   function sanitizeRomaji(text) {
-    return text.trim().toLowerCase();
+    let raw = "";
+    if (typeof text === "string") {
+      raw = text;
+    } else if (text && typeof text === "object" && typeof text.answer === "string") {
+      raw = text.answer;
+    } else if (text == null) {
+      raw = "";
+    } else {
+      raw = "";
+    }
+    return raw.trim().toLowerCase();
   }
   function getTodayKey() {
     const now = /* @__PURE__ */ new Date();
@@ -447,9 +456,7 @@
       srsAccuracyWindow: {},
       // Phase 3: per-day per-romaji detail for drill-down view.
       // Shape: { [dateKey]: { [romaji]: { right: number, wrong: number } } }
-      dailyDetailStats: {},
-      // Phase 3: streak tracking.
-      streakData: { current: 0, best: 0, lastPracticeDate: "" }
+      dailyDetailStats: {}
     };
     Object.assign(state, extensions);
     state.mutate = function mutate(patch) {
@@ -1671,12 +1678,6 @@
     }
     container.innerHTML = bar("Total", totalDone, goals.total) + bar("Typing", typingDone, goals.typing) + bar("Drawing", drawingDone, goals.drawing) + bar("Normal", todayCategory.normal || 0, goals.normal) + bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) + bar("Yoon", todayCategory.yoon || 0, goals.yoon);
   }
-  function renderStreakDisplay(elements, state2) {
-    const container = elements.streakDisplay;
-    if (!container) return;
-    const streak = state2.streakData || { current: 0, best: 0, lastPracticeDate: "" };
-    container.innerHTML = `<span class="streak-badge" title="Current streak">\u{1F525} ${streak.current} day${streak.current !== 1 ? "s" : ""}</span>` + (streak.best > 1 ? `<span class="streak-best">Best: ${streak.best}</span>` : "");
-  }
   function renderSrsScheduleGraph(elements, state2) {
     const container = elements.srsScheduleGraph;
     if (!container) return;
@@ -1755,7 +1756,6 @@
     renderDailyHistoryTable(elements, state2.dailyStats, state2.dailyDetailStats || {});
     renderInsights(elements, state2);
     renderScriptHeatmap(elements, state2);
-    renderStreakDisplay(elements, state2);
     renderSrsScheduleGraph(elements, state2);
   }
   function bindProgressCompareSelectors(elements, state2) {
@@ -18384,24 +18384,6 @@
           };
         }
       }
-      function updateStreak() {
-        const todayKey = getTodayKey();
-        const streak = state2.streakData || { current: 0, best: 0, lastPracticeDate: "" };
-        if (streak.lastPracticeDate === todayKey) return;
-        const yesterday = (() => {
-          const d2 = new Date(todayKey);
-          d2.setDate(d2.getDate() - 1);
-          return d2.toISOString().slice(0, 10);
-        })();
-        if (streak.lastPracticeDate === yesterday) {
-          streak.current += 1;
-        } else {
-          streak.current = 1;
-        }
-        streak.best = Math.max(streak.best, streak.current);
-        streak.lastPracticeDate = todayKey;
-        state2.streakData = streak;
-      }
       function switchModeUI() {
         const mode = elements.modeSelect.value;
         const isMixedMode = mode === "mixedPractice";
@@ -18510,7 +18492,7 @@
         }, delayMs);
       }
       function checkTypingAnswer(forcedAnswer = null) {
-        const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : getAnswerInputValue();
+        const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : forcedAnswer && typeof forcedAnswer === "object" && typeof forcedAnswer.answer === "string" ? forcedAnswer.answer : getAnswerInputValue();
         const userAnswer = sanitizeRomaji(rawAnswer);
         const outcome = answeringManager.processTypingAnswer(userAnswer);
         if (!outcome || !outcome.accepted) return null;
@@ -18563,7 +18545,6 @@
         state2.confusionPairs = {};
         state2.srsAccuracyWindow = {};
         state2.dailyDetailStats = {};
-        state2.streakData = { current: 0, best: 0, lastPracticeDate: "" };
         progressPreferencesManager && progressPreferencesManager.resetBacklogFilters();
         state2.progressSubtab = "overview";
         state2.progressCollapsedSections = {
@@ -18684,7 +18665,6 @@
       }
       function subscribeToEvents() {
         const onAnswerProcessed = () => {
-          updateStreak();
           updateStats(elements, state2);
           renderGoalProgress(elements, state2);
           renderBacklogView();
@@ -18714,19 +18694,20 @@
         });
         eventBus.on(EVENT_NAMES.QUIZ_CHECK_ANSWER, () => checkTypingAnswer());
         eventBus.on(EVENT_NAMES.QUIZ_QUICK_ANSWER, ({ answer }) => {
-          setAnswerInputValue(answer);
-          const outcome = checkTypingAnswer(answer);
+          const normalizedAnswer = typeof answer === "string" ? answer : answer && typeof answer === "object" && typeof answer.answer === "string" ? answer.answer : "";
+          setAnswerInputValue(normalizedAnswer);
+          const outcome = checkTypingAnswer(normalizedAnswer);
           if (!outcome || !outcome.accepted) return;
           const optionButtons = elements.quickAnswerOptions ? Array.from(elements.quickAnswerOptions.querySelectorAll(".quick-answer-btn")) : [];
           optionButtons.forEach((btn) => {
             btn.disabled = true;
           });
           if (outcome.correct) {
-            const clicked2 = optionButtons.find((btn) => btn.dataset.answer === answer);
+            const clicked2 = optionButtons.find((btn) => btn.dataset.answer === normalizedAnswer);
             if (clicked2) clicked2.classList.add("is-correct");
             return;
           }
-          const clicked = optionButtons.find((btn) => btn.dataset.answer === answer);
+          const clicked = optionButtons.find((btn) => btn.dataset.answer === normalizedAnswer);
           if (clicked) clicked.classList.add("is-wrong");
           const correctBtn = optionButtons.find((btn) => btn.dataset.answer === outcome.correctAnswer);
           if (correctBtn) correctBtn.classList.add("is-correct");

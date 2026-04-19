@@ -506,19 +506,6 @@ export function renderGoalProgress(elements, state) {
 }
 
 /**
- * Phase 3 — Streak badge: current streak and personal best.
- */
-export function renderStreakDisplay(elements, state) {
-  const container = elements.streakDisplay;
-  if (!container) return;
-
-  const streak = state.streakData || { current: 0, best: 0, lastPracticeDate: "" };
-  container.innerHTML =
-    `<span class="streak-badge" title="Current streak">🔥 ${streak.current} day${streak.current !== 1 ? "s" : ""}</span>` +
-    (streak.best > 1 ? `<span class="streak-best">Best: ${streak.best}</span>` : "");
-}
-
-/**
  * Phase 3 — SRS schedule: bar chart of items due per day for the next 7 days.
  */
 export function renderSrsScheduleGraph(elements, state) {
@@ -610,7 +597,6 @@ export function renderDailyProgress({ elements, state, setActiveProgressTab }) {
   renderDailyHistoryTable(elements, state.dailyStats, state.dailyDetailStats || {});
   renderInsights(elements, state);
   renderScriptHeatmap(elements, state);
-  renderStreakDisplay(elements, state);
   renderSrsScheduleGraph(elements, state);
 }
 

@@ -99,9 +99,7 @@ export function createState(kanaData) {
     srsAccuracyWindow: {},
     // Phase 3: per-day per-romaji detail for drill-down view.
     // Shape: { [dateKey]: { [romaji]: { right: number, wrong: number } } }
-    dailyDetailStats: {},
-    // Phase 3: streak tracking.
-    streakData: { current: 0, best: 0, lastPracticeDate: "" }
+    dailyDetailStats: {}
   };
 
   Object.assign(state, extensions);

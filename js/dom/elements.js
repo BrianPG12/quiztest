@@ -98,7 +98,6 @@ export function getElements() {
     dailyProgressGraphCtx: document.getElementById("dailyProgressGraph").getContext("2d"),
     goalProgressBar: document.getElementById("goalProgressBar"),
     hintBtn: document.getElementById("hintBtn"),
-    streakDisplay: document.getElementById("streakDisplay"),
     srsScheduleGraph: document.getElementById("srsScheduleGraph")
   };
 }

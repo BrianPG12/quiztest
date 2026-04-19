@@ -1196,26 +1196,6 @@ button:disabled {
   background: linear-gradient(90deg, #0369a1 0%, #0284c7 100%);
 }
 
-.streak-display {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.streak-badge {
-  background: #fff7ed;
-  color: #9a3412;
-  border: 1px solid #fdba74;
-  border-radius: var(--r-pill);
-  padding: 4px 10px;
-  font-weight: 700;
-}
-
-.streak-best {
-  color: #57534e;
-  font-weight: 700;
-}
-
 .srs-schedule-graph {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

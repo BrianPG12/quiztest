@@ -1,5 +1,18 @@
 export function sanitizeRomaji(text) {
-  return text.trim().toLowerCase();
+  let raw = "";
+
+  if (typeof text === "string") {
+    raw = text;
+  } else if (text && typeof text === "object" && typeof text.answer === "string") {
+    raw = text.answer;
+  } else if (text == null) {
+    raw = "";
+  } else {
+    // Defensive: avoid turning arbitrary objects into "[object Object]" answers.
+    raw = "";
+  }
+
+  return raw.trim().toLowerCase();
 }
 
 export function getTodayKey() {

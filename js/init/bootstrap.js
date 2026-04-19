@@ -209,31 +209,6 @@ function ensureTodayEntry() {
   }
 }
 
-// ─── Streak tracking ──────────────────────────────────────────────────────────
-
-function updateStreak() {
-  const todayKey = getTodayKey();
-  const streak = state.streakData || { current: 0, best: 0, lastPracticeDate: "" };
-
-  if (streak.lastPracticeDate === todayKey) return; // Already counted today
-
-  const yesterday = (() => {
-    const d = new Date(todayKey);
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
-  })();
-
-  if (streak.lastPracticeDate === yesterday) {
-    streak.current += 1;
-  } else {
-    streak.current = 1;
-  }
-
-  streak.best = Math.max(streak.best, streak.current);
-  streak.lastPracticeDate = todayKey;
-  state.streakData = streak;
-}
-
 // ─── Quiz logic ───────────────────────────────────────────────────────────────
 
 function switchModeUI() {
@@ -375,7 +350,11 @@ function scheduleNextTypingQuestion(delayMs = 700) {
 }
 
 function checkTypingAnswer(forcedAnswer = null) {
-  const rawAnswer = typeof forcedAnswer === "string" ? forcedAnswer : getAnswerInputValue();
+  const rawAnswer = typeof forcedAnswer === "string"
+    ? forcedAnswer
+    : (forcedAnswer && typeof forcedAnswer === "object" && typeof forcedAnswer.answer === "string")
+      ? forcedAnswer.answer
+      : getAnswerInputValue();
   const userAnswer = sanitizeRomaji(rawAnswer);
   const outcome = answeringManager.processTypingAnswer(userAnswer);
   if (!outcome || !outcome.accepted) return null;
@@ -434,7 +413,6 @@ async function resetAllData() {
   state.confusionPairs = {};
   state.srsAccuracyWindow = {};
   state.dailyDetailStats = {};
-  state.streakData = { current: 0, best: 0, lastPracticeDate: "" };
 
   progressPreferencesManager && progressPreferencesManager.resetBacklogFilters();
   state.progressSubtab = "overview";
@@ -565,7 +543,6 @@ function applyRemotePayload(payload) {
 function subscribeToEvents() {
   // Answer side-effects (emitted by answering.js)
   const onAnswerProcessed = () => {
-    updateStreak();
     updateStats(elements, state);
     renderGoalProgress(elements, state);
     renderBacklogView();
@@ -603,8 +580,13 @@ function subscribeToEvents() {
   eventBus.on(EVENT_NAMES.QUIZ_CHECK_ANSWER, () => checkTypingAnswer());
 
   eventBus.on(EVENT_NAMES.QUIZ_QUICK_ANSWER, ({ answer }) => {
-    setAnswerInputValue(answer);
-    const outcome = checkTypingAnswer(answer);
+    const normalizedAnswer = typeof answer === "string"
+      ? answer
+      : (answer && typeof answer === "object" && typeof answer.answer === "string")
+        ? answer.answer
+        : "";
+    setAnswerInputValue(normalizedAnswer);
+    const outcome = checkTypingAnswer(normalizedAnswer);
     if (!outcome || !outcome.accepted) return;
 
     const optionButtons = elements.quickAnswerOptions
@@ -613,12 +595,12 @@ function subscribeToEvents() {
     optionButtons.forEach((btn) => { btn.disabled = true; });
 
     if (outcome.correct) {
-      const clicked = optionButtons.find((btn) => btn.dataset.answer === answer);
+      const clicked = optionButtons.find((btn) => btn.dataset.answer === normalizedAnswer);
       if (clicked) clicked.classList.add("is-correct");
       return;
     }
 
-    const clicked = optionButtons.find((btn) => btn.dataset.answer === answer);
+    const clicked = optionButtons.find((btn) => btn.dataset.answer === normalizedAnswer);
     if (clicked) clicked.classList.add("is-wrong");
     const correctBtn = optionButtons.find((btn) => btn.dataset.answer === outcome.correctAnswer);
     if (correctBtn) correctBtn.classList.add("is-correct");
