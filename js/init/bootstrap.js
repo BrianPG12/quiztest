@@ -170,8 +170,7 @@ function renderBacklogView() {
     backlog: state.backlog,
     drawingsByKana: state.drawingsByKana,
     getKanaCategoryFn,
-    filters: state.backlogFilters,
-    srsByRomaji: state.srsByRomaji
+    filters: state.backlogFilters
   });
 }
 
