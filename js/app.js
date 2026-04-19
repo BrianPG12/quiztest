@@ -346,6 +346,9 @@ function newQuestion() {
       : mode === "romajiToKana"
         ? "drawing"
         : (Math.random() > 0.5 ? "typing" : "drawing");
+    const previousRomaji = state.currentQuestion
+      ? (state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null)
+      : null;
     const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
 
     if (nextQuestionKind === "typing") {
@@ -356,7 +359,8 @@ function newQuestion() {
         getKanaCategoryFn,
         getQuestionWeightFn: getQuestionWeight,
         backlog: state.backlog,
-        preferredRomajiList
+        preferredRomajiList,
+        avoidRomaji: previousRomaji
       });
     } else {
       state.currentQuestion = pickWritingQuestion({
@@ -366,7 +370,8 @@ function newQuestion() {
         getKanaCategoryFn,
         getQuestionWeightFn: getQuestionWeight,
         backlog: state.backlog,
-        preferredRomajiList
+        preferredRomajiList,
+        avoidRomaji: previousRomaji
       });
     }
   } catch (error) {

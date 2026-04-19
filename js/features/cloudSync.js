@@ -13,6 +13,9 @@ import {
 } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore/lite";
 
+const MAX_CLOUD_PAYLOAD_BYTES = 850000;
+const COMPACT_DRAWING_BUDGET_BYTES = 220000;
+
 export async function setupCloudSync({
   elements,
   state,
@@ -21,6 +24,60 @@ export async function setupCloudSync({
   onLocalStateApplied,
   onLocalStateSaved
 }) {
+  function estimatePayloadSize(payload) {
+    try {
+      return new Blob([JSON.stringify(payload)]).size;
+    } catch {
+      return JSON.stringify(payload).length;
+    }
+  }
+
+  function buildCompactCloudPayload(payload) {
+    const compact = {
+      ...payload,
+      drawingsByKana: {}
+    };
+
+    const source = payload && payload.drawingsByKana && typeof payload.drawingsByKana === "object"
+      ? payload.drawingsByKana
+      : {};
+
+    let usedBytes = 0;
+    Object.keys(source).forEach((kanaChar) => {
+      const drawings = Array.isArray(source[kanaChar]) ? source[kanaChar] : [];
+      if (drawings.length === 0) {
+        return;
+      }
+
+      const firstDrawing = typeof drawings[0] === "string" ? drawings[0] : null;
+      if (!firstDrawing) {
+        return;
+      }
+
+      const drawingSize = firstDrawing.length;
+      if (usedBytes + drawingSize > COMPACT_DRAWING_BUDGET_BYTES) {
+        return;
+      }
+
+      compact.drawingsByKana[kanaChar] = [firstDrawing];
+      usedBytes += drawingSize;
+    });
+
+    return compact;
+  }
+
+  async function writeCloudState(stateRef, payload) {
+    const payloadSize = estimatePayloadSize(payload);
+    if (payloadSize <= MAX_CLOUD_PAYLOAD_BYTES) {
+      await setDoc(stateRef, payload);
+      return { writtenPayload: payload, usedCompactPayload: false };
+    }
+
+    const compactPayload = buildCompactCloudPayload(payload);
+    await setDoc(stateRef, compactPayload);
+    return { writtenPayload: compactPayload, usedCompactPayload: true };
+  }
+
   function setStatus(text) {
     elements.syncStatus.textContent = text;
     elements.syncStatus.classList.remove("ok", "bad");
@@ -77,8 +134,10 @@ export async function setupCloudSync({
     const localPayload = getLocalPayload();
 
     if (!remoteSnap.exists()) {
-      await setDoc(stateRef, localPayload);
-      setStatus(`Connected: ${user.email || user.uid}. Uploaded local progress.`);
+      const writeResult = await writeCloudState(stateRef, localPayload);
+      setStatus(writeResult.usedCompactPayload
+        ? `Connected: ${user.email || user.uid}. Uploaded local progress (compact cloud payload).`
+        : `Connected: ${user.email || user.uid}. Uploaded local progress.`);
       return;
     }
 
@@ -92,8 +151,10 @@ export async function setupCloudSync({
       onLocalStateApplied();
       setStatus(`Connected: ${user.email || user.uid}. Downloaded newer cloud progress.`);
     } else {
-      await setDoc(stateRef, localPayload);
-      setStatus(`Connected: ${user.email || user.uid}. Cloud synced.`);
+      const writeResult = await writeCloudState(stateRef, localPayload);
+      setStatus(writeResult.usedCompactPayload
+        ? `Connected: ${user.email || user.uid}. Cloud synced (compact cloud payload).`
+        : `Connected: ${user.email || user.uid}. Cloud synced.`);
     }
   }
 
@@ -123,15 +184,17 @@ export async function setupCloudSync({
 
     const stateRef = doc(db, "quizStates", currentUser.uid);
     const payload = getLocalPayload();
-    await setDoc(stateRef, payload);
+    const writeResult = await writeCloudState(stateRef, payload);
     const syncMeta = {
-      ...payload,
+      ...writeResult.writtenPayload,
       cloudSyncedAt: Date.now(),
       userEmail: currentUser.email || ""
     };
     onLocalStateSaved(syncMeta);
     setAccountInfo(syncMeta.userEmail, syncMeta.cloudSyncedAt);
-    setStatus(`Synced at ${new Date().toLocaleTimeString()}.`);
+    setStatus(writeResult.usedCompactPayload
+      ? `Synced at ${new Date().toLocaleTimeString()} (compact cloud payload).`
+      : `Synced at ${new Date().toLocaleTimeString()}.`);
   }
 
   function queueUpload() {

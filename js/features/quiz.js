@@ -4,7 +4,8 @@ export function pickQuestion({
   getKanaCategoryFn,
   getQuestionWeightFn,
   backlog,
-  preferredRomajiList = null
+  preferredRomajiList = null,
+  avoidRomaji = null
 }) {
   const basePool = kanaSet === "all"
     ? kanaData
@@ -19,6 +20,14 @@ export function pickQuestion({
     const targeted = safeBasePool.filter((item) => preferredSet.has(item.romaji));
     if (targeted.length > 0) {
       pool = targeted;
+    }
+  }
+
+  // Prevent immediate back-to-back repeats when there are alternatives.
+  if (typeof avoidRomaji === "string" && avoidRomaji && pool.length > 1) {
+    const withoutRepeat = pool.filter((item) => item.romaji !== avoidRomaji);
+    if (withoutRepeat.length > 0) {
+      pool = withoutRepeat;
     }
   }
 
@@ -65,7 +74,8 @@ export function pickTypingQuestion({
   getKanaCategoryFn,
   getQuestionWeightFn,
   backlog,
-  preferredRomajiList
+  preferredRomajiList,
+  avoidRomaji
 }) {
   const item = pickQuestion({
     kanaData,
@@ -73,7 +83,8 @@ export function pickTypingQuestion({
     getKanaCategoryFn,
     getQuestionWeightFn,
     backlog,
-    preferredRomajiList
+    preferredRomajiList,
+    avoidRomaji
   });
 
   if (scriptMode === "hiragana") {
@@ -81,6 +92,7 @@ export function pickTypingQuestion({
     return {
       kind: "typing",
       romaji: resolveTypingRomaji(item, scriptName),
+      trackingRomaji: item.romaji,
       kana: item.hiragana,
       scriptName
     };
@@ -91,6 +103,7 @@ export function pickTypingQuestion({
     return {
       kind: "typing",
       romaji: resolveTypingRomaji(item, scriptName),
+      trackingRomaji: item.romaji,
       kana: item.katakana,
       scriptName
     };
@@ -101,6 +114,7 @@ export function pickTypingQuestion({
   return {
     kind: "typing",
     romaji: resolveTypingRomaji(item, scriptName),
+    trackingRomaji: item.romaji,
     kana: useHiragana ? item.hiragana : item.katakana,
     scriptName
   };
@@ -113,7 +127,8 @@ export function pickWritingQuestion({
   getKanaCategoryFn,
   getQuestionWeightFn,
   backlog,
-  preferredRomajiList
+  preferredRomajiList,
+  avoidRomaji
 }) {
   const item = pickQuestion({
     kanaData,
@@ -121,7 +136,8 @@ export function pickWritingQuestion({
     getKanaCategoryFn,
     getQuestionWeightFn,
     backlog,
-    preferredRomajiList
+    preferredRomajiList,
+    avoidRomaji
   });
 
   if (writingMode === "both") {

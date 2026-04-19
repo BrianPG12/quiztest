@@ -62,6 +62,7 @@ export function createAnsweringManager({
     }
 
     const correctAnswer = state.currentQuestion.romaji;
+    const trackingRomaji = state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
     const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
     const correct = acceptedAnswers.has(userRomaji);
     if (correct) {
@@ -75,14 +76,14 @@ export function createAnsweringManager({
     // Update all tracking systems
     updateBacklog({
       backlog: state.backlog,
-      romaji: state.currentQuestion.romaji,
+      romaji: trackingRomaji,
       wasCorrect: correct,
       scriptContext: state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
       answerMode: "typing"
     });
 
-    srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct, "typing");
-    addDailyAttemptFn(state, "typing", correct, state.currentQuestion.romaji);
+    srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing");
+    addDailyAttemptFn(state, "typing", correct, trackingRomaji);
     updateStats(elements, state);
     renderBacklogViewFn();
     refreshProgressViewFn();

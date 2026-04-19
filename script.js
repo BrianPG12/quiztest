@@ -671,7 +671,8 @@
     getKanaCategoryFn,
     getQuestionWeightFn,
     backlog,
-    preferredRomajiList = null
+    preferredRomajiList = null,
+    avoidRomaji = null
   }) {
     const basePool = kanaSet === "all" ? kanaData2 : kanaData2.filter((item) => getKanaCategoryFn(item.romaji) === kanaSet);
     const safeBasePool = basePool.length > 0 ? basePool : kanaData2;
@@ -681,6 +682,12 @@
       const targeted = safeBasePool.filter((item) => preferredSet.has(item.romaji));
       if (targeted.length > 0) {
         pool = targeted;
+      }
+    }
+    if (typeof avoidRomaji === "string" && avoidRomaji && pool.length > 1) {
+      const withoutRepeat = pool.filter((item) => item.romaji !== avoidRomaji);
+      if (withoutRepeat.length > 0) {
+        pool = withoutRepeat;
       }
     }
     if (pool.length === 0) {
@@ -720,7 +727,8 @@
     getKanaCategoryFn,
     getQuestionWeightFn,
     backlog,
-    preferredRomajiList
+    preferredRomajiList,
+    avoidRomaji
   }) {
     const item = pickQuestion({
       kanaData: kanaData2,
@@ -728,13 +736,15 @@
       getKanaCategoryFn,
       getQuestionWeightFn,
       backlog,
-      preferredRomajiList
+      preferredRomajiList,
+      avoidRomaji
     });
     if (scriptMode === "hiragana") {
       const scriptName2 = "Hiragana";
       return {
         kind: "typing",
         romaji: resolveTypingRomaji(item, scriptName2),
+        trackingRomaji: item.romaji,
         kana: item.hiragana,
         scriptName: scriptName2
       };
@@ -744,6 +754,7 @@
       return {
         kind: "typing",
         romaji: resolveTypingRomaji(item, scriptName2),
+        trackingRomaji: item.romaji,
         kana: item.katakana,
         scriptName: scriptName2
       };
@@ -753,6 +764,7 @@
     return {
       kind: "typing",
       romaji: resolveTypingRomaji(item, scriptName),
+      trackingRomaji: item.romaji,
       kana: useHiragana ? item.hiragana : item.katakana,
       scriptName
     };
@@ -764,7 +776,8 @@
     getKanaCategoryFn,
     getQuestionWeightFn,
     backlog,
-    preferredRomajiList
+    preferredRomajiList,
+    avoidRomaji
   }) {
     const item = pickQuestion({
       kanaData: kanaData2,
@@ -772,7 +785,8 @@
       getKanaCategoryFn,
       getQuestionWeightFn,
       backlog,
-      preferredRomajiList
+      preferredRomajiList,
+      avoidRomaji
     });
     if (writingMode === "both") {
       return {
@@ -12150,6 +12164,48 @@
     onLocalStateApplied,
     onLocalStateSaved
   }) {
+    function estimatePayloadSize(payload) {
+      try {
+        return new Blob([JSON.stringify(payload)]).size;
+      } catch (e) {
+        return JSON.stringify(payload).length;
+      }
+    }
+    function buildCompactCloudPayload(payload) {
+      const compact = {
+        ...payload,
+        drawingsByKana: {}
+      };
+      const source = payload && payload.drawingsByKana && typeof payload.drawingsByKana === "object" ? payload.drawingsByKana : {};
+      let usedBytes = 0;
+      Object.keys(source).forEach((kanaChar) => {
+        const drawings = Array.isArray(source[kanaChar]) ? source[kanaChar] : [];
+        if (drawings.length === 0) {
+          return;
+        }
+        const firstDrawing = typeof drawings[0] === "string" ? drawings[0] : null;
+        if (!firstDrawing) {
+          return;
+        }
+        const drawingSize = firstDrawing.length;
+        if (usedBytes + drawingSize > COMPACT_DRAWING_BUDGET_BYTES) {
+          return;
+        }
+        compact.drawingsByKana[kanaChar] = [firstDrawing];
+        usedBytes += drawingSize;
+      });
+      return compact;
+    }
+    async function writeCloudState(stateRef, payload) {
+      const payloadSize = estimatePayloadSize(payload);
+      if (payloadSize <= MAX_CLOUD_PAYLOAD_BYTES) {
+        await setDoc(stateRef, payload);
+        return { writtenPayload: payload, usedCompactPayload: false };
+      }
+      const compactPayload = buildCompactCloudPayload(payload);
+      await setDoc(stateRef, compactPayload);
+      return { writtenPayload: compactPayload, usedCompactPayload: true };
+    }
     function setStatus(text) {
       elements.syncStatus.textContent = text;
       elements.syncStatus.classList.remove("ok", "bad");
@@ -12195,8 +12251,8 @@
       const remoteSnap = await getDoc(stateRef);
       const localPayload = getLocalPayload();
       if (!remoteSnap.exists()) {
-        await setDoc(stateRef, localPayload);
-        setStatus(`Connected: ${user.email || user.uid}. Uploaded local progress.`);
+        const writeResult = await writeCloudState(stateRef, localPayload);
+        setStatus(writeResult.usedCompactPayload ? `Connected: ${user.email || user.uid}. Uploaded local progress (compact cloud payload).` : `Connected: ${user.email || user.uid}. Uploaded local progress.`);
         return;
       }
       const remotePayload = remoteSnap.data();
@@ -12207,8 +12263,8 @@
         onLocalStateApplied();
         setStatus(`Connected: ${user.email || user.uid}. Downloaded newer cloud progress.`);
       } else {
-        await setDoc(stateRef, localPayload);
-        setStatus(`Connected: ${user.email || user.uid}. Cloud synced.`);
+        const writeResult = await writeCloudState(stateRef, localPayload);
+        setStatus(writeResult.usedCompactPayload ? `Connected: ${user.email || user.uid}. Cloud synced (compact cloud payload).` : `Connected: ${user.email || user.uid}. Cloud synced.`);
       }
     }
     async function pullNow() {
@@ -12233,15 +12289,15 @@
       }
       const stateRef = doc(db, "quizStates", currentUser.uid);
       const payload = getLocalPayload();
-      await setDoc(stateRef, payload);
+      const writeResult = await writeCloudState(stateRef, payload);
       const syncMeta = {
-        ...payload,
+        ...writeResult.writtenPayload,
         cloudSyncedAt: Date.now(),
         userEmail: currentUser.email || ""
       };
       onLocalStateSaved(syncMeta);
       setAccountInfo(syncMeta.userEmail, syncMeta.cloudSyncedAt);
-      setStatus(`Synced at ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}.`);
+      setStatus(writeResult.usedCompactPayload ? `Synced at ${(/* @__PURE__ */ new Date()).toLocaleTimeString()} (compact cloud payload).` : `Synced at ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}.`);
     }
     function queueUpload() {
       if (!currentUser) {
@@ -12362,12 +12418,15 @@
       }
     };
   }
+  var MAX_CLOUD_PAYLOAD_BYTES, COMPACT_DRAWING_BUDGET_BYTES;
   var init_cloudSync = __esm({
     "js/features/cloudSync.js"() {
       init_syncConfig();
       init_index_esm();
       init_index_esm2();
       init_index_esm3();
+      MAX_CLOUD_PAYLOAD_BYTES = 85e4;
+      COMPACT_DRAWING_BUDGET_BYTES = 22e4;
     }
   });
 
@@ -12652,6 +12711,7 @@
         return { accepted: false, correct: false };
       }
       const correctAnswer = state.currentQuestion.romaji;
+      const trackingRomaji = state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
       const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
       const correct = acceptedAnswers.has(userRomaji);
       if (correct) {
@@ -12663,13 +12723,13 @@
       }
       updateBacklog2({
         backlog: state.backlog,
-        romaji: state.currentQuestion.romaji,
+        romaji: trackingRomaji,
         wasCorrect: correct,
         scriptContext: state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
         answerMode: "typing"
       });
-      srsManager.updateSrsOnAttempt(state.currentQuestion.romaji, correct, "typing");
-      addDailyAttemptFn(state, "typing", correct, state.currentQuestion.romaji);
+      srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing");
+      addDailyAttemptFn(state, "typing", correct, trackingRomaji);
       updateStats2(elements, state);
       renderBacklogViewFn();
       refreshProgressViewFn();
@@ -13531,6 +13591,7 @@
         try {
           const mode = elements.modeSelect.value;
           const nextQuestionKind = mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing";
+          const previousRomaji = state.currentQuestion ? state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null : null;
           const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
           if (nextQuestionKind === "typing") {
             state.currentQuestion = pickTypingQuestion({
@@ -13540,7 +13601,8 @@
               getKanaCategoryFn,
               getQuestionWeightFn: getQuestionWeight,
               backlog: state.backlog,
-              preferredRomajiList
+              preferredRomajiList,
+              avoidRomaji: previousRomaji
             });
           } else {
             state.currentQuestion = pickWritingQuestion({
@@ -13550,7 +13612,8 @@
               getKanaCategoryFn,
               getQuestionWeightFn: getQuestionWeight,
               backlog: state.backlog,
-              preferredRomajiList
+              preferredRomajiList,
+              avoidRomaji: previousRomaji
             });
           }
         } catch (error) {
