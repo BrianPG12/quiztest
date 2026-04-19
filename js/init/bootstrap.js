@@ -45,7 +45,6 @@ import { createBackupManager } from "../features/backup.js";
 import { createDistractorRenderer } from "../features/distractors.js";
 import { createHintsManager } from "../features/hints.js";
 import { KeyboardController } from "../core/keyboard.js";
-import { createSwipeDetector } from "../core/swipe.js";
 import { showConfirm } from "../core/confirm.js";
 import { bindEvents } from "./eventBinder.js";
 
@@ -735,28 +734,6 @@ function setupKeyboardShortcuts() {
   keyboard.register("KeyN", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
 }
 
-// ─── Swipe gestures ───────────────────────────────────────────────────────────
-
-function setupSwipeGestures() {
-  const questionCard = document.querySelector(".quiz.card");
-  if (!questionCard) return;
-
-  createSwipeDetector(questionCard, {
-    onSwipeRight() {
-      const mode = elements.modeSelect.value;
-      if (mode === "romajiToKana" || mode === "mixedPractice") {
-        if (!elements.markRightBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT);
-      }
-    },
-    onSwipeLeft() {
-      const mode = elements.modeSelect.value;
-      if (mode === "romajiToKana" || mode === "mixedPractice") {
-        if (!elements.markWrongBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG);
-      }
-    }
-  });
-}
-
 // ─── Application init ─────────────────────────────────────────────────────────
 
 function init() {
@@ -841,7 +818,6 @@ function init() {
   bindEvents(elements, state);
   drawingFeature.bindCanvasEvents();
   setupKeyboardShortcuts();
-  setupSwipeGestures();
   ensureAudioButtonsAboveKanaBox();
   setupAnswerInputGuards();
   setupPwaInstall();

@@ -17972,63 +17972,6 @@
     }
   });
 
-  // js/core/swipe.js
-  function createSwipeDetector(element, options = {}) {
-    const minDistance = options.minDistance ?? DEFAULT_MIN_DISTANCE;
-    const onSwipeLeft = options.onSwipeLeft || null;
-    const onSwipeRight = options.onSwipeRight || null;
-    let startX = 0;
-    let startY = 0;
-    let tracking = false;
-    function onPointerDown(event) {
-      if (!event.isPrimary) return;
-      startX = event.clientX;
-      startY = event.clientY;
-      tracking = true;
-    }
-    function onPointerUp(event) {
-      if (!tracking || !event.isPrimary) return;
-      tracking = false;
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
-      if (Math.abs(dx) < minDistance) return;
-      if (Math.abs(dy) > Math.abs(dx) * DEFAULT_MAX_VERTICAL_RATIO) return;
-      if (dx > 0 && onSwipeRight) {
-        try {
-          onSwipeRight();
-        } catch (err) {
-          console.error("[SwipeDetector] onSwipeRight error:", err);
-        }
-      } else if (dx < 0 && onSwipeLeft) {
-        try {
-          onSwipeLeft();
-        } catch (err) {
-          console.error("[SwipeDetector] onSwipeLeft error:", err);
-        }
-      }
-    }
-    function onPointerCancel() {
-      tracking = false;
-    }
-    element.addEventListener("pointerdown", onPointerDown);
-    element.addEventListener("pointerup", onPointerUp);
-    element.addEventListener("pointercancel", onPointerCancel);
-    return {
-      destroy() {
-        element.removeEventListener("pointerdown", onPointerDown);
-        element.removeEventListener("pointerup", onPointerUp);
-        element.removeEventListener("pointercancel", onPointerCancel);
-      }
-    };
-  }
-  var DEFAULT_MIN_DISTANCE, DEFAULT_MAX_VERTICAL_RATIO;
-  var init_swipe = __esm({
-    "js/core/swipe.js"() {
-      DEFAULT_MIN_DISTANCE = 60;
-      DEFAULT_MAX_VERTICAL_RATIO = 0.6;
-    }
-  });
-
   // js/core/confirm.js
   function showConfirm(message, confirmLabel = "Confirm", cancelLabel = "Cancel") {
     return new Promise((resolve) => {
@@ -18264,7 +18207,6 @@
       init_distractors();
       init_hints();
       init_keyboard();
-      init_swipe();
       init_confirm();
       init_eventBinder();
       var elements = getElements();
@@ -18822,24 +18764,6 @@
         });
         keyboard.register("KeyN", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
       }
-      function setupSwipeGestures() {
-        const questionCard = document.querySelector(".quiz.card");
-        if (!questionCard) return;
-        createSwipeDetector(questionCard, {
-          onSwipeRight() {
-            const mode = elements.modeSelect.value;
-            if (mode === "romajiToKana" || mode === "mixedPractice") {
-              if (!elements.markRightBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT);
-            }
-          },
-          onSwipeLeft() {
-            const mode = elements.modeSelect.value;
-            if (mode === "romajiToKana" || mode === "mixedPractice") {
-              if (!elements.markWrongBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG);
-            }
-          }
-        });
-      }
       function init() {
         loadProgress({
           storageKey: STORAGE_KEY,
@@ -18915,7 +18839,6 @@
         bindEvents(elements, state2);
         drawingFeature.bindCanvasEvents();
         setupKeyboardShortcuts();
-        setupSwipeGestures();
         ensureAudioButtonsAboveKanaBox();
         setupAnswerInputGuards();
         setupPwaInstall();
