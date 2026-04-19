@@ -10,10 +10,36 @@ export function resetResult(elements) {
   elements.resultElement.classList.remove("ok", "bad");
 }
 
-export function showResult(elements, message, isCorrect) {
-  elements.resultElement.textContent = message;
-  elements.resultElement.classList.toggle("ok", isCorrect);
-  elements.resultElement.classList.toggle("bad", !isCorrect);
+function getDefaultElements() {
+  return {
+    resultElement: document.getElementById("result")
+  };
+}
+
+function isElementsShape(value) {
+  return Boolean(value && typeof value === "object" && value.resultElement);
+}
+
+export function showResult(arg1, arg2, arg3) {
+  let elements;
+  let message;
+  let isCorrect;
+
+  if (isElementsShape(arg1)) {
+    elements = arg1;
+    message = arg2;
+    isCorrect = arg3;
+  } else {
+    elements = getDefaultElements();
+    message = arg1;
+    isCorrect = arg2;
+  }
+
+  if (!elements.resultElement) return;
+
+  elements.resultElement.textContent = String(message ?? "");
+  elements.resultElement.classList.toggle("ok", Boolean(isCorrect));
+  elements.resultElement.classList.toggle("bad", !Boolean(isCorrect));
 }
 
 function escapeHtml(value) {
@@ -25,7 +51,23 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-export function showTypingMistake(elements, userAnswer, correctAnswer) {
+export function showTypingMistake(arg1, arg2, arg3) {
+  let elements;
+  let userAnswer;
+  let correctAnswer;
+
+  if (isElementsShape(arg1)) {
+    elements = arg1;
+    userAnswer = arg2;
+    correctAnswer = arg3;
+  } else {
+    elements = getDefaultElements();
+    userAnswer = arg1;
+    correctAnswer = arg2;
+  }
+
+  if (!elements.resultElement) return;
+
   const user = userAnswer ? userAnswer : "(blank)";
   const correct = correctAnswer || "-";
   elements.resultElement.innerHTML = `
