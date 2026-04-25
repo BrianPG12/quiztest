@@ -210,25 +210,176 @@
     }
   });
 
+  // js/data/wordsData.js
+  function makeWordEntry({ id, japanese, romaji, meanings, category = "core", helperRomaji = romaji }) {
+    return {
+      id,
+      japanese,
+      romaji,
+      helperRomaji,
+      meanings,
+      category
+    };
+  }
+  var baseWords, yearWords, timeWords, ageWords, wordsData;
+  var init_wordsData = __esm({
+    "js/data/wordsData.js"() {
+      baseWords = [
+        makeWordEntry({ id: "word-daigaku", japanese: "\u3060\u3044\u304C\u304F", romaji: "daigaku", meanings: ["college", "university"], category: "school" }),
+        makeWordEntry({ id: "word-kookoo", japanese: "\u3053\u3046\u3053\u3046", romaji: "kookoo", meanings: ["high school"], category: "school" }),
+        makeWordEntry({ id: "word-gakusee", japanese: "\u304C\u304F\u305B\u3044", romaji: "gakusee", meanings: ["student"], category: "school" }),
+        makeWordEntry({ id: "word-daigakusee", japanese: "\u3060\u3044\u304C\u304F\u305B\u3044", romaji: "daigakusee", meanings: ["college student"], category: "school" }),
+        makeWordEntry({ id: "word-ryuugakusee", japanese: "\u308A\u3085\u3046\u304C\u304F\u305B\u3044", romaji: "ryuugakusee", meanings: ["international student"], category: "school" }),
+        makeWordEntry({ id: "word-sensee", japanese: "\u305B\u3093\u305B\u3044", romaji: "sensee", meanings: ["teacher"], category: "school" }),
+        makeWordEntry({ id: "word-senkoo", japanese: "\u305B\u3093\u3053\u3046", romaji: "senkoo", meanings: ["major"], category: "school" }),
+        makeWordEntry({ id: "word-watashi", japanese: "\u308F\u305F\u3057", romaji: "watashi", meanings: ["i"], category: "people" }),
+        makeWordEntry({ id: "word-tomodachi", japanese: "\u3068\u3082\u3060\u3061", romaji: "tomodachi", meanings: ["friend"], category: "people" }),
+        makeWordEntry({ id: "word-san", japanese: "\u3055\u3093", romaji: "san", meanings: ["mr", "ms", "mr/ms"], category: "people" }),
+        makeWordEntry({ id: "word-jin", japanese: "\u3058\u3093", romaji: "jin", meanings: ["people"], category: "people" }),
+        makeWordEntry({ id: "word-nihonjin", japanese: "\u306B\u307B\u3093\u3058\u3093", romaji: "nihonjin", meanings: ["japanese people", "japanese person"], category: "people" }),
+        makeWordEntry({ id: "word-ima", japanese: "\u3044\u307E", romaji: "ima", meanings: ["now"], category: "time" }),
+        makeWordEntry({ id: "word-gozen", japanese: "\u3054\u305C\u3093", romaji: "gozen", meanings: ["a.m.", "am"], category: "time" }),
+        makeWordEntry({ id: "word-gogo", japanese: "\u3054\u3054", romaji: "gogo", meanings: ["p.m.", "pm"], category: "time" }),
+        makeWordEntry({ id: "word-han", japanese: "\u306F\u3093", romaji: "han", meanings: ["half"], category: "time" }),
+        makeWordEntry({ id: "word-nihon", japanese: "\u306B\u307B\u3093", romaji: "nihon", meanings: ["japan"], category: "countries" }),
+        makeWordEntry({ id: "word-amerika", japanese: "\u30A2\u30E1\u30EA\u30AB", romaji: "amerika", meanings: ["usa", "united states", "america"], category: "countries" }),
+        makeWordEntry({ id: "word-go", japanese: "\u3054", romaji: "go", meanings: ["language"], category: "core" }),
+        makeWordEntry({ id: "word-sai", japanese: "\u3055\u3044", romaji: "sai", meanings: ["years old"], category: "core" }),
+        makeWordEntry({ id: "word-denwa", japanese: "\u3067\u3093\u308F", romaji: "denwa", meanings: ["telephone", "phone"], category: "core" }),
+        makeWordEntry({ id: "word-bangoo", japanese: "\u3070\u3093\u3054\u3046", romaji: "bangoo", meanings: ["number"], category: "core" }),
+        makeWordEntry({ id: "word-namae", japanese: "\u306A\u307E\u3048", romaji: "namae", meanings: ["name"], category: "core" }),
+        makeWordEntry({ id: "word-nan-nani", japanese: "\u306A\u3093/\u306A\u306B", romaji: "nan/nani", meanings: ["what"], category: "core" }),
+        makeWordEntry({ id: "word-anoo", japanese: "\u3042\u306E\u3046", romaji: "anoo", meanings: ["um"], category: "core" }),
+        makeWordEntry({ id: "word-hai", japanese: "\u306F\u3044", romaji: "hai", meanings: ["yes"], category: "core" }),
+        makeWordEntry({ id: "word-soo-desu", japanese: "\u305D\u3046\u3067\u3059", romaji: "soo desu", meanings: ["thats right", "that's right"], category: "core" }),
+        makeWordEntry({ id: "word-soo-desu-ka", japanese: "\u305D\u3046\u3067\u3059\u304B", romaji: "soo desu ka", meanings: ["i see", "is that so"], category: "core" }),
+        makeWordEntry({ id: "word-igirisu", japanese: "\u30A4\u30AE\u30EA\u30B9", romaji: "igirisu", meanings: ["britain", "uk"], category: "countries" }),
+        makeWordEntry({ id: "word-oosutoria", japanese: "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2", romaji: "oosutoria", meanings: ["australia"], category: "countries" }),
+        makeWordEntry({ id: "word-kankoku", japanese: "\u304B\u3093\u3053\u304F", romaji: "kankoku", meanings: ["korea"], category: "countries" }),
+        makeWordEntry({ id: "word-kanada", japanese: "\u30AB\u30CA\u30C0", romaji: "kanada", meanings: ["canada"], category: "countries" }),
+        makeWordEntry({ id: "word-chuugoku", japanese: "\u3061\u3085\u3046\u3054\u304F", romaji: "chuugoku", meanings: ["china"], category: "countries" }),
+        makeWordEntry({ id: "word-indo", japanese: "\u30A4\u30F3\u30C9", romaji: "indo", meanings: ["india"], category: "countries" }),
+        makeWordEntry({ id: "word-ejiputo", japanese: "\u30A8\u30B8\u30D7\u30C8", romaji: "ejiputo", meanings: ["egypt"], category: "countries" }),
+        makeWordEntry({ id: "word-firipin", japanese: "\u30D5\u30A3\u30EA\u30D4\u30F3", romaji: "firipin", meanings: ["philippines", "philippiness"], category: "countries" }),
+        makeWordEntry({ id: "word-ajia-kenkyuu", japanese: "\u3042\u3058\u3042 \u3051\u3093\u304D\u3085\u3046", romaji: "ajia kenkyuu", meanings: ["asian studies"], category: "majors" }),
+        makeWordEntry({ id: "word-keezai", japanese: "\u3051\u3044\u3056\u3044", romaji: "keezai", meanings: ["economics"], category: "majors" }),
+        makeWordEntry({ id: "word-koogaku", japanese: "\u3053\u3046\u304C\u304F", romaji: "koogaku", meanings: ["engineering"], category: "majors" }),
+        makeWordEntry({ id: "word-kokusaikankee", japanese: "\u3053\u304F\u3055\u3044\u304B\u3093\u3051\u3044", romaji: "kokusaikankee", meanings: ["international relations"], category: "majors" }),
+        makeWordEntry({ id: "word-kanpyuutaa", japanese: "\u30B3\u30F3\u30D4\u30E5\u30FC\u30BF\u30FC", romaji: "kanpyuutaa", meanings: ["computer"], category: "majors" }),
+        makeWordEntry({ id: "word-seeji", japanese: "\u305B\u3044\u3058", romaji: "seeji", meanings: ["politics"], category: "majors" }),
+        makeWordEntry({ id: "word-seebutsugaku", japanese: "\u305B\u3044\u3076\u3064\u304C\u304F", romaji: "seebutsugaku", meanings: ["biology"], category: "majors" }),
+        makeWordEntry({ id: "word-bijinesu", japanese: "\u30D3\u30B8\u30CD\u30B9", romaji: "bijinesu", meanings: ["business"], category: "majors" }),
+        makeWordEntry({ id: "word-bungaku", japanese: "\u3076\u3093\u304C\u304F", romaji: "bungaku", meanings: ["literature"], category: "majors" }),
+        makeWordEntry({ id: "word-rekishi", japanese: "\u308C\u304D\u3057", romaji: "rekishi", meanings: ["history"], category: "majors" }),
+        makeWordEntry({ id: "word-isha", japanese: "\u3044\u3057\u3083", romaji: "isha", meanings: ["doctor"], category: "jobs" }),
+        makeWordEntry({ id: "word-kaishain", japanese: "\u304B\u3044\u3057\u3083\u3044\u3093", romaji: "kaishain", meanings: ["office worker"], category: "jobs" }),
+        makeWordEntry({ id: "word-kangoshi", japanese: "\u304B\u3093\u3054\u3057", romaji: "kangoshi", meanings: ["nurse"], category: "jobs" }),
+        makeWordEntry({ id: "word-kookoosee", japanese: "\u3053\u3046\u3053\u3046\u305B\u3044", romaji: "kookoosee", meanings: ["high school student"], category: "jobs" }),
+        makeWordEntry({ id: "word-shufu", japanese: "\u3057\u3085\u3075", romaji: "shufu", meanings: ["housewife"], category: "jobs" }),
+        makeWordEntry({ id: "word-daigakuinsee", japanese: "\u3060\u3044\u304C\u304F\u3044\u3093\u305B\u3044", romaji: "daigakuinsee", meanings: ["graduate student"], category: "jobs" }),
+        makeWordEntry({ id: "word-bangoshi", japanese: "\u3079\u3093\u3054\u3057", romaji: "bangoshi", meanings: ["lawyer"], category: "jobs" }),
+        makeWordEntry({ id: "word-okaasan", japanese: "\u304A\u304B\u3042\u3055\u3093", romaji: "okaasan", meanings: ["mother"], category: "family" }),
+        makeWordEntry({ id: "word-otoosan", japanese: "\u304A\u3068\u3046\u3055\u3093", romaji: "otoosan", meanings: ["father"], category: "family" }),
+        makeWordEntry({ id: "word-oneesan", japanese: "\u304A\u306D\u3048\u3055\u3093", romaji: "oneesan", meanings: ["older sister"], category: "family" }),
+        makeWordEntry({ id: "word-oniisan", japanese: "\u304A\u306B\u3044\u3055\u3093", romaji: "oniisan", meanings: ["older brother"], category: "family" }),
+        makeWordEntry({ id: "word-imooto", japanese: "\u3044\u3082\u3046\u3068", romaji: "imooto", meanings: ["younger sister"], category: "family" }),
+        makeWordEntry({ id: "word-otooto", japanese: "\u304A\u3068\u3046\u3068", romaji: "otooto", meanings: ["younger brother"], category: "family" })
+      ];
+      yearWords = [
+        [1, "\u3044\u3061\u306D\u3093\u305B\u3044", "ichinensee", "first year student"],
+        [2, "\u306B\u306D\u3093\u305B\u3044", "ninensee", "second year student"],
+        [3, "\u3055\u3093\u306D\u3093\u305B\u3044", "sannensee", "third year student"],
+        [4, "\u3088\u306D\u3093\u305B\u3044", "yonnensee", "fourth year student"],
+        [5, "\u3054\u306D\u3093\u305B\u3044", "gonensee", "fifth year student"]
+      ].map(([year, japanese, romaji, meaning]) => makeWordEntry({
+        id: `word-year-${year}`,
+        japanese,
+        romaji,
+        meanings: [meaning],
+        category: "school"
+      }));
+      timeWords = [
+        ["\u306B\u3058 \u3055\u3093\u3058\u3085\u3046\u3088\u3093\u3077\u3093", "niji sanjuuyonpun", ["2:34", "2 34"]],
+        ["\u3088\u3058 \u3058\u3085\u3046\u304D\u3085\u3046\u3075\u3093", "yoji juukyuufun", ["4:19", "4 19", "16:19", "16 19"]],
+        ["\u3057\u3061\u3058 \u306F\u3093", "shichiji han", ["7:30", "7 30"]],
+        ["\u3058\u3085\u3046\u3044\u3061\u3058 \u3054\u3075\u3093", "juuichiji gofun", ["11:05", "11 05"]],
+        ["\u304F\u3058 \u3088\u3093\u3058\u3085\u3063\u3077\u3093", "kuji yonjuppun", ["9:40", "9 40"]]
+      ].map(([japanese, romaji, meanings], index) => makeWordEntry({
+        id: `word-time-${index + 1}`,
+        japanese,
+        romaji,
+        meanings,
+        category: "time"
+      }));
+      ageWords = [5, 8, 12, 17, 20, 23, 31, 44, 58, 67, 75, 88].map((age) => makeWordEntry({
+        id: `word-age-${age}`,
+        japanese: `${age}\u3055\u3044`,
+        romaji: `${age} sai`,
+        meanings: [`${age} years old`, `${age}`],
+        category: "core"
+      }));
+      wordsData = [
+        ...baseWords,
+        ...yearWords,
+        ...timeWords,
+        ...ageWords
+      ];
+    }
+  });
+
+  // js/data/kanjiData.js
+  function makeKanjiEntry({ id, kanji, meanings, onyomi = [], kunyomi = [], romaji = [] }) {
+    return {
+      id,
+      kanji,
+      meanings,
+      onyomi,
+      kunyomi,
+      romaji
+    };
+  }
+  var kanjiData;
+  var init_kanjiData = __esm({
+    "js/data/kanjiData.js"() {
+      kanjiData = [
+        makeKanjiEntry({ id: "kanji-ichi", kanji: "\u4E00", meanings: ["one", "1"], onyomi: ["ichi"], kunyomi: ["hito(tsu)"], romaji: ["ichi", "hitotsu"] }),
+        makeKanjiEntry({ id: "kanji-ni", kanji: "\u4E8C", meanings: ["two", "2"], onyomi: ["ni"], kunyomi: ["futa(tsu)"], romaji: ["ni", "futatsu"] }),
+        makeKanjiEntry({ id: "kanji-san", kanji: "\u4E09", meanings: ["three", "3"], onyomi: ["san"], kunyomi: ["mit(tsu)"], romaji: ["san", "mittsu"] }),
+        makeKanjiEntry({ id: "kanji-yon", kanji: "\u56DB", meanings: ["four", "4"], onyomi: ["shi"], kunyomi: ["yon", "yo(tsu)"], romaji: ["shi", "yon", "yottsu"] }),
+        makeKanjiEntry({ id: "kanji-go", kanji: "\u4E94", meanings: ["five", "5"], onyomi: ["go"], kunyomi: ["itsu(tsu)"], romaji: ["go", "itsutsu"] }),
+        makeKanjiEntry({ id: "kanji-roku", kanji: "\u516D", meanings: ["six", "6"], onyomi: ["roku"], kunyomi: ["mut(tsu)"], romaji: ["roku", "muttsu"] }),
+        makeKanjiEntry({ id: "kanji-nana", kanji: "\u4E03", meanings: ["seven", "7"], onyomi: ["shichi"], kunyomi: ["nana(tsu)"], romaji: ["shichi", "nana", "nanatsu"] }),
+        makeKanjiEntry({ id: "kanji-hachi", kanji: "\u516B", meanings: ["eight", "8"], onyomi: ["hachi"], kunyomi: ["ya(tsu)"], romaji: ["hachi", "yattsu"] }),
+        makeKanjiEntry({ id: "kanji-kyuu", kanji: "\u4E5D", meanings: ["nine", "9"], onyomi: ["kyuu", "ku"], kunyomi: ["kokono(tsu)"], romaji: ["kyuu", "ku", "kokonotsu"] }),
+        makeKanjiEntry({ id: "kanji-juu", kanji: "\u5341", meanings: ["ten", "10"], onyomi: ["juu"], kunyomi: ["too"], romaji: ["juu", "too"] })
+      ];
+    }
+  });
+
   // js/dom/elements.js
   function getElements() {
     const canvasHiragana = document.getElementById("drawCanvasHiragana");
     const canvasKatakana = document.getElementById("drawCanvasKatakana");
     return {
+      datasetSelect: document.getElementById("datasetSelect"),
       scriptSelect: document.getElementById("scriptSelect"),
       modeSelect: document.getElementById("modeSelect"),
       writingScriptGroup: document.getElementById("writingScriptGroup"),
       writingScriptSelect: document.getElementById("writingScriptSelect"),
       kanaSetSelect: document.getElementById("kanaSetSelect"),
       practiceStrategySelect: document.getElementById("practiceStrategySelect"),
+      helperToggleGroup: document.getElementById("helperToggleGroup"),
+      helperToggle: document.getElementById("helperToggle"),
       newQuestionBtn: document.getElementById("newQuestionBtn"),
       promptElement: document.getElementById("prompt"),
+      promptHelper: document.getElementById("promptHelper"),
       queueMeta: document.getElementById("queueMeta"),
       playAudioBtn: document.getElementById("playAudioBtn"),
       muteAudioBtn: document.getElementById("muteAudioBtn"),
       typingArea: document.getElementById("typingArea"),
       drawingArea: document.getElementById("drawingArea"),
       drawGuideToggle: document.getElementById("drawGuideToggle"),
+      answerInputLabel: document.getElementById("answerInputLabel"),
       answerInput: document.getElementById("answerInput"),
       quickAnswerOptions: document.getElementById("quickAnswerOptions"),
       checkBtn: document.getElementById("checkBtn"),
@@ -250,6 +401,7 @@
       openSyncBtn: document.getElementById("openSyncBtn"),
       resetAllDataBtn: document.getElementById("resetAllDataBtn"),
       backlogPanel: document.getElementById("backlogPanel"),
+      datasetBacklogFallback: document.getElementById("datasetBacklogFallback"),
       progressPanel: document.getElementById("progressPanel"),
       progressOverviewTabBtn: document.getElementById("progressOverviewTabBtn"),
       progressTrendsTabBtn: document.getElementById("progressTrendsTabBtn"),
@@ -268,7 +420,9 @@
       toggleCompareSectionBtn: document.getElementById("toggleCompareSectionBtn"),
       toggleSyncSectionBtn: document.getElementById("toggleSyncSectionBtn"),
       backlogStatusFilter: document.getElementById("backlogStatusFilter"),
+      backlogScriptFilterLabel: document.getElementById("backlogScriptFilterLabel"),
       backlogScriptFilter: document.getElementById("backlogScriptFilter"),
+      backlogWeaknessFilterLabel: document.getElementById("backlogWeaknessFilterLabel"),
       backlogWeaknessFilter: document.getElementById("backlogWeaknessFilter"),
       backlogMinAttemptsFilter: document.getElementById("backlogMinAttemptsFilter"),
       backlogCompactToggle: document.getElementById("backlogCompactToggle"),
@@ -303,6 +457,8 @@
       galleryTitle: document.getElementById("galleryTitle"),
       galleryBody: document.getElementById("galleryBody"),
       closeGalleryBtn: document.getElementById("closeGalleryBtn"),
+      drawPaneTitlePrimary: document.getElementById("drawPaneTitlePrimary"),
+      drawPaneTitleSecondary: document.getElementById("drawPaneTitleSecondary"),
       canvasHiragana,
       canvasKatakana,
       ctxHiragana: canvasHiragana.getContext("2d"),
@@ -331,6 +487,22 @@
       raw = "";
     }
     return raw.trim().toLowerCase();
+  }
+  function normalizeLooseText(text) {
+    return String(text || "").toLowerCase().trim().replace(/[’']/g, "").replace(/\s+/g, " ");
+  }
+  function normalizeEnglishAnswer(text) {
+    return normalizeLooseText(text).replace(/[.;:,!?()[\]{}]/g, "").replace(/\b(the|a|an)\b/g, "").replace(/\s+/g, " ").trim();
+  }
+  function normalizeForgivingRomaji(text) {
+    return sanitizeRomaji(text).replace(/-/g, "").replace(/ou/g, "oo").replace(/ei/g, "ee").replace(/sy/g, "sh").replace(/ty/g, "ch").replace(/si/g, "shi").replace(/ti/g, "chi").replace(/tu/g, "tsu").replace(/hu/g, "fu").replace(/zi/g, "ji").replace(/du/g, "zu");
+  }
+  function matchesAnyNormalizedAnswer(input, acceptedAnswers, normalizeFn = normalizeLooseText) {
+    const normalizedInput = normalizeFn(input);
+    if (!normalizedInput) {
+      return false;
+    }
+    return acceptedAnswers.some((answer) => normalizeFn(answer) === normalizedInput);
   }
   function getTodayKey() {
     const now = /* @__PURE__ */ new Date();
@@ -362,6 +534,31 @@
   });
 
   // js/core/state.js
+  function createDefaultBacklogFilters() {
+    return {
+      status: "all",
+      script: "all",
+      weakness: "all",
+      minAttempts: 0,
+      compact: false
+    };
+  }
+  function createGenericBacklog(items, getId, getMeta = () => ({})) {
+    return items.reduce((acc, item) => {
+      const id = getId(item);
+      acc[id] = {
+        id,
+        right: 0,
+        wrong: 0,
+        typingRight: 0,
+        typingWrong: 0,
+        drawingRight: 0,
+        drawingWrong: 0,
+        ...getMeta(item)
+      };
+      return acc;
+    }, {});
+  }
   function createBacklog(kanaData2) {
     return kanaData2.reduce((acc, item) => {
       acc[item.romaji] = {
@@ -390,8 +587,28 @@
       return acc;
     }, {});
   }
-  function createState(kanaData2) {
-    const srsByRomaji = kanaData2.reduce((acc, item) => {
+  function createBaseDatasetState({ backlog = {}, srsByItem = {} } = {}) {
+    return {
+      practiceStrategy: "srs",
+      recentMistakes: [],
+      recentTypingMistakes: [],
+      recentDrawingMistakes: [],
+      srsByItem,
+      typingRightCount: 0,
+      typingWrongCount: 0,
+      drawingRightCount: 0,
+      drawingWrongCount: 0,
+      drawingsByItem: {},
+      dailyStats: {},
+      dailyCategoryStats: {},
+      dailyDetailStats: {},
+      confusionPairs: {},
+      srsAccuracyWindow: {},
+      backlog
+    };
+  }
+  function createKanaDatasetState(kanaData2) {
+    const srsByItem = kanaData2.reduce((acc, item) => {
       acc[item.romaji] = {
         dueAt: 0,
         intervalHours: 0,
@@ -400,14 +617,187 @@
       };
       return acc;
     }, {});
-    return {
+    return createBaseDatasetState({
+      backlog: createBacklog(kanaData2),
+      srsByItem
+    });
+  }
+  function createDatasetStateFromItems(items, getId, getMeta) {
+    const srsByItem = items.reduce((acc, item) => {
+      acc[getId(item)] = {
+        dueAt: 0,
+        intervalHours: 0,
+        lastSeenAt: 0,
+        lastCorrect: false
+      };
+      return acc;
+    }, {});
+    return createBaseDatasetState({
+      backlog: createGenericBacklog(items, getId, getMeta),
+      srsByItem
+    });
+  }
+  function getDatasetStateForAlias(hostState, datasetId) {
+    const selectedId = datasetId === DATASET_IDS.KANA ? DATASET_IDS.KANA : hostState.activeDataset && hostState.datasets[hostState.activeDataset] ? hostState.activeDataset : DATASET_IDS.KANA;
+    return hostState.datasets[selectedId];
+  }
+  function defineKanaCompatibilityAliases(state) {
+    const aliasDescriptors = {
+      practiceStrategy: {
+        get() {
+          return getDatasetStateForAlias(this).practiceStrategy;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).practiceStrategy = value;
+        }
+      },
+      recentMistakes: {
+        get() {
+          return getDatasetStateForAlias(this).recentMistakes;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).recentMistakes = Array.isArray(value) ? value : [];
+        }
+      },
+      recentTypingMistakes: {
+        get() {
+          return getDatasetStateForAlias(this).recentTypingMistakes;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).recentTypingMistakes = Array.isArray(value) ? value : [];
+        }
+      },
+      recentDrawingMistakes: {
+        get() {
+          return getDatasetStateForAlias(this).recentDrawingMistakes;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).recentDrawingMistakes = Array.isArray(value) ? value : [];
+        }
+      },
+      srsByRomaji: {
+        get() {
+          return getDatasetStateForAlias(this).srsByItem;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).srsByItem = value && typeof value === "object" ? value : {};
+        }
+      },
+      typingRightCount: {
+        get() {
+          return getDatasetStateForAlias(this).typingRightCount;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).typingRightCount = Number(value || 0);
+        }
+      },
+      typingWrongCount: {
+        get() {
+          return getDatasetStateForAlias(this).typingWrongCount;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).typingWrongCount = Number(value || 0);
+        }
+      },
+      drawingRightCount: {
+        get() {
+          return getDatasetStateForAlias(this).drawingRightCount;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).drawingRightCount = Number(value || 0);
+        }
+      },
+      drawingWrongCount: {
+        get() {
+          return getDatasetStateForAlias(this).drawingWrongCount;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).drawingWrongCount = Number(value || 0);
+        }
+      },
+      drawingsByKana: {
+        get() {
+          return getDatasetStateForAlias(this).drawingsByItem;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).drawingsByItem = value && typeof value === "object" ? value : {};
+        }
+      },
+      dailyStats: {
+        get() {
+          return getDatasetStateForAlias(this).dailyStats;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).dailyStats = value && typeof value === "object" ? value : {};
+        }
+      },
+      dailyCategoryStats: {
+        get() {
+          return getDatasetStateForAlias(this).dailyCategoryStats;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).dailyCategoryStats = value && typeof value === "object" ? value : {};
+        }
+      },
+      dailyDetailStats: {
+        get() {
+          return getDatasetStateForAlias(this).dailyDetailStats;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).dailyDetailStats = value && typeof value === "object" ? value : {};
+        }
+      },
+      confusionPairs: {
+        get() {
+          return getDatasetStateForAlias(this).confusionPairs;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).confusionPairs = value && typeof value === "object" ? value : {};
+        }
+      },
+      srsAccuracyWindow: {
+        get() {
+          return getDatasetStateForAlias(this).srsAccuracyWindow;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).srsAccuracyWindow = value && typeof value === "object" ? value : {};
+        }
+      },
+      backlog: {
+        get() {
+          return getDatasetStateForAlias(this).backlog;
+        },
+        set(value) {
+          getDatasetStateForAlias(this).backlog = value && typeof value === "object" ? value : {};
+        }
+      }
+    };
+    Object.defineProperties(state, aliasDescriptors);
+  }
+  function createState(kanaData2) {
+    const datasetsInput = Array.isArray(kanaData2) ? { kanaData: kanaData2, wordsData: [], kanjiData: [] } : kanaData2 || {};
+    const resolvedKanaData = Array.isArray(datasetsInput.kanaData) ? datasetsInput.kanaData : [];
+    const resolvedWordsData = Array.isArray(datasetsInput.wordsData) ? datasetsInput.wordsData : [];
+    const resolvedKanjiData = Array.isArray(datasetsInput.kanjiData) ? datasetsInput.kanjiData : [];
+    const state = {
       currentQuestion: null,
       nextQuestionTimer: null,
-      practiceStrategy: "srs",
-      recentMistakes: [],
-      recentTypingMistakes: [],
-      recentDrawingMistakes: [],
-      srsByRomaji,
+      activeDataset: DATASET_IDS.KANA,
+      showWordHelper: false,
+      showKanjiHelper: false,
+      datasets: {
+        [DATASET_IDS.KANA]: createKanaDatasetState(resolvedKanaData),
+        [DATASET_IDS.WORDS]: createDatasetStateFromItems(resolvedWordsData, (item) => item.id, (item) => ({
+          label: item.japanese,
+          helperRomaji: item.helperRomaji || item.romaji || "",
+          meanings: item.meanings || []
+        })),
+        [DATASET_IDS.KANJI]: createDatasetStateFromItems(resolvedKanjiData, (item) => item.id, (item) => ({
+          label: item.kanji,
+          romaji: item.romaji || [],
+          meanings: item.meanings || []
+        }))
+      },
       audioMuted: false,
       drawGuideEnabled: true,
       dailyGoal: 25,
@@ -419,21 +809,13 @@
         dakuten: 6,
         yoon: 6
       },
-      backlogFilters: {
-        status: "all",
-        script: "all",
-        weakness: "all",
-        minAttempts: 0,
-        compact: false
+      backlogFilters: createDefaultBacklogFilters(),
+      backlogFiltersByDataset: {
+        [DATASET_IDS.KANA]: createDefaultBacklogFilters(),
+        [DATASET_IDS.WORDS]: createDefaultBacklogFilters(),
+        [DATASET_IDS.KANJI]: createDefaultBacklogFilters()
       },
       installPromptSeen: false,
-      typingRightCount: 0,
-      typingWrongCount: 0,
-      drawingRightCount: 0,
-      drawingWrongCount: 0,
-      drawingsByKana: {},
-      dailyStats: {},
-      dailyCategoryStats: {},
       lastSavedAt: 0,
       lastCloudSyncAt: 0,
       syncUserEmail: "",
@@ -444,29 +826,23 @@
         trends: false,
         compare: false,
         sync: false
-      },
-      backlog: createBacklog(kanaData2)
+      }
     };
-    const extensions = {
-      // Phase 2: smarter distractors — tracks which romaji the user has confused together.
-      // Shape: { [correctRomaji]: { [wrongInput]: count } }
-      confusionPairs: {},
-      // Phase 2: adaptive SRS — rolling window of last 10 attempt outcomes per romaji.
-      // Shape: { [romaji]: boolean[] }  (true = correct)
-      srsAccuracyWindow: {},
-      // Phase 3: per-day per-romaji detail for drill-down view.
-      // Shape: { [dateKey]: { [romaji]: { right: number, wrong: number } } }
-      dailyDetailStats: {}
-    };
-    Object.assign(state, extensions);
+    defineKanaCompatibilityAliases(state);
     state.mutate = function mutate(patch) {
       Object.assign(this, patch);
     };
     return state;
   }
+  var DATASET_IDS;
   var init_state = __esm({
     "js/core/state.js"() {
       init_utils();
+      DATASET_IDS = {
+        KANA: "kana",
+        WORDS: "words",
+        KANJI: "kanji"
+      };
     }
   });
 
@@ -480,6 +856,7 @@
         QUESTION_NEW: "question:new",
         SYNC_CONFLICT_APPLIED: "sync:conflictApplied",
         QUIZ_REQUEST_NEW: "quiz:requestNewQuestion",
+        QUIZ_DATASET_CHANGED: "quiz:datasetChanged",
         QUIZ_MODE_CHANGED: "quiz:modeChanged",
         QUIZ_KANA_SET_CHANGED: "quiz:kanaSetChanged",
         QUIZ_STRATEGY_CHANGED: "quiz:strategyChanged",
@@ -499,6 +876,7 @@
         BACKLOG_FILTER_CHANGED: "backlog:filterChanged",
         BACKLOG_FILTER_RESET: "backlog:filterReset",
         SETTINGS_SAVE_GOAL: "settings:saveGoal",
+        SETTINGS_HELPER_TOGGLE_CHANGED: "settings:helperToggleChanged",
         SETTINGS_DRAW_GUIDE_CHANGED: "settings:drawGuideChanged",
         DATA_EXPORT: "data:export",
         DATA_IMPORT: "data:import",
@@ -560,11 +938,11 @@
   });
 
   // js/core/ui.js
-  function updateStats(elements, state2) {
-    elements.typingRightCountElement.textContent = String(state2.typingRightCount);
-    elements.typingWrongCountElement.textContent = String(state2.typingWrongCount);
-    elements.drawingRightCountElement.textContent = String(state2.drawingRightCount);
-    elements.drawingWrongCountElement.textContent = String(state2.drawingWrongCount);
+  function updateStats(elements, state) {
+    elements.typingRightCountElement.textContent = String(state.typingRightCount);
+    elements.typingWrongCountElement.textContent = String(state.typingWrongCount);
+    elements.drawingRightCountElement.textContent = String(state.drawingRightCount);
+    elements.drawingWrongCountElement.textContent = String(state.drawingWrongCount);
   }
   function resetResult(elements) {
     elements.resultElement.textContent = "";
@@ -592,7 +970,7 @@
       isCorrect = arg2;
     }
     if (!elements.resultElement) return;
-    elements.resultElement.textContent = String(message ?? "");
+    elements.resultElement.textContent = String(message != null ? message : "");
     elements.resultElement.classList.toggle("ok", Boolean(isCorrect));
     elements.resultElement.classList.toggle("bad", !Boolean(isCorrect));
   }
@@ -674,6 +1052,9 @@
   }
   function getTotalAttempts(stats) {
     return stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong;
+  }
+  function escapeHtml2(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   function getScriptStats(row, scriptType) {
     if (scriptType === "hiragana") {
@@ -789,6 +1170,73 @@
       if (existingMsg) existingMsg.remove();
     }
   }
+  function renderDatasetBacklog({ datasetId, items, backlog, drawingsByItem, container }) {
+    if (!container) {
+      return;
+    }
+    function passesFilters(row, item) {
+      const attempts = getTotalAttempts(row);
+      const minAttempts = Math.max(0, Number(container.dataset.minAttempts || 0));
+      if (attempts < minAttempts) {
+        return false;
+      }
+      const statusFilter = container.dataset.statusFilter || "all";
+      const status = getCardStatus(row);
+      if (statusFilter === "unseen" && attempts > 0) {
+        return false;
+      }
+      if (statusFilter === "weak" && status !== "status-bad" && status !== "status-mixed") {
+        return false;
+      }
+      if (statusFilter === "strong" && status !== "status-good") {
+        return false;
+      }
+      const weaknessFilter = container.dataset.weaknessFilter || "all";
+      if (weaknessFilter === "typing" && !(row.typingWrong > row.typingRight)) {
+        return false;
+      }
+      if (weaknessFilter === "drawing" && !(row.drawingWrong > row.drawingRight)) {
+        return false;
+      }
+      const categoryFilter = container.dataset.categoryFilter || "all";
+      const category = String(item.category || "core");
+      if (categoryFilter !== "all" && category !== categoryFilter) {
+        return false;
+      }
+      return true;
+    }
+    const cards = items.map((item) => {
+      const itemId = item.id;
+      const row = backlog[itemId];
+      if (!row) {
+        return "";
+      }
+      if (!passesFilters(row, item)) {
+        return "";
+      }
+      const status = getCardStatus(row);
+      const attempts = getTotalAttempts(row);
+      const helper = datasetId === "words" ? `${escapeHtml2(item.romaji)} \u2022 ${escapeHtml2(item.meanings[0] || "")}` : `${escapeHtml2((item.romaji || []).join(", "))} \u2022 ${escapeHtml2(item.meanings[0] || "")}`;
+      const primary = datasetId === "words" ? item.japanese : item.kanji;
+      const category = String(item.category || "core");
+      const drawingsCount = datasetId === "kanji" ? (drawingsByItem[primary] || []).length : 0;
+      return `
+      <div class="kana-card ${status}">
+        <div class="kana-char">${escapeHtml2(primary)}</div>
+        <div class="kana-romaji">${helper}</div>
+        <div class="kana-romaji">Category: ${escapeHtml2(category)}</div>
+        <div class="kana-stats">
+          <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">\u2713${row.typingRight}</span><span class="k-wrong">\u2717${row.typingWrong}</span></div>
+          ${datasetId === "words" ? "" : `<div class="mode-row"><span class="mode-tag">D</span><span class="k-right">\u2713${row.drawingRight}</span><span class="k-wrong">\u2717${row.drawingWrong}</span></div>`}
+        </div>
+        <div class="kana-romaji">Attempts: ${attempts}</div>
+        ${datasetId === "kanji" ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml2(primary)}">Drawings (${drawingsCount})</button>` : ""}
+      </div>
+    `;
+    }).filter(Boolean);
+    container.innerHTML = cards.length ? `<div class="kana-grid">${cards.join("")}</div>` : `<div class="compare-empty">No ${datasetId} attempts yet. Start a few rounds to build progress.</div>`;
+    container.classList.remove("hidden");
+  }
   function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answerMode }) {
     const row = backlog[romaji];
     if (!row) {
@@ -900,6 +1348,49 @@
     for (let i = 0; i < pool.length; i++) {
       rand -= weights[i];
       if (rand <= 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+  }
+  function pickGenericQuestion({
+    items,
+    backlog,
+    preferredIds = null,
+    avoidId = null,
+    getItemId
+  }) {
+    const safeItems = Array.isArray(items) ? items : [];
+    let pool = safeItems;
+    if (Array.isArray(preferredIds) && preferredIds.length > 0) {
+      const preferredSet = new Set(preferredIds);
+      const targeted = safeItems.filter((item) => preferredSet.has(getItemId(item)));
+      if (targeted.length > 0) {
+        pool = targeted;
+      }
+    }
+    if (typeof avoidId === "string" && avoidId && pool.length > 1) {
+      const filtered = pool.filter((item) => getItemId(item) !== avoidId);
+      if (filtered.length > 0) {
+        pool = filtered;
+      }
+    }
+    if (pool.length === 0) {
+      throw new Error("No quiz items available for the current settings.");
+    }
+    const weights = pool.map((item) => {
+      const itemId = getItemId(item);
+      const row = backlog && backlog[itemId] ? backlog[itemId] : null;
+      if (!row || row.right + row.wrong === 0) {
+        return 4;
+      }
+      return Math.max(1, 3 + row.wrong - row.right);
+    });
+    const totalWeight = weights.reduce((sum2, weight) => sum2 + weight, 0);
+    let rand = Math.random() * totalWeight;
+    for (let i = 0; i < pool.length; i++) {
+      rand -= weights[i];
+      if (rand <= 0) {
+        return pool[i];
+      }
     }
     return pool[pool.length - 1];
   }
@@ -1036,6 +1527,128 @@
       revealText: `Answer: ${useHiragana ? "Hiragana" : "Katakana"} ${useHiragana ? item.hiragana : item.katakana} | Other script: ${useHiragana ? item.katakana : item.hiragana}. Mark yourself right or wrong.`
     };
   }
+  function pickWordQuestion({
+    wordsData: wordsData2,
+    mode,
+    backlog,
+    preferredIds,
+    avoidId,
+    showRomaji
+  }) {
+    const item = pickGenericQuestion({
+      items: wordsData2,
+      backlog,
+      preferredIds,
+      avoidId,
+      getItemId: (entry) => entry.id
+    });
+    if (mode === "englishToJapanese") {
+      return {
+        kind: "typing",
+        dataset: "words",
+        trackingId: item.id,
+        promptText: item.meanings[0],
+        helperText: showRomaji ? item.helperRomaji || item.romaji : "",
+        answerLabel: "Type Japanese",
+        placeholder: "e.g. daigaku",
+        acceptedAnswers: [item.japanese, item.romaji],
+        answerNormalizer: "forgiving-romaji",
+        displayAnswer: item.japanese,
+        hintAnswer: item.romaji,
+        quickAnswerEnabled: false
+      };
+    }
+    return {
+      kind: "typing",
+      dataset: "words",
+      trackingId: item.id,
+      promptText: item.japanese,
+      helperText: showRomaji && item.helperRomaji && item.helperRomaji !== item.japanese ? item.helperRomaji : "",
+      answerLabel: "Type English",
+      placeholder: "e.g. college",
+      acceptedAnswers: item.meanings,
+      answerNormalizer: "english",
+      displayAnswer: item.meanings[0],
+      hintAnswer: item.meanings[0],
+      quickAnswerEnabled: false
+    };
+  }
+  function pickKanjiQuestion({
+    kanjiData: kanjiData2,
+    mode,
+    backlog,
+    preferredIds,
+    avoidId,
+    showRomaji
+  }) {
+    const item = pickGenericQuestion({
+      items: kanjiData2,
+      backlog,
+      preferredIds,
+      avoidId,
+      getItemId: (entry) => entry.id
+    });
+    if (mode === "meaningToKanji") {
+      return {
+        kind: "typing",
+        dataset: "kanji",
+        trackingId: item.id,
+        promptText: item.meanings[0],
+        helperText: showRomaji ? item.romaji.join(", ") : "",
+        answerLabel: "Type Kanji",
+        placeholder: "e.g. \u4E00",
+        acceptedAnswers: [item.kanji],
+        answerNormalizer: "exact",
+        displayAnswer: item.kanji,
+        hintAnswer: item.kanji,
+        quickAnswerEnabled: false
+      };
+    }
+    if (mode === "promptToKanji") {
+      const useMeaningPrompt = Math.random() > 0.5;
+      const promptText = useMeaningPrompt ? item.meanings[0] : item.romaji && item.romaji[0] || item.onyomi && item.onyomi[0] || item.kunyomi && item.kunyomi[0] || item.meanings[0];
+      return {
+        kind: "typing",
+        dataset: "kanji",
+        trackingId: item.id,
+        promptText,
+        helperText: useMeaningPrompt && showRomaji ? item.romaji.join(", ") : "",
+        answerLabel: "Type Kanji",
+        placeholder: "e.g. \u4E00",
+        acceptedAnswers: [item.kanji],
+        answerNormalizer: "exact",
+        displayAnswer: item.kanji,
+        hintAnswer: item.kanji,
+        quickAnswerEnabled: false
+      };
+    }
+    if (mode === "kanjiDrawing") {
+      return {
+        kind: "drawing",
+        dataset: "kanji",
+        trackingId: item.id,
+        romaji: item.id,
+        kanji: item.kanji,
+        canvasMode: "kanji",
+        promptText: `Draw ${item.kanji}`,
+        revealText: `Answer: ${item.kanji} (${item.meanings[0]}${item.romaji.length ? ` | ${item.romaji.join(", ")}` : ""}). Mark yourself right or wrong.`
+      };
+    }
+    return {
+      kind: "typing",
+      dataset: "kanji",
+      trackingId: item.id,
+      promptText: item.kanji,
+      helperText: showRomaji ? item.romaji.join(", ") : "",
+      answerLabel: "Type Meaning",
+      placeholder: "e.g. one",
+      acceptedAnswers: item.meanings,
+      answerNormalizer: "english",
+      displayAnswer: item.meanings[0],
+      hintAnswer: item.meanings[0],
+      quickAnswerEnabled: false
+    };
+  }
   var init_quiz = __esm({
     "js/features/quiz.js"() {
     }
@@ -1051,6 +1664,93 @@
       delete dailyStats[dateKey];
     });
   }
+  function getDatasetBucket(payload, datasetId) {
+    if (payload && payload.datasets && typeof payload.datasets === "object") {
+      const bucket = payload.datasets[datasetId];
+      if (bucket && typeof bucket === "object") {
+        return bucket;
+      }
+    }
+    return null;
+  }
+  function ensureDatasetObject(value) {
+    return value && typeof value === "object" ? value : {};
+  }
+  function buildDatasetPayload(datasetState) {
+    return {
+      practiceStrategy: datasetState.practiceStrategy,
+      recentMistakes: datasetState.recentMistakes,
+      recentTypingMistakes: datasetState.recentTypingMistakes,
+      recentDrawingMistakes: datasetState.recentDrawingMistakes,
+      srsByItem: datasetState.srsByItem,
+      typingRightCount: datasetState.typingRightCount,
+      typingWrongCount: datasetState.typingWrongCount,
+      drawingRightCount: datasetState.drawingRightCount,
+      drawingWrongCount: datasetState.drawingWrongCount,
+      backlog: datasetState.backlog,
+      drawingsByItem: datasetState.drawingsByItem,
+      dailyStats: datasetState.dailyStats,
+      dailyCategoryStats: datasetState.dailyCategoryStats,
+      dailyDetailStats: datasetState.dailyDetailStats,
+      confusionPairs: datasetState.confusionPairs,
+      srsAccuracyWindow: datasetState.srsAccuracyWindow
+    };
+  }
+  function normalizeDatasetRuntimeState(targetDataset, sourceDataset) {
+    const source = ensureDatasetObject(sourceDataset);
+    targetDataset.practiceStrategy = source.practiceStrategy === "mistakeReview" || source.practiceStrategy === "mixed" || source.practiceStrategy === "frequentMistakes" ? source.practiceStrategy : "srs";
+    targetDataset.recentMistakes = Array.isArray(source.recentMistakes) ? source.recentMistakes.filter((item) => typeof item === "string").slice(0, 120) : [];
+    targetDataset.recentTypingMistakes = Array.isArray(source.recentTypingMistakes) ? source.recentTypingMistakes.filter((item) => typeof item === "string").slice(0, 120) : [];
+    targetDataset.recentDrawingMistakes = Array.isArray(source.recentDrawingMistakes) ? source.recentDrawingMistakes.filter((item) => typeof item === "string").slice(0, 120) : [];
+    const nextSrsByItem = ensureDatasetObject(targetDataset.srsByItem);
+    Object.entries(ensureDatasetObject(source.srsByItem)).forEach(([itemId, entry]) => {
+      nextSrsByItem[itemId] = {
+        dueAt: Number(entry && entry.dueAt || 0),
+        intervalHours: Number(entry && entry.intervalHours || 0),
+        lastSeenAt: Number(entry && entry.lastSeenAt || 0),
+        lastCorrect: Boolean(entry && entry.lastCorrect)
+      };
+    });
+    targetDataset.srsByItem = nextSrsByItem;
+    targetDataset.typingRightCount = Number(source.typingRightCount || 0);
+    targetDataset.typingWrongCount = Number(source.typingWrongCount || 0);
+    targetDataset.drawingRightCount = Number(source.drawingRightCount || 0);
+    targetDataset.drawingWrongCount = Number(source.drawingWrongCount || 0);
+    const nextBacklog = ensureDatasetObject(targetDataset.backlog);
+    Object.entries(ensureDatasetObject(source.backlog)).forEach(([itemId, entry]) => {
+      nextBacklog[itemId] = {
+        ...nextBacklog[itemId] || {},
+        ...entry
+      };
+    });
+    targetDataset.backlog = nextBacklog;
+    targetDataset.drawingsByItem = ensureDatasetObject(source.drawingsByItem);
+    targetDataset.dailyStats = ensureDatasetObject(source.dailyStats);
+    targetDataset.dailyCategoryStats = ensureDatasetObject(source.dailyCategoryStats);
+    targetDataset.dailyDetailStats = ensureDatasetObject(source.dailyDetailStats);
+    targetDataset.confusionPairs = ensureDatasetObject(source.confusionPairs);
+    targetDataset.srsAccuracyWindow = ensureDatasetObject(source.srsAccuracyWindow);
+  }
+  function buildLegacyKanaDatasetPayload(payload) {
+    return {
+      practiceStrategy: payload.practiceStrategy,
+      recentMistakes: payload.recentMistakes,
+      recentTypingMistakes: payload.recentTypingMistakes,
+      recentDrawingMistakes: payload.recentDrawingMistakes,
+      srsByItem: payload.srsByRomaji,
+      typingRightCount: payload.typingRightCount,
+      typingWrongCount: payload.typingWrongCount,
+      drawingRightCount: payload.drawingRightCount,
+      drawingWrongCount: payload.drawingWrongCount,
+      backlog: payload.backlog,
+      drawingsByItem: payload.drawingsByKana,
+      dailyStats: payload.dailyStats,
+      dailyCategoryStats: payload.dailyCategoryStats,
+      dailyDetailStats: payload.dailyDetailStats,
+      confusionPairs: payload.confusionPairs,
+      srsAccuracyWindow: payload.srsAccuracyWindow
+    };
+  }
   function clampGoal(value, min = 0, max = 200, fallback = 0) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
@@ -1058,26 +1758,42 @@
     }
     return Math.max(min, Math.min(max, Math.round(parsed)));
   }
-  function normalizeDailyGoals(state2, payload) {
+  function normalizeDailyGoals(state, payload) {
     const legacyTotal = clampGoal(payload && payload.dailyGoal, 5, 200, 25);
     const source = payload && payload.dailyGoals && typeof payload.dailyGoals === "object" ? payload.dailyGoals : {};
     const total = clampGoal(source.total, 5, 200, legacyTotal);
     return {
       total,
-      typing: clampGoal(source.typing, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.typing, 0, 200, 12)),
-      drawing: clampGoal(source.drawing, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.drawing, 0, 200, 8)),
-      normal: clampGoal(source.normal, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.normal, 0, 200, 10)),
-      dakuten: clampGoal(source.dakuten, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.dakuten, 0, 200, 6)),
-      yoon: clampGoal(source.yoon, 0, 200, clampGoal(state2.dailyGoals && state2.dailyGoals.yoon, 0, 200, 6))
+      typing: clampGoal(source.typing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.typing, 0, 200, 12)),
+      drawing: clampGoal(source.drawing, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.drawing, 0, 200, 8)),
+      normal: clampGoal(source.normal, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.normal, 0, 200, 10)),
+      dakuten: clampGoal(source.dakuten, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.dakuten, 0, 200, 6)),
+      yoon: clampGoal(source.yoon, 0, 200, clampGoal(state.dailyGoals && state.dailyGoals.yoon, 0, 200, 6))
     };
   }
   function normalizeBacklogFilters(payload) {
     const source = payload && payload.backlogFilters && typeof payload.backlogFilters === "object" ? payload.backlogFilters : {};
     const status = ["all", "weak", "strong", "unseen"].includes(source.status) ? source.status : "all";
-    const script = ["all", "hiragana", "katakana"].includes(source.script) ? source.script : "all";
+    const script = typeof source.script === "string" && source.script.trim() ? source.script.trim().slice(0, 64) : "all";
     const weakness = ["all", "typing", "drawing"].includes(source.weakness) ? source.weakness : "all";
     const minAttempts = clampGoal(source.minAttempts, 0, 999, 0);
-    return { status, script, weakness, minAttempts };
+    const compact = Boolean(source.compact);
+    return { status, script, weakness, minAttempts, compact };
+  }
+  function normalizeBacklogFiltersByDataset(payload, activeDataset) {
+    const datasetIds = ["kana", "words", "kanji"];
+    const source = payload && payload.backlogFiltersByDataset && typeof payload.backlogFiltersByDataset === "object" ? payload.backlogFiltersByDataset : null;
+    const activeId = datasetIds.includes(activeDataset) ? activeDataset : "kana";
+    const legacy = normalizeBacklogFilters(payload);
+    const out = {};
+    datasetIds.forEach((datasetId) => {
+      if (source && source[datasetId] && typeof source[datasetId] === "object") {
+        out[datasetId] = normalizeBacklogFilters({ backlogFilters: source[datasetId] });
+        return;
+      }
+      out[datasetId] = datasetId === activeId ? { ...legacy } : { status: "all", script: "all", weakness: "all", minAttempts: 0, compact: false };
+    });
+    return out;
   }
   function normalizeProgressSubtab(payload) {
     const value = payload && typeof payload.progressSubtab === "string" ? payload.progressSubtab : "overview";
@@ -1092,85 +1808,100 @@
       sync: Boolean(source.sync)
     };
   }
-  function buildProgressPayload({ state: state2, dailyHistoryLimit }) {
-    trimDailyStatsToLimit(state2.dailyStats, dailyHistoryLimit);
-    trimDailyStatsToLimit(state2.dailyCategoryStats, dailyHistoryLimit);
+  function buildProgressPayload({ state, dailyHistoryLimit }) {
+    trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
+    Object.values(state.datasets || {}).forEach((datasetState) => {
+      trimDailyStatsToLimit(datasetState.dailyStats || {}, dailyHistoryLimit);
+      trimDailyStatsToLimit(datasetState.dailyCategoryStats || {}, dailyHistoryLimit);
+    });
     const savedAt = Date.now();
-    state2.lastSavedAt = savedAt;
+    state.lastSavedAt = savedAt;
+    const kanaDataset = state.datasets && state.datasets.kana ? state.datasets.kana : {};
     return {
+      schemaVersion: 2,
       savedAt,
-      practiceStrategy: state2.practiceStrategy,
-      recentMistakes: state2.recentMistakes,
-      recentTypingMistakes: state2.recentTypingMistakes,
-      recentDrawingMistakes: state2.recentDrawingMistakes,
-      srsByRomaji: state2.srsByRomaji,
-      audioMuted: state2.audioMuted,
-      drawGuideEnabled: state2.drawGuideEnabled,
-      dailyGoal: state2.dailyGoal,
-      dailyGoals: state2.dailyGoals,
-      backlogFilters: state2.backlogFilters,
-      progressSubtab: state2.progressSubtab,
-      progressCollapsedSections: state2.progressCollapsedSections,
-      lastCloudSyncAt: state2.lastCloudSyncAt,
-      syncUserEmail: state2.syncUserEmail,
-      typingRightCount: state2.typingRightCount,
-      typingWrongCount: state2.typingWrongCount,
-      drawingRightCount: state2.drawingRightCount,
-      drawingWrongCount: state2.drawingWrongCount,
-      backlog: state2.backlog,
-      drawingsByKana: state2.drawingsByKana,
-      dailyStats: state2.dailyStats,
-      dailyCategoryStats: state2.dailyCategoryStats
+      activeDataset: state.activeDataset || "kana",
+      showWordHelper: Boolean(state.showWordHelper),
+      showKanjiHelper: Boolean(state.showKanjiHelper),
+      datasets: {
+        kana: buildDatasetPayload(kanaDataset),
+        words: buildDatasetPayload(state.datasets && state.datasets.words || {}),
+        kanji: buildDatasetPayload(state.datasets && state.datasets.kanji || {})
+      },
+      practiceStrategy: state.practiceStrategy,
+      recentMistakes: state.recentMistakes,
+      recentTypingMistakes: state.recentTypingMistakes,
+      recentDrawingMistakes: state.recentDrawingMistakes,
+      srsByRomaji: state.srsByRomaji,
+      audioMuted: state.audioMuted,
+      drawGuideEnabled: state.drawGuideEnabled,
+      dailyGoal: state.dailyGoal,
+      dailyGoals: state.dailyGoals,
+      backlogFilters: state.backlogFilters,
+      backlogFiltersByDataset: state.backlogFiltersByDataset,
+      progressSubtab: state.progressSubtab,
+      progressCollapsedSections: state.progressCollapsedSections,
+      lastCloudSyncAt: state.lastCloudSyncAt,
+      syncUserEmail: state.syncUserEmail,
+      typingRightCount: kanaDataset.typingRightCount,
+      typingWrongCount: kanaDataset.typingWrongCount,
+      drawingRightCount: kanaDataset.drawingRightCount,
+      drawingWrongCount: kanaDataset.drawingWrongCount,
+      backlog: kanaDataset.backlog,
+      drawingsByKana: kanaDataset.drawingsByItem,
+      dailyStats: kanaDataset.dailyStats,
+      dailyCategoryStats: kanaDataset.dailyCategoryStats,
+      dailyDetailStats: kanaDataset.dailyDetailStats,
+      confusionPairs: kanaDataset.confusionPairs,
+      srsAccuracyWindow: kanaDataset.srsAccuracyWindow
     };
   }
-  function applyProgressPayload({ payload, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
+  function applyProgressPayload({ payload, state, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
     if (!payload || typeof payload !== "object") {
       return;
     }
-    state2.lastSavedAt = Number(payload.savedAt || 0);
-    state2.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" || payload.practiceStrategy === "frequentMistakes" ? payload.practiceStrategy : "srs";
-    const legacyMistakes = Array.isArray(payload.recentMistakes) ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [];
-    state2.recentTypingMistakes = Array.isArray(payload.recentTypingMistakes) ? payload.recentTypingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
-    state2.recentDrawingMistakes = Array.isArray(payload.recentDrawingMistakes) ? payload.recentDrawingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120) : [...legacyMistakes];
-    state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes, ...state2.recentDrawingMistakes])].slice(0, 120);
-    state2.audioMuted = Boolean(payload.audioMuted);
-    state2.drawGuideEnabled = payload.drawGuideEnabled !== false;
-    state2.dailyGoals = normalizeDailyGoals(state2, payload);
-    state2.dailyGoal = state2.dailyGoals.total;
-    state2.backlogFilters = normalizeBacklogFilters(payload);
-    state2.progressSubtab = normalizeProgressSubtab(payload);
-    state2.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
-    state2.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
-    state2.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
-    state2.typingRightCount = Number(payload.typingRightCount || 0);
-    state2.typingWrongCount = Number(payload.typingWrongCount || 0);
-    state2.drawingRightCount = Number(payload.drawingRightCount || 0);
-    state2.drawingWrongCount = Number(payload.drawingWrongCount || 0);
-    Object.keys(state2.drawingsByKana).forEach((kanaChar) => {
-      delete state2.drawingsByKana[kanaChar];
-    });
-    Object.keys(state2.dailyStats).forEach((dateKey) => {
-      delete state2.dailyStats[dateKey];
-    });
-    Object.keys(state2.dailyCategoryStats).forEach((dateKey) => {
-      delete state2.dailyCategoryStats[dateKey];
-    });
+    state.lastSavedAt = Number(payload.savedAt || 0);
+    state.activeDataset = ["kana", "words", "kanji"].includes(payload.activeDataset) ? payload.activeDataset : "kana";
+    state.showWordHelper = Boolean(payload.showWordHelper);
+    state.showKanjiHelper = Boolean(payload.showKanjiHelper);
+    const kanaPayload = getDatasetBucket(payload, "kana") || buildLegacyKanaDatasetPayload(payload);
+    const wordsPayload = getDatasetBucket(payload, "words") || {};
+    const kanjiPayload = getDatasetBucket(payload, "kanji") || {};
+    normalizeDatasetRuntimeState(state.datasets.kana, kanaPayload);
+    normalizeDatasetRuntimeState(state.datasets.words, wordsPayload);
+    normalizeDatasetRuntimeState(state.datasets.kanji, kanjiPayload);
+    if (state.recentTypingMistakes.length === 0 && Array.isArray(payload.recentMistakes)) {
+      state.recentTypingMistakes = payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120);
+      state.recentDrawingMistakes = [...state.recentTypingMistakes];
+      state.recentMistakes = [...new Set(state.recentTypingMistakes)].slice(0, 120);
+    }
+    state.audioMuted = Boolean(payload.audioMuted);
+    state.drawGuideEnabled = payload.drawGuideEnabled !== false;
+    state.dailyGoals = normalizeDailyGoals(state, payload);
+    state.dailyGoal = state.dailyGoals.total;
+    state.backlogFiltersByDataset = normalizeBacklogFiltersByDataset(payload, state.activeDataset);
+    state.backlogFilters = { ...state.backlogFiltersByDataset[state.activeDataset] || normalizeBacklogFilters(payload) };
+    state.progressSubtab = normalizeProgressSubtab(payload);
+    state.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
+    state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
+    state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
     kanaData2.forEach((item) => {
-      const savedSrs = payload.srsByRomaji && payload.srsByRomaji[item.romaji];
-      state2.srsByRomaji[item.romaji] = {
+      const savedSrs = state.srsByRomaji && state.srsByRomaji[item.romaji];
+      state.srsByRomaji[item.romaji] = {
         dueAt: Number(savedSrs && savedSrs.dueAt || 0),
         intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
         lastSeenAt: Number(savedSrs && savedSrs.lastSeenAt || 0),
         lastCorrect: Boolean(savedSrs && savedSrs.lastCorrect)
       };
     });
-    if (payload.backlog && typeof payload.backlog === "object") {
+    if (state.backlog && typeof state.backlog === "object") {
       kanaData2.forEach((item) => {
-        const saved = payload.backlog[item.romaji];
+        const saved = state.backlog[item.romaji];
         if (!saved || typeof saved !== "object") {
           return;
         }
-        const target = state2.backlog[item.romaji];
+        const target = state.backlog[item.romaji];
         target.right = Number(saved.right || 0);
         target.wrong = Number(saved.wrong || 0);
         target.typingRight = Number(saved.typingRight || 0);
@@ -1191,24 +1922,24 @@
         target.katakanaWrong = Number(saved.katakanaWrong || 0);
       });
     }
-    if (payload.drawingsByKana && typeof payload.drawingsByKana === "object") {
-      Object.keys(payload.drawingsByKana).forEach((kanaChar) => {
-        const savedList = payload.drawingsByKana[kanaChar];
+    if (state.drawingsByKana && typeof state.drawingsByKana === "object") {
+      Object.keys(state.drawingsByKana).forEach((kanaChar) => {
+        const savedList = state.drawingsByKana[kanaChar];
         if (Array.isArray(savedList)) {
-          state2.drawingsByKana[kanaChar] = savedList.filter((value) => typeof value === "string").slice(0, maxDrawingsPerKana);
+          state.drawingsByKana[kanaChar] = savedList.filter((value) => typeof value === "string").slice(0, maxDrawingsPerKana);
         }
       });
     }
-    if (payload.dailyStats && typeof payload.dailyStats === "object") {
-      Object.keys(payload.dailyStats).forEach((dateKey) => {
+    if (state.dailyStats && typeof state.dailyStats === "object") {
+      Object.keys(state.dailyStats).forEach((dateKey) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
           return;
         }
-        const saved = payload.dailyStats[dateKey];
+        const saved = state.dailyStats[dateKey];
         if (!saved || typeof saved !== "object") {
           return;
         }
-        state2.dailyStats[dateKey] = {
+        state.dailyStats[dateKey] = {
           typingRight: Number(saved.typingRight || 0),
           typingWrong: Number(saved.typingWrong || 0),
           drawingRight: Number(saved.drawingRight || 0),
@@ -1216,38 +1947,38 @@
         };
       });
     }
-    if (payload.dailyCategoryStats && typeof payload.dailyCategoryStats === "object") {
-      Object.keys(payload.dailyCategoryStats).forEach((dateKey) => {
+    if (state.dailyCategoryStats && typeof state.dailyCategoryStats === "object") {
+      Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
           return;
         }
-        const saved = payload.dailyCategoryStats[dateKey];
+        const saved = state.dailyCategoryStats[dateKey];
         if (!saved || typeof saved !== "object") {
           return;
         }
-        state2.dailyCategoryStats[dateKey] = {
+        state.dailyCategoryStats[dateKey] = {
           normal: Number(saved.normal || 0),
           dakuten: Number(saved.dakuten || 0),
           yoon: Number(saved.yoon || 0)
         };
       });
     }
-    trimDailyStatsToLimit(state2.dailyStats, dailyHistoryLimit);
-    trimDailyStatsToLimit(state2.dailyCategoryStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
+    trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
   }
-  function saveProgress({ storageKey, state: state2, dailyHistoryLimit }) {
-    const payload = buildProgressPayload({ state: state2, dailyHistoryLimit });
+  function saveProgress({ storageKey, state, dailyHistoryLimit }) {
+    const payload = buildProgressPayload({ state, dailyHistoryLimit });
     try {
       localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch {
+    } catch (e) {
     }
     return payload;
   }
-  function loadProgress({ storageKey, state: state2, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
+  function loadProgress({ storageKey, state, kanaData: kanaData2, maxDrawingsPerKana, dailyHistoryLimit }) {
     let parsed = null;
     try {
       parsed = JSON.parse(localStorage.getItem(storageKey) || "null");
-    } catch {
+    } catch (e) {
       parsed = null;
     }
     if (!parsed || typeof parsed !== "object") {
@@ -1255,7 +1986,7 @@
     }
     applyProgressPayload({
       payload: parsed,
-      state: state2,
+      state,
       kanaData: kanaData2,
       maxDrawingsPerKana,
       dailyHistoryLimit
@@ -1267,6 +1998,12 @@
   });
 
   // js/features/progress.js
+  function getDatasetLabel(state) {
+    return state.activeDataset === "words" ? "Words" : state.activeDataset === "kanji" ? "Kanji" : "Kana";
+  }
+  function getBacklogDisplayLabel(row) {
+    return row.label || row.romaji || row.id || "item";
+  }
   function getSortedDateKeys(dailyStats) {
     return Object.keys(dailyStats).sort((a, b2) => b2.localeCompare(a));
   }
@@ -1450,7 +2187,7 @@
     </div>
   `;
   }
-  function renderDailyHistoryTable(elements, dailyStats, dailyDetailStats = {}) {
+  function renderDailyHistoryTable(elements, state, dailyStats, dailyDetailStats = {}) {
     const dateKeys = getSortedDateKeys(dailyStats);
     if (dateKeys.length === 0) {
       elements.dailyHistoryTable.innerHTML = '<div class="compare-empty">No daily history yet. Start practicing to populate this table.</div>';
@@ -1498,46 +2235,52 @@
           panel.innerHTML = "";
           return;
         }
-        const detailItems = Object.entries(details).map(([romaji, entry]) => ({ romaji, right: Number(entry.right || 0), wrong: Number(entry.wrong || 0) })).sort((a, b2) => b2.right + b2.wrong - (a.right + a.wrong));
-        panel.innerHTML = detailItems.length ? `<strong>Attempt breakdown:</strong> ${detailItems.map((d2) => `${d2.romaji} (\u2713${d2.right}/\u2717${d2.wrong})`).join(", ")}` : "No detailed per-kana stats stored for this day yet.";
+        const detailItems = Object.entries(details).map(([romaji, entry]) => ({
+          romaji,
+          label: getBacklogDisplayLabel(state.backlog && state.backlog[romaji] || { id: romaji }),
+          right: Number(entry.right || 0),
+          wrong: Number(entry.wrong || 0)
+        })).sort((a, b2) => b2.right + b2.wrong - (a.right + a.wrong));
+        panel.innerHTML = detailItems.length ? `<strong>Attempt breakdown:</strong> ${detailItems.map((d2) => `${d2.label} (\u2713${d2.right}/\u2717${d2.wrong})`).join(", ")}` : "No detailed per-item stats stored for this day yet.";
         detailRow.classList.remove("hidden");
       });
     });
   }
-  function renderInsights(elements, state2) {
+  function renderInsights(elements, state) {
     if (!elements.insightsGrid) {
       return;
     }
+    const datasetLabel = getDatasetLabel(state);
     const now = Date.now();
-    const dueCount = Object.values(state2.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
-    const mistakesCount = (state2.recentMistakes || []).length;
-    const today = state2.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
-    const todayCategory = getCategoryTotals(state2.dailyCategoryStats && state2.dailyCategoryStats[getTodayKey()]);
+    const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
+    const mistakesCount = (state.recentMistakes || []).length;
+    const today = state.dailyStats[getTodayKey()] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+    const todayCategory = getCategoryTotals(state.dailyCategoryStats && state.dailyCategoryStats[getTodayKey()]);
     const todayDone = today.typingRight + today.typingWrong + today.drawingRight + today.drawingWrong;
-    const goals = state2.dailyGoals || {
-      total: Number(state2.dailyGoal || 25),
+    const goals = state.dailyGoals || {
+      total: Number(state.dailyGoal || 25),
       typing: 12,
       drawing: 8,
       normal: 10,
       dakuten: 6,
       yoon: 6
     };
-    const weakRows = Object.values(state2.backlog || {}).map((row) => {
+    const weakRows = Object.values(state.backlog || {}).map((row) => {
       const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
       const right = row.typingRight + row.drawingRight;
       const accuracy = attempts ? Math.round(right / attempts * 100) : 100;
-      return { romaji: row.romaji, attempts, accuracy };
+      return { label: getBacklogDisplayLabel(row), attempts, accuracy };
     }).filter((row) => row.attempts >= 4).sort((a, b2) => a.accuracy - b2.accuracy).slice(0, 3);
-    const recentDateKeys = getSortedDateKeys(state2.dailyStats).slice(0, 7);
+    const recentDateKeys = getSortedDateKeys(state.dailyStats).slice(0, 7);
     let weekRight = 0;
     let weekTotal = 0;
     recentDateKeys.forEach((dateKey) => {
-      const day = state2.dailyStats[dateKey];
+      const day = state.dailyStats[dateKey];
       weekRight += day.typingRight + day.drawingRight;
       weekTotal += day.typingRight + day.typingWrong + day.drawingRight + day.drawingWrong;
     });
     const weekAccuracy = weekTotal ? `${Math.round(weekRight / weekTotal * 100)}%` : "-";
-    const weakText = weakRows.length ? weakRows.map((row) => `${row.romaji} (${row.accuracy}%)`).join(", ") : "Need more attempts";
+    const weakText = weakRows.length ? weakRows.map((row) => `${row.label} (${row.accuracy}%)`).join(", ") : "Need more attempts";
     const typingDone = today.typingRight + today.typingWrong;
     const drawingDone = today.drawingRight + today.drawingWrong;
     function goalLine(label, done, goal) {
@@ -1554,16 +2297,16 @@
     <article class="insight-card">
       <h4>Mistake Queue</h4>
       <div class="insight-value">${mistakesCount}</div>
-      <p>Kana waiting for review mode.</p>
+      <p>${datasetLabel} waiting for review mode.</p>
     </article>
     <article class="insight-card">
       <h4>Today Goals</h4>
       <div class="insight-value">${todayDone}/${goals.total}</div>
       <p>${goalLine("Typing", typingDone, goals.typing)}</p>
       <p>${goalLine("Drawing", drawingDone, goals.drawing)}</p>
-      <p>${goalLine("Normal", todayCategory.normal, goals.normal)}</p>
+      ${state.activeDataset === "kana" ? `<p>${goalLine("Normal", todayCategory.normal, goals.normal)}</p>
       <p>${goalLine("Dakuten", todayCategory.dakuten, goals.dakuten)}</p>
-      <p>${goalLine("Yoon", todayCategory.yoon, goals.yoon)}</p>
+      <p>${goalLine("Yoon", todayCategory.yoon, goals.yoon)}</p>` : ""}
     </article>
     <article class="insight-card">
       <h4>7-Day Accuracy</h4>
@@ -1571,7 +2314,7 @@
       <p>Typing + drawing combined.</p>
     </article>
     <article class="insight-card wide">
-      <h4>Weakest Kana</h4>
+      <h4>Weakest ${datasetLabel}</h4>
       <p>${weakText}</p>
     </article>
   `;
@@ -1589,8 +2332,33 @@
     }
     return value[0] || "other";
   }
-  function renderScriptHeatmap(elements, state2) {
+  function renderScriptHeatmap(elements, state) {
     if (!elements.scriptHeatmap) {
+      return;
+    }
+    if (state.activeDataset !== "kana") {
+      const sortedRows = Object.values(state.backlog || {}).map((row) => {
+        const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
+        const right = row.typingRight + row.drawingRight;
+        const accuracy = attempts > 0 ? Math.round(right / attempts * 100) : 0;
+        return {
+          label: getBacklogDisplayLabel(row),
+          attempts,
+          accuracy,
+          typing: `${row.typingRight}/${row.typingRight + row.typingWrong || 0}`,
+          drawing: `${row.drawingRight}/${row.drawingRight + row.drawingWrong || 0}`
+        };
+      }).filter((row) => row.attempts > 0).sort((a, b2) => b2.attempts - a.attempts || a.accuracy - b2.accuracy).slice(0, 12);
+      elements.scriptHeatmap.innerHTML = sortedRows.length ? `
+        <div class="heat-head">Item</div>
+        <div class="heat-head">Accuracy</div>
+        <div class="heat-head">Mode Split</div>
+        ${sortedRows.map((row) => `
+          <div class="heat-row-label">${row.label}</div>
+          <div class="heat-cell"><strong>${row.accuracy}%</strong><small>${row.attempts} attempts</small></div>
+          <div class="heat-cell"><strong>T ${row.typing}</strong><small>D ${row.drawing}</small></div>
+        `).join("")}
+      ` : `<div class="compare-empty">No ${getDatasetLabel(state).toLowerCase()} attempts yet. Start practicing to see item-level progress.</div>`;
       return;
     }
     const groups = [
@@ -1619,7 +2387,7 @@
       };
       return acc;
     }, {});
-    Object.values(state2.backlog || {}).forEach((row) => {
+    Object.values(state.backlog || {}).forEach((row) => {
       const key = getRomajiRowGroup(row.romaji);
       if (!metrics[key]) {
         return;
@@ -1661,14 +2429,14 @@
     }).join("")}
   `;
   }
-  function renderGoalProgress(elements, state2) {
+  function renderGoalProgress(elements, state) {
     const container = elements.goalProgressBar;
     if (!container) return;
     const todayKey = getTodayKey();
-    const today = state2.dailyStats[todayKey] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
-    const todayCategory = state2.dailyCategoryStats && state2.dailyCategoryStats[todayKey] || { normal: 0, dakuten: 0, yoon: 0 };
-    const goals = state2.dailyGoals || {
-      total: Number(state2.dailyGoal || 25),
+    const today = state.dailyStats[todayKey] || { typingRight: 0, typingWrong: 0, drawingRight: 0, drawingWrong: 0 };
+    const todayCategory = state.dailyCategoryStats && state.dailyCategoryStats[todayKey] || { normal: 0, dakuten: 0, yoon: 0 };
+    const goals = state.dailyGoals || {
+      total: Number(state.dailyGoal || 25),
       typing: 12,
       drawing: 8,
       normal: 10,
@@ -1689,9 +2457,9 @@
         <span class="goal-bar-count">${done}/${safeGoal}</span>
       </div>`;
     }
-    container.innerHTML = bar("Total", totalDone, goals.total) + bar("Typing", typingDone, goals.typing) + bar("Drawing", drawingDone, goals.drawing) + bar("Normal", todayCategory.normal || 0, goals.normal) + bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) + bar("Yoon", todayCategory.yoon || 0, goals.yoon);
+    container.innerHTML = bar("Total", totalDone, goals.total) + bar("Typing", typingDone, goals.typing) + bar("Drawing", drawingDone, goals.drawing) + (state.activeDataset === "kana" ? bar("Normal", todayCategory.normal || 0, goals.normal) + bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) + bar("Yoon", todayCategory.yoon || 0, goals.yoon) : "");
   }
-  function renderSrsScheduleGraph(elements, state2) {
+  function renderSrsScheduleGraph(elements, state) {
     const container = elements.srsScheduleGraph;
     if (!container) return;
     const now = Date.now();
@@ -1700,7 +2468,7 @@
       const end = start + 864e5;
       return { label: i === 0 ? "Today" : i === 1 ? "Tmrw" : `+${i}d`, start, end, count: 0 };
     });
-    Object.values(state2.srsByRomaji || {}).forEach((entry) => {
+    Object.values(state.srsByRomaji || {}).forEach((entry) => {
       const due = Number(entry.dueAt || 0);
       if (due <= 0) return;
       const bucket = buckets.find((b2) => due >= b2.start && due < b2.end);
@@ -1720,24 +2488,24 @@
     }).join("")}
     </div>`;
   }
-  function addDailyAttempt(state2, mode, wasCorrect, category = null) {
+  function addDailyAttempt(state, mode, wasCorrect, category = null) {
     const todayKey = getTodayKey();
-    if (!state2.dailyStats[todayKey]) {
-      state2.dailyStats[todayKey] = {
+    if (!state.dailyStats[todayKey]) {
+      state.dailyStats[todayKey] = {
         typingRight: 0,
         typingWrong: 0,
         drawingRight: 0,
         drawingWrong: 0
       };
     }
-    if (!state2.dailyCategoryStats[todayKey]) {
-      state2.dailyCategoryStats[todayKey] = {
+    if (!state.dailyCategoryStats[todayKey]) {
+      state.dailyCategoryStats[todayKey] = {
         normal: 0,
         dakuten: 0,
         yoon: 0
       };
     }
-    const entry = state2.dailyStats[todayKey];
+    const entry = state.dailyStats[todayKey];
     if (mode === "typing") {
       if (wasCorrect) {
         entry.typingRight += 1;
@@ -1751,32 +2519,32 @@
         entry.drawingWrong += 1;
       }
     }
-    if (category && state2.dailyCategoryStats[todayKey][category] !== void 0) {
-      state2.dailyCategoryStats[todayKey][category] += 1;
+    if (category && state.dailyCategoryStats[todayKey][category] !== void 0) {
+      state.dailyCategoryStats[todayKey][category] += 1;
     }
   }
-  function renderDailyProgress({ elements, state: state2, setActiveProgressTab: setActiveProgressTab2 }) {
+  function renderDailyProgress({ elements, state, setActiveProgressTab: setActiveProgressTab2 }) {
     const todayKey = getTodayKey();
-    const hasNewDay = todayKey !== state2.progressUiDayMarker;
-    state2.progressUiDayMarker = todayKey;
-    buildDayOptions(elements, state2.dailyStats);
+    const hasNewDay = todayKey !== state.progressUiDayMarker;
+    state.progressUiDayMarker = todayKey;
+    buildDayOptions(elements, state.dailyStats);
     if (hasNewDay) {
-      resetProgressTabForNewDay(elements, state2.dailyStats);
+      resetProgressTabForNewDay(elements, state.dailyStats);
       setActiveProgressTab2(elements, "backlog");
     }
-    renderDailyProgressGraph(elements, state2.dailyStats);
-    renderDayComparison(elements, state2.dailyStats);
-    renderDailyHistoryTable(elements, state2.dailyStats, state2.dailyDetailStats || {});
-    renderInsights(elements, state2);
-    renderScriptHeatmap(elements, state2);
-    renderSrsScheduleGraph(elements, state2);
+    renderDailyProgressGraph(elements, state.dailyStats);
+    renderDayComparison(elements, state.dailyStats);
+    renderDailyHistoryTable(elements, state, state.dailyStats, state.dailyDetailStats || {});
+    renderInsights(elements, state);
+    renderScriptHeatmap(elements, state);
+    renderSrsScheduleGraph(elements, state);
   }
-  function bindProgressCompareSelectors(elements, state2) {
-    elements.compareDayASelect.addEventListener("change", () => renderDayComparison(elements, state2.dailyStats));
-    elements.compareDayBSelect.addEventListener("change", () => renderDayComparison(elements, state2.dailyStats));
+  function bindProgressCompareSelectors(elements, state) {
+    elements.compareDayASelect.addEventListener("change", () => renderDayComparison(elements, state.dailyStats));
+    elements.compareDayBSelect.addEventListener("change", () => renderDayComparison(elements, state.dailyStats));
   }
-  function redrawProgressGraph(elements, state2) {
-    renderDailyProgressGraph(elements, state2.dailyStats);
+  function redrawProgressGraph(elements, state) {
+    renderDailyProgressGraph(elements, state.dailyStats);
   }
   var init_progress = __esm({
     "js/features/progress.js"() {
@@ -1785,10 +2553,10 @@
   });
 
   // js/features/drawing.js
-  function createDrawingFeature({ elements, state: state2, maxDrawingsPerKana, eventBus: eventBus2, EVENT_NAMES: EVENT_NAMES2 }) {
+  function createDrawingFeature({ elements, state, maxDrawingsPerKana, eventBus: eventBus2, EVENT_NAMES: EVENT_NAMES2 }) {
     let drawing = false;
     let activeCanvas = null;
-    let drawGuideEnabled = state2.drawGuideEnabled !== false;
+    let drawGuideEnabled = state.drawGuideEnabled !== false;
     const canvases = [
       { canvas: elements.canvasHiragana, ctx: elements.ctxHiragana },
       { canvas: elements.canvasKatakana, ctx: elements.ctxKatakana }
@@ -1801,7 +2569,7 @@
       elements.revealBtn.disabled = !enabled;
     }
     function setDrawingCanvasVisibility(mode) {
-      const showHiragana = mode === "both" || mode === "hiragana";
+      const showHiragana = mode === "both" || mode === "hiragana" || mode === "kanji";
       const showKatakana = mode === "both" || mode === "katakana";
       elements.canvasHiragana.closest(".draw-pane").classList.toggle("hidden", !showHiragana);
       elements.canvasKatakana.closest(".draw-pane").classList.toggle("hidden", !showKatakana);
@@ -1887,42 +2655,46 @@
       if (!hasInk(canvas, ctx)) {
         return;
       }
-      const existing = state2.drawingsByKana[kanaChar] || [];
+      const existing = state.drawingsByKana[kanaChar] || [];
       existing.unshift(canvas.toDataURL("image/png"));
       if (existing.length > maxDrawingsPerKana) {
         existing.length = maxDrawingsPerKana;
       }
-      state2.drawingsByKana[kanaChar] = existing;
+      state.drawingsByKana[kanaChar] = existing;
     }
     function saveCurrentDrawingIfCorrect() {
-      if (!state2.currentQuestion || state2.currentQuestion.kind !== "drawing") {
+      if (!state.currentQuestion || state.currentQuestion.kind !== "drawing") {
         return;
       }
-      if (state2.currentQuestion.canvasMode === "both") {
-        addDrawingSnapshot(state2.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
-        addDrawingSnapshot(state2.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
+      if (state.currentQuestion.canvasMode === "kanji") {
+        addDrawingSnapshot(state.currentQuestion.kanji, elements.canvasHiragana, elements.ctxHiragana);
         return;
       }
-      if (state2.currentQuestion.canvasMode === "hiragana") {
-        addDrawingSnapshot(state2.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
+      if (state.currentQuestion.canvasMode === "both") {
+        addDrawingSnapshot(state.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
+        addDrawingSnapshot(state.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
         return;
       }
-      addDrawingSnapshot(state2.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
+      if (state.currentQuestion.canvasMode === "hiragana") {
+        addDrawingSnapshot(state.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
+        return;
+      }
+      addDrawingSnapshot(state.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
     }
     function openDrawingGallery(kanaChar) {
-      const drawings = state2.drawingsByKana[kanaChar] || [];
+      const drawings = state.drawingsByKana[kanaChar] || [];
       elements.galleryTitle.textContent = `Saved Drawings: ${kanaChar}`;
       if (drawings.length === 0) {
-        elements.galleryBody.innerHTML = '<div class="gallery-empty">No saved drawings yet for this kana.</div>';
+        elements.galleryBody.innerHTML = '<div class="gallery-empty">No saved drawings yet for this item.</div>';
       } else {
         renderGalleryItems(kanaChar);
       }
       elements.drawingGalleryDialog.showModal();
     }
     function renderGalleryItems(kanaChar) {
-      const drawings = state2.drawingsByKana[kanaChar] || [];
+      const drawings = state.drawingsByKana[kanaChar] || [];
       if (drawings.length === 0) {
-        elements.galleryBody.innerHTML = '<div class="gallery-empty">No saved drawings yet for this kana.</div>';
+        elements.galleryBody.innerHTML = '<div class="gallery-empty">No saved drawings yet for this item.</div>';
         return;
       }
       elements.galleryBody.innerHTML = drawings.map((imageData, index) => `
@@ -1935,9 +2707,9 @@
         btn.addEventListener("click", () => {
           const idx = Number(btn.dataset.index);
           const kana = btn.dataset.kana;
-          if (!state2.drawingsByKana[kana]) return;
-          state2.drawingsByKana[kana].splice(idx, 1);
-          if (state2.drawingsByKana[kana].length === 0) delete state2.drawingsByKana[kana];
+          if (!state.drawingsByKana[kana]) return;
+          state.drawingsByKana[kana].splice(idx, 1);
+          if (state.drawingsByKana[kana].length === 0) delete state.drawingsByKana[kana];
           renderGalleryItems(kana);
         });
       });
@@ -16624,7 +17396,7 @@
   // js/features/cloudSync.js
   async function setupCloudSync({
     elements,
-    state: state2,
+    state,
     getLocalPayload,
     applyRemotePayload,
     onLocalStateApplied,
@@ -16634,7 +17406,7 @@
     function estimatePayloadSize(payload) {
       try {
         return new Blob([JSON.stringify(payload)]).size;
-      } catch {
+      } catch (e) {
         return JSON.stringify(payload).length;
       }
     }
@@ -16724,7 +17496,7 @@
     const db = getFirestore2(app);
     try {
       await setPersistence2(auth, browserLocalPersistence2);
-    } catch {
+    } catch (e) {
       await setPersistence2(auth, inMemoryPersistence2);
     }
     let currentUser = null;
@@ -16799,7 +17571,7 @@
       }, 600);
     }
     disableAuthButtons(false);
-    setAccountInfo(state2.syncUserEmail || "", state2.lastCloudSyncAt || 0);
+    setAccountInfo(state.syncUserEmail || "", state.lastCloudSyncAt || 0);
     setStatus("Cloud sync ready. Log in to link data across devices.");
     elements.signUpBtn.addEventListener("click", async () => {
       try {
@@ -16871,7 +17643,7 @@
         setStatus("Cloud sync ready. Log in to link data across devices.");
         return;
       }
-      setAccountInfo(user.email || user.uid, state2.lastCloudSyncAt || 0);
+      setAccountInfo(user.email || user.uid, state.lastCloudSyncAt || 0);
       try {
         await pullOrPushOnLogin(user);
       } catch (error) {
@@ -16913,45 +17685,45 @@
   });
 
   // js/features/srs.js
-  function createSrsManager(state2) {
+  function createSrsManager(state) {
     function getMistakeKey(answerMode = "typing") {
       return answerMode === "drawing" ? "recentDrawingMistakes" : "recentTypingMistakes";
     }
     function getDueRomajiList() {
       const now = Date.now();
-      return Object.entries(state2.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
+      return Object.entries(state.srsByRomaji).filter(([, entry]) => Number(entry.dueAt || 0) <= now).sort((a, b2) => Number(a[1].dueAt || 0) - Number(b2[1].dueAt || 0)).map(([romaji]) => romaji);
     }
     function upsertRecentMistake(romaji, answerMode = "typing") {
       const key = getMistakeKey(answerMode);
-      const source = Array.isArray(state2[key]) ? state2[key] : [];
-      state2[key] = [
+      const source = Array.isArray(state[key]) ? state[key] : [];
+      state[key] = [
         romaji,
         ...source.filter((value) => value !== romaji)
       ].slice(0, MAX_RECENT_MISTAKES);
-      state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes || [], ...state2.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
+      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes || [], ...state.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
     }
     function removeRecentMistake(romaji, answerMode = "typing") {
       const key = getMistakeKey(answerMode);
-      const source = Array.isArray(state2[key]) ? state2[key] : [];
-      state2[key] = source.filter((value) => value !== romaji);
-      state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes || [], ...state2.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
+      const source = Array.isArray(state[key]) ? state[key] : [];
+      state[key] = source.filter((value) => value !== romaji);
+      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes || [], ...state.recentDrawingMistakes || []])].slice(0, MAX_RECENT_MISTAKES);
     }
     function getRecentMistakesByMode(answerMode = "typing") {
       const key = getMistakeKey(answerMode);
-      return Array.isArray(state2[key]) ? state2[key] : [];
+      return Array.isArray(state[key]) ? state[key] : [];
     }
     function updateSrsOnAttempt(romaji, wasCorrect, answerMode = "typing", hintUsed = false) {
-      const current = state2.srsByRomaji[romaji] || {
+      const current = state.srsByRomaji[romaji] || {
         dueAt: 0,
         intervalHours: 0,
         lastSeenAt: 0,
         lastCorrect: false
       };
-      if (!state2.srsAccuracyWindow) state2.srsAccuracyWindow = {};
-      const window2 = Array.isArray(state2.srsAccuracyWindow[romaji]) ? state2.srsAccuracyWindow[romaji] : [];
+      if (!state.srsAccuracyWindow) state.srsAccuracyWindow = {};
+      const window2 = Array.isArray(state.srsAccuracyWindow[romaji]) ? state.srsAccuracyWindow[romaji] : [];
       window2.push(wasCorrect);
       if (window2.length > ACCURACY_WINDOW_SIZE) window2.shift();
-      state2.srsAccuracyWindow[romaji] = window2;
+      state.srsAccuracyWindow[romaji] = window2;
       const now = Date.now();
       if (wasCorrect) {
         const previous = Number(current.intervalHours || 0);
@@ -16976,10 +17748,10 @@
       }
       current.lastSeenAt = now;
       current.lastCorrect = wasCorrect;
-      state2.srsByRomaji[romaji] = current;
+      state.srsByRomaji[romaji] = current;
     }
     function getTotalAttempts2() {
-      return Object.values(state2.srsByRomaji).reduce((sum2, entry) => sum2 + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
+      return Object.values(state.srsByRomaji).reduce((sum2, entry) => sum2 + (Number(entry.lastSeenAt) > 0 ? 1 : 0), 0);
     }
     return {
       getDueRomajiList,
@@ -16999,10 +17771,13 @@
   });
 
   // js/features/queue.js
-  function createQueueManager(state2, elements, srsManager, getKanaCategoryFn) {
+  function createQueueManager(state, elements, srsManager, getKanaCategoryFn) {
+    function getActiveDatasetId() {
+      return state.activeDataset || "kana";
+    }
     function getQuestionKindForCurrentMode() {
       const mode = elements.modeSelect.value;
-      if (mode === "romajiToKana") {
+      if (mode === "romajiToKana" || mode === "kanjiDrawing") {
         return "drawing";
       }
       if (mode === "mixedPractice") {
@@ -17025,7 +17800,7 @@
       return srsManager.getRecentMistakesByMode("typing");
     }
     function getFrequentMistakesRomajiList(questionKind = "typing") {
-      const entries = Object.values(state2.backlog).map((row) => {
+      const entries = Object.values(state.backlog).map((row) => {
         let wrong = row.typingWrong;
         let right = row.typingRight;
         if (questionKind === "drawing") {
@@ -17036,7 +17811,7 @@
           right = row.typingRight + row.drawingRight;
         }
         return {
-          romaji: row.romaji,
+          romaji: row.id || row.romaji,
           wrong,
           right,
           pressure: wrong * 2 - right
@@ -17045,6 +17820,9 @@
       return filterRomajiForCurrentKanaSet(entries).slice(0, 40);
     }
     function filterRomajiForCurrentKanaSet(romajiList) {
+      if (getActiveDatasetId() !== "kana") {
+        return romajiList;
+      }
       const setMode = elements.kanaSetSelect.value;
       if (setMode === "all") {
         return romajiList;
@@ -17052,13 +17830,13 @@
       return romajiList.filter((romaji) => getKanaCategoryFn(romaji) === setMode);
     }
     function getPreferredRomajiList(questionKind = getQuestionKindForCurrentMode()) {
-      if (state2.practiceStrategy === "mistakeReview") {
+      if (state.practiceStrategy === "mistakeReview") {
         return filterRomajiForCurrentKanaSet(getMistakeEntriesForKind(questionKind)).slice(0, 30);
       }
-      if (state2.practiceStrategy === "frequentMistakes") {
+      if (state.practiceStrategy === "frequentMistakes") {
         return getFrequentMistakesRomajiList(questionKind);
       }
-      if (state2.practiceStrategy === "srs") {
+      if (state.practiceStrategy === "srs") {
         return filterRomajiForCurrentKanaSet(srsManager.getDueRomajiList()).slice(0, 30);
       }
       const totalAttempts = srsManager.getTotalAttempts();
@@ -17082,7 +17860,7 @@
       const due = srsManager.getDueRomajiList().length;
       const mistakes = getMistakeEntriesForKind(questionKind).length;
       const frequentMistakes = getFrequentMistakesRomajiList(questionKind).length;
-      const strategy = state2.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state2.practiceStrategy === "frequentMistakes" ? `Frequent mistakes: ${frequentMistakes}` : state2.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
+      const strategy = state.practiceStrategy === "mistakeReview" ? `Mistakes: ${mistakes}` : state.practiceStrategy === "frequentMistakes" ? `Frequent mistakes: ${frequentMistakes}` : state.practiceStrategy === "srs" ? `Due: ${due}` : `Due ${due} \u2022 Mistakes ${mistakes}`;
       elements.queueMeta.textContent = strategy;
     }
     return {
@@ -17098,7 +17876,7 @@
   });
 
   // js/features/audio.js
-  function createAudioManager(state2, elements) {
+  function createAudioManager(state, elements) {
     function getAudioTextForQuestion(question) {
       if (!question) {
         return "";
@@ -17112,13 +17890,13 @@
       return question.canvasMode === "hiragana" ? question.hiragana : question.katakana;
     }
     function playCurrentAudio() {
-      if (state2.audioMuted) {
+      if (state.audioMuted) {
         return;
       }
       if (!window.speechSynthesis) {
         return;
       }
-      const text = getAudioTextForQuestion(state2.currentQuestion);
+      const text = getAudioTextForQuestion(state.currentQuestion);
       if (!text) {
         return;
       }
@@ -17144,11 +17922,11 @@
       }
     }
     function refreshAudioButton() {
-      elements.muteAudioBtn.textContent = state2.audioMuted ? "Audio: Off" : "Audio: On";
-      elements.muteAudioBtn.setAttribute("aria-pressed", String(state2.audioMuted));
+      elements.muteAudioBtn.textContent = state.audioMuted ? "Audio: Off" : "Audio: On";
+      elements.muteAudioBtn.setAttribute("aria-pressed", String(state.audioMuted));
     }
     function toggleAudioMute() {
-      state2.audioMuted = !state2.audioMuted;
+      state.audioMuted = !state.audioMuted;
       refreshAudioButton();
     }
     return {
@@ -17165,7 +17943,7 @@
 
   // js/features/answering.js
   function createAnsweringManager({
-    state: state2,
+    state,
     elements,
     srsManager,
     queueManager,
@@ -17190,26 +17968,45 @@
       }
       return accepted;
     }
+    function getAnswerNormalizer(question) {
+      if (question && question.answerNormalizer === "english") {
+        return normalizeEnglishAnswer;
+      }
+      if (question && question.answerNormalizer === "forgiving-romaji") {
+        return normalizeForgivingRomaji;
+      }
+      if (question && question.answerNormalizer === "exact") {
+        return (value) => String(value || "").trim();
+      }
+      return normalizeLooseText;
+    }
+    function isTypingAnswerCorrect(question, userAnswer) {
+      if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) {
+        return matchesAnyNormalizedAnswer(userAnswer, question.acceptedAnswers, getAnswerNormalizer(question));
+      }
+      return getAcceptedRomajiSet(question).has(userAnswer);
+    }
     function recordDailyDetail(romaji, wasCorrect) {
-      if (!state2.dailyDetailStats) state2.dailyDetailStats = {};
+      if (!state.dailyDetailStats) state.dailyDetailStats = {};
       const todayKey = getTodayKey();
-      if (!state2.dailyDetailStats[todayKey]) state2.dailyDetailStats[todayKey] = {};
-      const entry = state2.dailyDetailStats[todayKey][romaji] || { right: 0, wrong: 0 };
+      if (!state.dailyDetailStats[todayKey]) state.dailyDetailStats[todayKey] = {};
+      const entry = state.dailyDetailStats[todayKey][romaji] || { right: 0, wrong: 0 };
       if (wasCorrect) {
         entry.right += 1;
       } else {
         entry.wrong += 1;
       }
-      state2.dailyDetailStats[todayKey][romaji] = entry;
+      state.dailyDetailStats[todayKey][romaji] = entry;
     }
-    function validateTypingAnswer(romaji) {
-      if (!romaji) {
-        return { correct: false, answer: "", reason: "Type a romaji answer" };
+    function validateTypingAnswer(answer) {
+      if (!answer) {
+        const reason = state.currentQuestion && state.currentQuestion.answerLabel ? `${state.currentQuestion.answerLabel}.` : "Type an answer.";
+        return { correct: false, answer: "", reason };
       }
-      return { correct: true, answer: romaji };
+      return { correct: true, answer };
     }
     function processTypingAnswer(userRomaji) {
-      if (!state2.currentQuestion) {
+      if (!state.currentQuestion) {
         showResult2("Create a question first.", false);
         return { accepted: false, correct: false };
       }
@@ -17218,53 +18015,52 @@
         showResult2(validation.reason, false);
         return { accepted: false, correct: false };
       }
-      const correctAnswer = state2.currentQuestion.romaji;
-      const trackingRomaji = state2.currentQuestion.trackingRomaji || state2.currentQuestion.romaji;
-      const acceptedAnswers = getAcceptedRomajiSet(state2.currentQuestion);
-      const correct = acceptedAnswers.has(userRomaji);
+      const correctAnswer = state.currentQuestion.displayAnswer || state.currentQuestion.romaji;
+      const trackingRomaji = state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
+      const correct = isTypingAnswerCorrect(state.currentQuestion, userRomaji);
       const hintUsed = hintsManager && hintsManager.getHintsUsed() > 0;
       if (correct) {
-        state2.typingRightCount += 1;
+        state.typingRightCount += 1;
         showResult2("Correct!", true);
       } else {
-        state2.typingWrongCount += 1;
+        state.typingWrongCount += 1;
         showTypingMistake2(userRomaji, correctAnswer);
         if (userRomaji) {
-          if (!state2.confusionPairs[trackingRomaji]) {
-            state2.confusionPairs[trackingRomaji] = {};
+          if (!state.confusionPairs[trackingRomaji]) {
+            state.confusionPairs[trackingRomaji] = {};
           }
-          state2.confusionPairs[trackingRomaji][userRomaji] = (state2.confusionPairs[trackingRomaji][userRomaji] || 0) + 1;
+          state.confusionPairs[trackingRomaji][userRomaji] = (state.confusionPairs[trackingRomaji][userRomaji] || 0) + 1;
         }
       }
       updateBacklog2({
-        backlog: state2.backlog,
+        backlog: state.backlog,
         romaji: trackingRomaji,
         wasCorrect: correct,
-        scriptContext: state2.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
+        scriptContext: state.currentQuestion.scriptContext || (state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana"),
         answerMode: "typing"
       });
       srsManager.updateSrsOnAttempt(trackingRomaji, correct, "typing", hintUsed);
-      addDailyAttemptFn(state2, "typing", correct, trackingRomaji);
+      addDailyAttemptFn(state, "typing", correct, trackingRomaji);
       recordDailyDetail(trackingRomaji, correct);
       queueManager.updateQueueMeta();
       eventBus2.emit(correct ? "answer:correct" : "answer:wrong", { romaji: trackingRomaji, mode: "typing", userInput: userRomaji });
       return { accepted: true, correct, correctAnswer };
     }
     function processDrawingResult(wasCorrect, saveDrawingFn) {
-      if (!state2.currentQuestion) {
+      if (!state.currentQuestion) {
         showResult2("Create a question first.", false);
         return;
       }
       if (wasCorrect) {
-        state2.drawingRightCount += 1;
+        state.drawingRightCount += 1;
         saveDrawingFn();
       } else {
-        state2.drawingWrongCount += 1;
+        state.drawingWrongCount += 1;
       }
-      const romaji = state2.currentQuestion.romaji;
-      updateBacklog2({ backlog: state2.backlog, romaji, wasCorrect, scriptContext: state2.currentQuestion.canvasMode, answerMode: "drawing" });
+      const romaji = state.currentQuestion.trackingId || state.currentQuestion.romaji;
+      updateBacklog2({ backlog: state.backlog, romaji, wasCorrect, scriptContext: state.currentQuestion.canvasMode, answerMode: "drawing" });
       srsManager.updateSrsOnAttempt(romaji, wasCorrect, "drawing", false);
-      addDailyAttemptFn(state2, "drawing", wasCorrect, romaji);
+      addDailyAttemptFn(state, "drawing", wasCorrect, romaji);
       recordDailyDetail(romaji, wasCorrect);
       queueManager.updateQueueMeta();
       eventBus2.emit(wasCorrect ? "answer:correct" : "answer:wrong", { romaji, mode: "drawing" });
@@ -17282,12 +18078,12 @@
   });
 
   // js/features/progressLayout.js
-  function createProgressLayoutManager({ state: state2, elements, persistState }) {
+  function createProgressLayoutManager({ state, elements, persistState }) {
     function normalizeState() {
       const validSubtabs = ["overview", "trends", "compare", "sync"];
-      state2.progressSubtab = validSubtabs.includes(state2.progressSubtab) ? state2.progressSubtab : "overview";
-      if (!state2.progressCollapsedSections || typeof state2.progressCollapsedSections !== "object") {
-        state2.progressCollapsedSections = {
+      state.progressSubtab = validSubtabs.includes(state.progressSubtab) ? state.progressSubtab : "overview";
+      if (!state.progressCollapsedSections || typeof state.progressCollapsedSections !== "object") {
+        state.progressCollapsedSections = {
           overview: false,
           trends: false,
           compare: false,
@@ -17295,11 +18091,11 @@
         };
         return;
       }
-      state2.progressCollapsedSections = {
-        overview: Boolean(state2.progressCollapsedSections.overview),
-        trends: Boolean(state2.progressCollapsedSections.trends),
-        compare: Boolean(state2.progressCollapsedSections.compare),
-        sync: Boolean(state2.progressCollapsedSections.sync)
+      state.progressCollapsedSections = {
+        overview: Boolean(state.progressCollapsedSections.overview),
+        trends: Boolean(state.progressCollapsedSections.trends),
+        compare: Boolean(state.progressCollapsedSections.compare),
+        sync: Boolean(state.progressCollapsedSections.sync)
       };
     }
     function render() {
@@ -17329,18 +18125,18 @@
         sync: elements.toggleSyncSectionBtn
       };
       Object.keys(tabMap).forEach((key) => {
-        const isActive = state2.progressSubtab === key;
+        const isActive = state.progressSubtab === key;
         tabMap[key].classList.toggle("active", isActive);
         tabMap[key].setAttribute("aria-selected", String(isActive));
         panelMap[key].classList.toggle("hidden", !isActive);
-        const isCollapsed = Boolean(state2.progressCollapsedSections[key]);
+        const isCollapsed = Boolean(state.progressCollapsedSections[key]);
         bodyMap[key].classList.toggle("hidden", isCollapsed);
         toggleMap[key].textContent = isCollapsed ? "Show" : "Hide";
         toggleMap[key].setAttribute("aria-expanded", String(!isCollapsed));
       });
     }
     function setActiveSubtab(subtabName, persist = false) {
-      state2.progressSubtab = subtabName;
+      state.progressSubtab = subtabName;
       render();
       if (persist) {
         persistState();
@@ -17348,13 +18144,13 @@
     }
     function toggleSection(sectionName) {
       normalizeState();
-      state2.progressCollapsedSections[sectionName] = !state2.progressCollapsedSections[sectionName];
+      state.progressCollapsedSections[sectionName] = !state.progressCollapsedSections[sectionName];
       render();
       persistState();
     }
     function openSyncSection() {
       normalizeState();
-      state2.progressCollapsedSections.sync = false;
+      state.progressCollapsedSections.sync = false;
       setActiveSubtab("sync", true);
     }
     return {
@@ -17379,15 +18175,61 @@
     return Math.max(min, Math.min(max, Math.round(parsed)));
   }
   function createProgressPreferencesManager({
-    state: state2,
+    state,
     elements,
     persistState,
     refreshProgressView,
     renderBacklogView,
     showResult: showResult2
   }) {
+    const DATASET_IDS2 = ["kana", "words", "kanji"];
+    function createDefaultBacklogFilters2() {
+      return {
+        status: "all",
+        script: "all",
+        weakness: "all",
+        minAttempts: 0,
+        compact: false
+      };
+    }
+    function normalizeBacklogFiltersShape(filters) {
+      const source = filters && typeof filters === "object" ? filters : {};
+      const status = ["all", "weak", "strong", "unseen"].includes(source.status) ? source.status : "all";
+      const weakness = ["all", "typing", "drawing"].includes(source.weakness) ? source.weakness : "all";
+      const scriptValue = typeof source.script === "string" && source.script.trim() ? source.script.trim().slice(0, 64) : "all";
+      return {
+        status,
+        script: scriptValue,
+        weakness,
+        minAttempts: clampDailyGoal(source.minAttempts, 0, 999, 0),
+        compact: Boolean(source.compact)
+      };
+    }
+    function getActiveDatasetId() {
+      return DATASET_IDS2.includes(state.activeDataset) ? state.activeDataset : "kana";
+    }
+    function ensureBacklogFiltersByDataset() {
+      const activeDatasetId = getActiveDatasetId();
+      const sourceMap = state.backlogFiltersByDataset && typeof state.backlogFiltersByDataset === "object" ? state.backlogFiltersByDataset : {};
+      const legacyActiveFilters = normalizeBacklogFiltersShape(state.backlogFilters);
+      const nextMap = {};
+      DATASET_IDS2.forEach((datasetId) => {
+        if (sourceMap[datasetId] && typeof sourceMap[datasetId] === "object") {
+          nextMap[datasetId] = normalizeBacklogFiltersShape(sourceMap[datasetId]);
+          return;
+        }
+        if (datasetId === activeDatasetId) {
+          nextMap[datasetId] = legacyActiveFilters;
+          return;
+        }
+        nextMap[datasetId] = createDefaultBacklogFilters2();
+      });
+      state.backlogFiltersByDataset = nextMap;
+      state.backlogFilters = { ...nextMap[activeDatasetId] };
+      return state.backlogFilters;
+    }
     function normalizeDailyGoalsFromState() {
-      const current = state2.dailyGoals || {};
+      const current = state.dailyGoals || {};
       const next = {
         total: clampDailyGoal(current.total, 5, 200, 25),
         typing: clampDailyGoal(current.typing, 0, 200, 12),
@@ -17396,20 +18238,20 @@
         dakuten: clampDailyGoal(current.dakuten, 0, 200, 6),
         yoon: clampDailyGoal(current.yoon, 0, 200, 6)
       };
-      state2.dailyGoals = next;
-      state2.dailyGoal = next.total;
+      state.dailyGoals = next;
+      state.dailyGoal = next.total;
     }
     function renderDailyGoalInputs() {
       normalizeDailyGoalsFromState();
-      elements.dailyGoalTotalInput.value = String(state2.dailyGoals.total);
-      elements.dailyGoalTypingInput.value = String(state2.dailyGoals.typing);
-      elements.dailyGoalDrawingInput.value = String(state2.dailyGoals.drawing);
-      elements.dailyGoalNormalInput.value = String(state2.dailyGoals.normal);
-      elements.dailyGoalDakutenInput.value = String(state2.dailyGoals.dakuten);
-      elements.dailyGoalYoonInput.value = String(state2.dailyGoals.yoon);
+      elements.dailyGoalTotalInput.value = String(state.dailyGoals.total);
+      elements.dailyGoalTypingInput.value = String(state.dailyGoals.typing);
+      elements.dailyGoalDrawingInput.value = String(state.dailyGoals.drawing);
+      elements.dailyGoalNormalInput.value = String(state.dailyGoals.normal);
+      elements.dailyGoalDakutenInput.value = String(state.dailyGoals.dakuten);
+      elements.dailyGoalYoonInput.value = String(state.dailyGoals.yoon);
     }
     function saveDailyGoalFromUi() {
-      state2.dailyGoals = {
+      state.dailyGoals = {
         total: clampDailyGoal(elements.dailyGoalTotalInput.value, 5, 200, 25),
         typing: clampDailyGoal(elements.dailyGoalTypingInput.value, 0, 200, 12),
         drawing: clampDailyGoal(elements.dailyGoalDrawingInput.value, 0, 200, 8),
@@ -17417,41 +18259,50 @@
         dakuten: clampDailyGoal(elements.dailyGoalDakutenInput.value, 0, 200, 6),
         yoon: clampDailyGoal(elements.dailyGoalYoonInput.value, 0, 200, 6)
       };
-      state2.dailyGoal = state2.dailyGoals.total;
+      state.dailyGoal = state.dailyGoals.total;
       renderDailyGoalInputs();
       persistState();
       refreshProgressView();
       showResult2("Daily goals saved.", true);
     }
     function resetBacklogFilters() {
-      state2.backlogFilters = {
-        status: "all",
-        script: "all",
-        weakness: "all",
-        minAttempts: 0,
-        compact: false
-      };
+      ensureBacklogFiltersByDataset();
+      const activeDatasetId = getActiveDatasetId();
+      const defaults = createDefaultBacklogFilters2();
+      state.backlogFiltersByDataset[activeDatasetId] = defaults;
+      state.backlogFilters = { ...defaults };
     }
     function renderBacklogFilterInputs() {
-      if (!state2.backlogFilters || typeof state2.backlogFilters !== "object") {
-        resetBacklogFilters();
+      ensureBacklogFiltersByDataset();
+      function setSelectValue(selectElement, desiredValue, fallback = "all") {
+        const options = Array.from(selectElement.options).map((option) => option.value);
+        if (options.includes(desiredValue)) {
+          selectElement.value = desiredValue;
+          return desiredValue;
+        }
+        selectElement.value = options.includes(fallback) ? fallback : options[0] || "";
+        return selectElement.value;
       }
-      elements.backlogStatusFilter.value = state2.backlogFilters.status;
-      elements.backlogScriptFilter.value = state2.backlogFilters.script;
-      elements.backlogWeaknessFilter.value = state2.backlogFilters.weakness;
-      elements.backlogMinAttemptsFilter.value = String(state2.backlogFilters.minAttempts);
+      state.backlogFilters.status = setSelectValue(elements.backlogStatusFilter, state.backlogFilters.status, "all");
+      state.backlogFilters.script = setSelectValue(elements.backlogScriptFilter, state.backlogFilters.script, "all");
+      state.backlogFilters.weakness = setSelectValue(elements.backlogWeaknessFilter, state.backlogFilters.weakness, "all");
+      elements.backlogMinAttemptsFilter.value = String(state.backlogFilters.minAttempts);
       if (elements.backlogCompactToggle) {
-        elements.backlogCompactToggle.checked = Boolean(state2.backlogFilters.compact);
+        elements.backlogCompactToggle.checked = Boolean(state.backlogFilters.compact);
       }
     }
     function applyBacklogFiltersFromUi() {
-      state2.backlogFilters = {
+      ensureBacklogFiltersByDataset();
+      const activeDatasetId = getActiveDatasetId();
+      const nextFilters = {
         status: elements.backlogStatusFilter.value,
         script: elements.backlogScriptFilter.value,
         weakness: elements.backlogWeaknessFilter.value,
         minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0),
         compact: Boolean(elements.backlogCompactToggle && elements.backlogCompactToggle.checked)
       };
+      state.backlogFilters = nextFilters;
+      state.backlogFiltersByDataset[activeDatasetId] = { ...nextFilters };
       renderBacklogFilterInputs();
       renderBacklogView();
       persistState();
@@ -17473,7 +18324,7 @@
 
   // js/features/backup.js
   function createBackupManager({
-    state: state2,
+    state,
     kanaData: kanaData2,
     MAX_DRAWINGS_PER_KANA: MAX_DRAWINGS_PER_KANA2,
     DAILY_HISTORY_LIMIT: DAILY_HISTORY_LIMIT2,
@@ -17584,22 +18435,22 @@
       if (!importedPayload || typeof importedPayload !== "object") {
         return;
       }
-      const localPayload = buildProgressPayload2({ state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
-      state2.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
-      state2.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
-      state2.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
-      state2.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
-      Object.keys(state2.srsByRomaji).forEach((romaji) => {
+      const localPayload = buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      state.typingRightCount = toSafeCount(localPayload.typingRightCount) + toSafeCount(importedPayload.typingRightCount);
+      state.typingWrongCount = toSafeCount(localPayload.typingWrongCount) + toSafeCount(importedPayload.typingWrongCount);
+      state.drawingRightCount = toSafeCount(localPayload.drawingRightCount) + toSafeCount(importedPayload.drawingRightCount);
+      state.drawingWrongCount = toSafeCount(localPayload.drawingWrongCount) + toSafeCount(importedPayload.drawingWrongCount);
+      Object.keys(state.srsByRomaji).forEach((romaji) => {
         const localEntry = localPayload.srsByRomaji && localPayload.srsByRomaji[romaji];
         const incomingEntry = importedPayload.srsByRomaji && importedPayload.srsByRomaji[romaji];
-        state2.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
+        state.srsByRomaji[romaji] = mergeSrsEntry(localEntry, incomingEntry);
       });
-      Object.keys(state2.backlog).forEach((romaji) => {
+      Object.keys(state.backlog).forEach((romaji) => {
         const incomingRow = importedPayload.backlog && importedPayload.backlog[romaji];
-        mergeBacklogRow(state2.backlog[romaji], incomingRow);
+        mergeBacklogRow(state.backlog[romaji], incomingRow);
       });
-      mergeDailyStats(state2.dailyStats, importedPayload.dailyStats);
-      mergeDailyCategoryStats(state2.dailyCategoryStats, importedPayload.dailyCategoryStats);
+      mergeDailyStats(state.dailyStats, importedPayload.dailyStats);
+      mergeDailyCategoryStats(state.dailyCategoryStats, importedPayload.dailyCategoryStats);
       const combinedTypingMistakes = [
         ...Array.isArray(importedPayload.recentTypingMistakes) ? importedPayload.recentTypingMistakes : [],
         ...Array.isArray(localPayload.recentTypingMistakes) ? localPayload.recentTypingMistakes : []
@@ -17608,14 +18459,14 @@
         ...Array.isArray(importedPayload.recentDrawingMistakes) ? importedPayload.recentDrawingMistakes : [],
         ...Array.isArray(localPayload.recentDrawingMistakes) ? localPayload.recentDrawingMistakes : []
       ].filter((value) => typeof value === "string");
-      state2.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
-      state2.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
-      state2.recentMistakes = [.../* @__PURE__ */ new Set([...state2.recentTypingMistakes, ...state2.recentDrawingMistakes])].slice(0, 120);
+      state.recentTypingMistakes = [...new Set(combinedTypingMistakes)].slice(0, 120);
+      state.recentDrawingMistakes = [...new Set(combinedDrawingMistakes)].slice(0, 120);
+      state.recentMistakes = [.../* @__PURE__ */ new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
       if (importedPayload.drawingsByKana && typeof importedPayload.drawingsByKana === "object") {
         Object.keys(importedPayload.drawingsByKana).forEach((kanaChar) => {
-          const localList = Array.isArray(state2.drawingsByKana[kanaChar]) ? state2.drawingsByKana[kanaChar] : [];
+          const localList = Array.isArray(state.drawingsByKana[kanaChar]) ? state.drawingsByKana[kanaChar] : [];
           const incomingList = Array.isArray(importedPayload.drawingsByKana[kanaChar]) ? importedPayload.drawingsByKana[kanaChar].filter((value) => typeof value === "string") : [];
-          state2.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA2);
+          state.drawingsByKana[kanaChar] = [.../* @__PURE__ */ new Set([...incomingList, ...localList])].slice(0, MAX_DRAWINGS_PER_KANA2);
         });
       }
       const localGoals = localPayload.dailyGoals && typeof localPayload.dailyGoals === "object" ? localPayload.dailyGoals : { total: localPayload.dailyGoal };
@@ -17623,7 +18474,7 @@
       const localTotalGoal = clampDailyGoal(localGoals.total, 5, 200, 25);
       const importedTotalGoal = clampDailyGoal(incomingGoals.total, 5, 200, 25);
       const shouldUseImportedGoals = localTotalGoal === 25 && importedTotalGoal !== 25;
-      state2.dailyGoals = {
+      state.dailyGoals = {
         total: shouldUseImportedGoals ? importedTotalGoal : localTotalGoal,
         typing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.typing, 0, 200, 12) : clampDailyGoal(localGoals.typing, 0, 200, 12),
         drawing: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.drawing, 0, 200, 8) : clampDailyGoal(localGoals.drawing, 0, 200, 8),
@@ -17631,8 +18482,8 @@
         dakuten: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.dakuten, 0, 200, 6) : clampDailyGoal(localGoals.dakuten, 0, 200, 6),
         yoon: shouldUseImportedGoals ? clampDailyGoal(incomingGoals.yoon, 0, 200, 6) : clampDailyGoal(localGoals.yoon, 0, 200, 6)
       };
-      state2.dailyGoal = state2.dailyGoals.total;
-      state2.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
+      state.dailyGoal = state.dailyGoals.total;
+      state.lastSavedAt = Math.max(toSafeCount(localPayload.savedAt), toSafeCount(importedPayload.savedAt));
     }
     function validateStateSchema(payload) {
       if (!payload || typeof payload !== "object") {
@@ -17677,7 +18528,7 @@
       URL.revokeObjectURL(url);
     }
     function exportLocalProgress() {
-      const payload = buildProgressPayload2({ state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      const payload = buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
       const now = /* @__PURE__ */ new Date();
       const timestamp = [
         now.getFullYear(),
@@ -17700,7 +18551,7 @@
       try {
         const raw = await file.text();
         payload = JSON.parse(raw);
-      } catch {
+      } catch (e) {
         showResultFn("Import failed: invalid JSON file.", false);
         return;
       }
@@ -17725,7 +18576,7 @@
         }
         applyProgressPayload2({
           payload,
-          state: state2,
+          state,
           kanaData: kanaData2,
           maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA2,
           dailyHistoryLimit: DAILY_HISTORY_LIMIT2
@@ -17738,12 +18589,12 @@
       );
     }
     function getLocalPayload() {
-      return buildProgressPayload2({ state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
+      return buildProgressPayload2({ state, dailyHistoryLimit: DAILY_HISTORY_LIMIT2 });
     }
     function applyRemotePayload(payload) {
       applyProgressPayload2({
         payload,
-        state: state2,
+        state,
         kanaData: kanaData2,
         maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA2,
         dailyHistoryLimit: DAILY_HISTORY_LIMIT2
@@ -17763,7 +18614,7 @@
   });
 
   // js/features/distractors.js
-  function createDistractorRenderer({ elements, state: state2, kanaData: kanaData2 }) {
+  function createDistractorRenderer({ elements, state, kanaData: kanaData2 }) {
     function getLastVowel(romaji) {
       const match = String(romaji).match(/[aiueo](?!.*[aiueo])/);
       return match ? match[0] : "";
@@ -17834,12 +18685,12 @@
       if (!elements.quickAnswerOptions) {
         return;
       }
-      if (!state2.currentQuestion || state2.currentQuestion.kind !== "typing") {
+      if (!state.currentQuestion || state.currentQuestion.kind !== "typing") {
         elements.quickAnswerOptions.innerHTML = "";
         elements.quickAnswerOptions.classList.add("hidden");
         return;
       }
-      const correct = state2.currentQuestion.romaji;
+      const correct = state.currentQuestion.romaji;
       const allRomaji = kanaData2.map((item) => item.romaji).filter((romaji) => romaji !== correct);
       const ranked = allRomaji.map((romaji) => ({ romaji, score: scoreDistractorSimilarity(correct, romaji) })).sort((a, b2) => b2.score - a.score);
       let similarPool = ranked.filter((item) => item.score >= 3).map((item) => item.romaji);
@@ -17847,7 +18698,7 @@
         similarPool = ranked.slice(0, 12).map((item) => item.romaji);
       }
       const distractorSet = /* @__PURE__ */ new Set();
-      const confusionPairs = state2.confusionPairs && state2.confusionPairs[correct] || {};
+      const confusionPairs = state.confusionPairs && state.confusionPairs[correct] || {};
       const confusedRomaji = Object.entries(confusionPairs).sort((a, b2) => b2[1] - a[1]).map(([romaji]) => romaji).filter((romaji) => romaji !== correct && kanaData2.some((k2) => k2.romaji === romaji));
       confusedRomaji.slice(0, 2).forEach((romaji) => distractorSet.add(romaji));
       const similarNeeded = Math.max(0, 2 - distractorSet.size);
@@ -17876,7 +18727,7 @@
     let _fullAnswer = "";
     let _revealed = 0;
     function setQuestion(question) {
-      _fullAnswer = String(question && question.romaji ? question.romaji : "");
+      _fullAnswer = String(question && (question.hintAnswer || question.romaji) ? question.hintAnswer || question.romaji : "");
       _revealed = 0;
     }
     function reset() {
@@ -18024,8 +18875,9 @@
   });
 
   // js/init/eventBinder.js
-  function bindEvents(elements, state2) {
+  function bindEvents(elements, state) {
     elements.newQuestionBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
+    elements.datasetSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_DATASET_CHANGED));
     elements.modeSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_MODE_CHANGED));
     elements.scriptSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
     elements.kanaSetSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_KANA_SET_CHANGED));
@@ -18151,6 +19003,10 @@
       "change",
       () => eventBus.emit(EVENT_NAMES.SETTINGS_DRAW_GUIDE_CHANGED)
     );
+    elements.helperToggle.addEventListener(
+      "change",
+      () => eventBus.emit(EVENT_NAMES.SETTINGS_HELPER_TOGGLE_CHANGED)
+    );
     elements.exportDataBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.DATA_EXPORT));
     elements.importDataBtn.addEventListener("click", () => elements.importDataInput.click());
     elements.importDataInput.addEventListener("change", () => {
@@ -18167,13 +19023,13 @@
     });
     elements.closeGalleryBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.GALLERY_CLOSE));
     window.addEventListener("resize", () => {
-      redrawProgressGraph(elements, state2);
+      redrawProgressGraph(elements, state);
       eventBus.emit(EVENT_NAMES.UI_RESIZE);
     });
     window.addEventListener("visibilitychange", () => {
       if (!document.hidden) eventBus.emit(EVENT_NAMES.UI_VISIBLE);
     });
-    bindProgressCompareSelectors(elements, state2);
+    bindProgressCompareSelectors(elements, state);
   }
   var init_eventBinder = __esm({
     "js/init/eventBinder.js"() {
@@ -18186,6 +19042,8 @@
   var require_bootstrap = __commonJS({
     "js/init/bootstrap.js"() {
       init_kanaData();
+      init_wordsData();
+      init_kanjiData();
       init_elements();
       init_state();
       init_utils();
@@ -18210,21 +19068,38 @@
       init_confirm();
       init_eventBinder();
       var elements = getElements();
-      var state2 = createState(kanaData);
+      var state = createState({ kanaData, wordsData, kanjiData });
+      var DATASET_MODE_OPTIONS = {
+        [DATASET_IDS.KANA]: [
+          { value: "kanaToRomaji", label: "Kana \u2192 Romaji (type)" },
+          { value: "romajiToKana", label: "Romaji \u2192 Kana (draw)" },
+          { value: "mixedPractice", label: "Mixed (type + draw)" }
+        ],
+        [DATASET_IDS.WORDS]: [
+          { value: "japaneseToEnglish", label: "Japanese \u2192 English" },
+          { value: "englishToJapanese", label: "English \u2192 Japanese" }
+        ],
+        [DATASET_IDS.KANJI]: [
+          { value: "kanjiToMeaning", label: "Kanji \u2192 Meaning" },
+          { value: "meaningToKanji", label: "Meaning \u2192 Kanji" },
+          { value: "promptToKanji", label: "Reading/Meaning \u2192 Kanji" },
+          { value: "kanjiDrawing", label: "Kanji \u2192 Drawing" }
+        ]
+      };
       var drawingFeature = createDrawingFeature({
         elements,
-        state: state2,
+        state,
         maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
         eventBus,
         EVENT_NAMES
       });
       var getKanaCategoryFn = (romaji) => getKanaCategory(romaji, YOON_SET, DAKUTEN_SET);
-      var srsManager = createSrsManager(state2);
-      var queueManager = createQueueManager(state2, elements, srsManager, getKanaCategoryFn);
-      var audioManager = createAudioManager(state2, elements);
+      var srsManager = createSrsManager(state);
+      var queueManager = createQueueManager(state, elements, srsManager, getKanaCategoryFn);
+      var audioManager = createAudioManager(state, elements);
       var hintsManager = createHintsManager();
       var answeringManager = createAnsweringManager({
-        state: state2,
+        state,
         elements,
         srsManager,
         queueManager,
@@ -18233,7 +19108,8 @@
         showTypingMistake: (user, correct) => showTypingMistake(elements, user, correct),
         updateBacklog,
         addDailyAttemptFn: (targetState, mode, wasCorrect, romaji) => {
-          addDailyAttempt(targetState, mode, wasCorrect, getKanaCategoryFn(romaji));
+          const category = state.activeDataset === DATASET_IDS.KANA ? getKanaCategoryFn(romaji) : null;
+          addDailyAttempt(targetState, mode, wasCorrect, category);
         },
         eventBus
       });
@@ -18299,104 +19175,230 @@
         });
       }
       function renderBacklogView() {
+        const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
+        elements.datasetBacklogFallback.classList.toggle("hidden", isKanaDataset);
+        elements.backlogPanel.querySelectorAll(".backlog-category").forEach((element) => {
+          element.classList.toggle("hidden", !isKanaDataset);
+        });
+        const backlogIntro = elements.backlogPanel.querySelector("p");
+        if (backlogIntro) {
+          backlogIntro.classList.toggle("hidden", !isKanaDataset);
+        }
+        if (!isKanaDataset) {
+          elements.datasetBacklogFallback.dataset.statusFilter = state.backlogFilters.status;
+          elements.datasetBacklogFallback.dataset.weaknessFilter = state.backlogFilters.weakness;
+          elements.datasetBacklogFallback.dataset.categoryFilter = state.backlogFilters.script;
+          elements.datasetBacklogFallback.dataset.minAttempts = String(state.backlogFilters.minAttempts || 0);
+          renderDatasetBacklog({
+            datasetId: state.activeDataset,
+            items: state.activeDataset === DATASET_IDS.WORDS ? wordsData : kanjiData,
+            backlog: state.backlog,
+            drawingsByItem: state.drawingsByKana,
+            container: elements.datasetBacklogFallback
+          });
+          return;
+        }
+        elements.datasetBacklogFallback.innerHTML = "";
         renderBacklog({
           kanaData,
-          backlog: state2.backlog,
-          drawingsByKana: state2.drawingsByKana,
+          backlog: state.backlog,
+          drawingsByKana: state.drawingsByKana,
           getKanaCategoryFn,
-          filters: state2.backlogFilters
+          filters: state.backlogFilters
         });
       }
       function persistState() {
         saveProgress({
           storageKey: STORAGE_KEY,
-          state: state2,
+          state,
           dailyHistoryLimit: DAILY_HISTORY_LIMIT
         });
         cloudSync.queueUpload();
       }
       function refreshProgressView() {
-        renderDailyProgress({ elements, state: state2, setActiveProgressTab });
-        renderGoalProgress(elements, state2);
+        renderDailyProgress({ elements, state, setActiveProgressTab });
+        renderGoalProgress(elements, state);
         progressLayoutManager && progressLayoutManager.render();
       }
       function ensureTodayEntry() {
         const todayKey = getTodayKey();
-        if (!state2.dailyStats[todayKey]) {
-          state2.dailyStats[todayKey] = {
+        if (!state.dailyStats[todayKey]) {
+          state.dailyStats[todayKey] = {
             typingRight: 0,
             typingWrong: 0,
             drawingRight: 0,
             drawingWrong: 0
           };
         }
-        if (!state2.dailyCategoryStats[todayKey]) {
-          state2.dailyCategoryStats[todayKey] = {
+        if (!state.dailyCategoryStats[todayKey]) {
+          state.dailyCategoryStats[todayKey] = {
             normal: 0,
             dakuten: 0,
             yoon: 0
           };
         }
       }
+      function populateModeOptions(datasetId) {
+        const options = DATASET_MODE_OPTIONS[datasetId] || DATASET_MODE_OPTIONS[DATASET_IDS.KANA];
+        const currentValue = elements.modeSelect.value;
+        elements.modeSelect.innerHTML = options.map((option) => `<option value="${option.value}">${option.label}</option>`).join("");
+        if (options.some((option) => option.value === currentValue)) {
+          elements.modeSelect.value = currentValue;
+        }
+      }
+      function isHelperToggleEnabled() {
+        if (state.activeDataset === DATASET_IDS.WORDS) {
+          return state.showWordHelper;
+        }
+        if (state.activeDataset === DATASET_IDS.KANJI) {
+          return state.showKanjiHelper;
+        }
+        return false;
+      }
+      function syncDatasetControls() {
+        elements.datasetSelect.value = state.activeDataset;
+        populateModeOptions(state.activeDataset);
+        elements.practiceStrategySelect.value = state.practiceStrategy;
+        if (state.activeDataset === DATASET_IDS.KANA) {
+          elements.backlogScriptFilterLabel.textContent = "Script";
+          elements.backlogScriptFilter.innerHTML = `
+      <option value="all">Both</option>
+      <option value="hiragana">Hiragana only</option>
+      <option value="katakana">Katakana only</option>
+    `;
+          elements.backlogWeaknessFilterLabel.textContent = "Weakness";
+          elements.backlogWeaknessFilter.innerHTML = `
+      <option value="all">Any</option>
+      <option value="typing">Typing weak</option>
+      <option value="drawing">Drawing weak</option>
+    `;
+        } else if (state.activeDataset === DATASET_IDS.WORDS) {
+          const categories = [...new Set(wordsData.map((item) => String(item.category || "core")))].sort();
+          elements.backlogScriptFilterLabel.textContent = "Category";
+          elements.backlogScriptFilter.innerHTML = `
+      <option value="all">All</option>
+      ${categories.map((category) => `<option value="${category}">${category}</option>`).join("")}
+    `;
+          elements.backlogWeaknessFilterLabel.textContent = "Weakness";
+          elements.backlogWeaknessFilter.innerHTML = `
+      <option value="all">Any</option>
+      <option value="typing">Typing weak</option>
+    `;
+        } else {
+          const categories = [...new Set(kanjiData.map((item) => String(item.category || "numbers")))].sort();
+          elements.backlogScriptFilterLabel.textContent = "Category";
+          elements.backlogScriptFilter.innerHTML = `
+      <option value="all">All</option>
+      ${categories.map((category) => `<option value="${category}">${category}</option>`).join("")}
+    `;
+          elements.backlogWeaknessFilterLabel.textContent = "Weakness";
+          elements.backlogWeaknessFilter.innerHTML = `
+      <option value="all">Any</option>
+      <option value="typing">Typing weak</option>
+      <option value="drawing">Drawing weak</option>
+    `;
+        }
+        renderBacklogFilterInputs();
+        const showHelperToggle = state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.KANJI;
+        elements.helperToggleGroup.classList.toggle("hidden", !showHelperToggle);
+        elements.helperToggle.checked = isHelperToggleEnabled();
+      }
+      function renderPromptHelper(text = "") {
+        elements.promptHelper.textContent = text;
+        elements.promptHelper.classList.toggle("hidden", !text);
+      }
+      function configureDrawingTitles(question) {
+        if (question.canvasMode === "kanji") {
+          elements.drawPaneTitlePrimary.textContent = "Kanji";
+          elements.drawPaneTitleSecondary.textContent = "Reference";
+          return;
+        }
+        elements.drawPaneTitlePrimary.textContent = "Hiragana";
+        elements.drawPaneTitleSecondary.textContent = "Katakana";
+      }
       function switchModeUI() {
+        syncDatasetControls();
+        const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
         const mode = elements.modeSelect.value;
-        const isMixedMode = mode === "mixedPractice";
-        const activeQuestionKind = state2.currentQuestion ? state2.currentQuestion.kind : "typing";
-        const isTypingQuestion = mode === "kanaToRomaji" || isMixedMode && activeQuestionKind === "typing";
-        const isDrawingQuestion = mode === "romajiToKana" || isMixedMode && activeQuestionKind === "drawing";
+        const isMixedMode = isKanaDataset && mode === "mixedPractice";
+        const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
+        const isTypingQuestion = isKanaDataset ? mode === "kanaToRomaji" || isMixedMode && activeQuestionKind === "typing" : mode !== "kanjiDrawing";
+        const isDrawingQuestion = isKanaDataset ? mode === "romajiToKana" || isMixedMode && activeQuestionKind === "drawing" : mode === "kanjiDrawing";
         elements.typingArea.classList.toggle("hidden", !isTypingQuestion);
         elements.drawingArea.classList.toggle("hidden", !isDrawingQuestion);
-        elements.scriptSelect.disabled = !isTypingQuestion;
-        elements.writingScriptGroup.classList.toggle("hidden", !isDrawingQuestion);
+        elements.scriptSelect.closest(".control-group").classList.toggle("hidden", !isKanaDataset || !isTypingQuestion);
+        elements.kanaSetSelect.closest(".control-group").classList.toggle("hidden", !isKanaDataset);
+        elements.writingScriptGroup.classList.toggle("hidden", !isKanaDataset || !isDrawingQuestion);
+        elements.scriptSelect.disabled = !isKanaDataset || !isTypingQuestion;
         drawingFeature.setDrawingMarkButtonsEnabled(false);
         if (isDrawingQuestion) {
-          const currentMode = state2.currentQuestion && state2.currentQuestion.canvasMode ? state2.currentQuestion.canvasMode : elements.writingScriptSelect.value === "mixed" ? "both" : elements.writingScriptSelect.value;
+          const currentMode = state.currentQuestion && state.currentQuestion.canvasMode ? state.currentQuestion.canvasMode : elements.writingScriptSelect.value === "mixed" ? "both" : elements.writingScriptSelect.value;
           drawingFeature.setDrawingCanvasVisibility(currentMode);
         }
         if (isTypingQuestion) {
           if (shouldAutoFocusAnswer()) focusAnswerInput();
-          if (elements.quickAnswerOptions) elements.quickAnswerOptions.classList.remove("hidden");
+          if (elements.quickAnswerOptions) {
+            elements.quickAnswerOptions.classList.toggle("hidden", !(state.activeDataset === DATASET_IDS.KANA));
+          }
         } else if (elements.quickAnswerOptions) {
           elements.quickAnswerOptions.classList.add("hidden");
         }
         resetResult(elements);
       }
       function newQuestion() {
-        if (state2.nextQuestionTimer) {
-          clearTimeout(state2.nextQuestionTimer);
-          state2.nextQuestionTimer = null;
+        if (state.nextQuestionTimer) {
+          clearTimeout(state.nextQuestionTimer);
+          state.nextQuestionTimer = null;
         }
         hintsManager.reset();
         try {
           const mode = elements.modeSelect.value;
-          const nextQuestionKind = mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing";
-          const previousRomaji = state2.currentQuestion ? state2.currentQuestion.trackingRomaji || state2.currentQuestion.romaji || null : null;
+          const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA ? mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing" : mode === "kanjiDrawing" ? "drawing" : "typing";
+          const previousRomaji = state.currentQuestion ? state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null : null;
           const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
-          if (nextQuestionKind === "typing") {
-            state2.currentQuestion = pickTypingQuestion({
+          if (state.activeDataset === DATASET_IDS.KANA && nextQuestionKind === "typing") {
+            state.currentQuestion = pickTypingQuestion({
               kanaData,
               scriptMode: elements.scriptSelect.value,
               kanaSet: elements.kanaSetSelect.value,
               getKanaCategoryFn,
               getQuestionWeightFn: getQuestionWeight,
-              backlog: state2.backlog,
+              backlog: state.backlog,
               preferredRomajiList,
               avoidRomaji: previousRomaji
             });
-          } else {
-            state2.currentQuestion = pickWritingQuestion({
+          } else if (state.activeDataset === DATASET_IDS.KANA) {
+            state.currentQuestion = pickWritingQuestion({
               kanaData,
               writingMode: elements.writingScriptSelect.value,
               kanaSet: elements.kanaSetSelect.value,
               getKanaCategoryFn,
               getQuestionWeightFn: getQuestionWeight,
-              backlog: state2.backlog,
+              backlog: state.backlog,
               preferredRomajiList,
               avoidRomaji: previousRomaji
             });
+          } else if (state.activeDataset === DATASET_IDS.WORDS) {
+            state.currentQuestion = pickWordQuestion({
+              wordsData,
+              mode,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji,
+              showRomaji: state.showWordHelper
+            });
+          } else {
+            state.currentQuestion = pickKanjiQuestion({
+              kanjiData,
+              mode,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji,
+              showRomaji: state.showKanjiHelper
+            });
           }
         } catch (error) {
-          state2.currentQuestion = null;
+          state.currentQuestion = null;
           showResult(elements, `Question error: ${error.message}`, false);
           return;
         }
@@ -18405,16 +19407,25 @@
         setAnswerInputValue("");
         drawingFeature.clearAllCanvases();
         drawingFeature.setDrawingMarkButtonsEnabled(false);
-        if (state2.currentQuestion.kind === "typing") {
-          elements.promptElement.textContent = state2.currentQuestion.kana;
-          hintsManager.setQuestion(state2.currentQuestion);
+        renderPromptHelper(state.currentQuestion.helperText || "");
+        if (state.currentQuestion.kind === "typing") {
+          elements.promptElement.textContent = state.currentQuestion.promptText || state.currentQuestion.kana;
+          elements.answerInputLabel.textContent = state.currentQuestion.answerLabel || "Type answer";
+          elements.answerInput.placeholder = state.currentQuestion.placeholder || "Type your answer";
+          hintsManager.setQuestion(state.currentQuestion);
           updateHintButton();
           if (shouldAutoFocusAnswer()) focusAnswerInput();
         } else {
-          drawingFeature.setDrawingCanvasVisibility(state2.currentQuestion.canvasMode);
-          elements.promptElement.textContent = state2.currentQuestion.promptText;
+          configureDrawingTitles(state.currentQuestion);
+          drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
+          elements.promptElement.textContent = state.currentQuestion.promptText;
         }
-        distractorRenderer && distractorRenderer.renderQuickAnswerOptions();
+        if (state.activeDataset === DATASET_IDS.KANA) {
+          distractorRenderer && distractorRenderer.renderQuickAnswerOptions();
+        } else if (elements.quickAnswerOptions) {
+          elements.quickAnswerOptions.innerHTML = "";
+          elements.quickAnswerOptions.classList.add("hidden");
+        }
         queueManager.updateQueueMeta();
         eventBus.emit(EVENT_NAMES.QUESTION_NEW);
       }
@@ -18439,9 +19450,9 @@
         btn.textContent = `Hint (${hintsManager.getHintsUsed()}/${hintsManager.getTotalHints()})`;
       }
       function scheduleNextTypingQuestion(delayMs = 700) {
-        if (state2.nextQuestionTimer) clearTimeout(state2.nextQuestionTimer);
-        state2.nextQuestionTimer = setTimeout(() => {
-          state2.nextQuestionTimer = null;
+        if (state.nextQuestionTimer) clearTimeout(state.nextQuestionTimer);
+        state.nextQuestionTimer = setTimeout(() => {
+          state.nextQuestionTimer = null;
           newQuestion();
         }, delayMs);
       }
@@ -18455,11 +19466,11 @@
         return outcome;
       }
       function revealDrawingAnswer() {
-        if (!state2.currentQuestion) {
+        if (!state.currentQuestion) {
           showResult(elements, "Create a question first.", false);
           return;
         }
-        showResult(elements, state2.currentQuestion.revealText, true);
+        showResult(elements, state.currentQuestion.revealText, true);
         drawingFeature.setDrawingMarkButtonsEnabled(true);
       }
       function markDrawingResult(wasCorrect) {
@@ -18477,17 +19488,60 @@
           "Reset all quiz data, including backlog, drawings, and daily history?"
         );
         if (!confirmed) return;
-        state2.typingRightCount = 0;
-        state2.typingWrongCount = 0;
-        state2.drawingRightCount = 0;
-        state2.drawingWrongCount = 0;
-        state2.recentMistakes = [];
-        state2.recentTypingMistakes = [];
-        state2.recentDrawingMistakes = [];
-        state2.practiceStrategy = "srs";
-        state2.lastCloudSyncAt = 0;
-        state2.syncUserEmail = "";
-        state2.dailyGoals = {
+        state.typingRightCount = 0;
+        state.typingWrongCount = 0;
+        state.drawingRightCount = 0;
+        state.drawingWrongCount = 0;
+        Object.values(state.datasets).forEach((datasetState) => {
+          datasetState.practiceStrategy = "srs";
+          datasetState.recentMistakes = [];
+          datasetState.recentTypingMistakes = [];
+          datasetState.recentDrawingMistakes = [];
+          datasetState.typingRightCount = 0;
+          datasetState.typingWrongCount = 0;
+          datasetState.drawingRightCount = 0;
+          datasetState.drawingWrongCount = 0;
+          datasetState.confusionPairs = {};
+          datasetState.srsAccuracyWindow = {};
+          datasetState.dailyDetailStats = {};
+          Object.keys(datasetState.srsByItem || {}).forEach((itemId) => {
+            datasetState.srsByItem[itemId] = {
+              dueAt: 0,
+              intervalHours: 0,
+              lastSeenAt: 0,
+              lastCorrect: false
+            };
+          });
+          Object.keys(datasetState.backlog || {}).forEach((itemId) => {
+            const row = datasetState.backlog[itemId];
+            row.right = 0;
+            row.wrong = 0;
+            row.typingRight = 0;
+            row.typingWrong = 0;
+            row.drawingRight = 0;
+            row.drawingWrong = 0;
+            if ("hiraganaTypingRight" in row) {
+              row.hiraganaTypingRight = 0;
+              row.hiraganaTypingWrong = 0;
+              row.hiraganaDrawingRight = 0;
+              row.hiraganaDrawingWrong = 0;
+              row.hiraganaRight = 0;
+              row.hiraganaWrong = 0;
+              row.katakanaTypingRight = 0;
+              row.katakanaTypingWrong = 0;
+              row.katakanaDrawingRight = 0;
+              row.katakanaDrawingWrong = 0;
+              row.katakanaRight = 0;
+              row.katakanaWrong = 0;
+            }
+          });
+          Object.keys(datasetState.drawingsByItem || {}).forEach((key) => delete datasetState.drawingsByItem[key]);
+          Object.keys(datasetState.dailyStats || {}).forEach((key) => delete datasetState.dailyStats[key]);
+          Object.keys(datasetState.dailyCategoryStats || {}).forEach((key) => delete datasetState.dailyCategoryStats[key]);
+        });
+        state.lastCloudSyncAt = 0;
+        state.syncUserEmail = "";
+        state.dailyGoals = {
           total: 25,
           typing: 12,
           drawing: 8,
@@ -18495,59 +19549,28 @@
           dakuten: 6,
           yoon: 6
         };
-        state2.dailyGoal = 25;
-        state2.confusionPairs = {};
-        state2.srsAccuracyWindow = {};
-        state2.dailyDetailStats = {};
+        state.dailyGoal = 25;
+        state.showWordHelper = false;
+        state.showKanjiHelper = false;
         progressPreferencesManager && progressPreferencesManager.resetBacklogFilters();
-        state2.progressSubtab = "overview";
-        state2.progressCollapsedSections = {
+        state.progressSubtab = "overview";
+        state.progressCollapsedSections = {
           overview: false,
           trends: false,
           compare: false,
           sync: false
         };
-        Object.keys(state2.srsByRomaji).forEach((romaji) => {
-          state2.srsByRomaji[romaji] = {
-            dueAt: 0,
-            intervalHours: 0,
-            lastSeenAt: 0,
-            lastCorrect: false
-          };
-        });
-        Object.keys(state2.backlog).forEach((romaji) => {
-          const row = state2.backlog[romaji];
-          row.right = 0;
-          row.wrong = 0;
-          row.typingRight = 0;
-          row.typingWrong = 0;
-          row.drawingRight = 0;
-          row.drawingWrong = 0;
-          row.hiraganaTypingRight = 0;
-          row.hiraganaTypingWrong = 0;
-          row.hiraganaDrawingRight = 0;
-          row.hiraganaDrawingWrong = 0;
-          row.hiraganaRight = 0;
-          row.hiraganaWrong = 0;
-          row.katakanaTypingRight = 0;
-          row.katakanaTypingWrong = 0;
-          row.katakanaDrawingRight = 0;
-          row.katakanaDrawingWrong = 0;
-          row.katakanaRight = 0;
-          row.katakanaWrong = 0;
-        });
-        Object.keys(state2.drawingsByKana).forEach((k2) => delete state2.drawingsByKana[k2]);
-        Object.keys(state2.dailyStats).forEach((k2) => delete state2.dailyStats[k2]);
-        Object.keys(state2.dailyCategoryStats).forEach((k2) => delete state2.dailyCategoryStats[k2]);
-        state2.progressUiDayMarker = getTodayKey();
-        state2.lastSavedAt = 0;
+        state.progressUiDayMarker = getTodayKey();
+        state.lastSavedAt = 0;
         localStorage.removeItem(STORAGE_KEY);
-        elements.practiceStrategySelect.value = state2.practiceStrategy;
+        state.activeDataset = DATASET_IDS.KANA;
+        syncDatasetControls();
+        elements.practiceStrategySelect.value = state.practiceStrategy;
         progressPreferencesManager && progressPreferencesManager.renderDailyGoalInputs();
         progressPreferencesManager && progressPreferencesManager.renderBacklogFilterInputs();
         queueManager.updateQueueMeta();
-        updateStats(elements, state2);
-        renderGoalProgress(elements, state2);
+        updateStats(elements, state);
+        renderGoalProgress(elements, state);
         renderBacklogView();
         refreshProgressView();
         drawingFeature.clearAllCanvases();
@@ -18619,8 +19642,8 @@
       }
       function subscribeToEvents() {
         const onAnswerProcessed = () => {
-          updateStats(elements, state2);
-          renderGoalProgress(elements, state2);
+          updateStats(elements, state);
+          renderGoalProgress(elements, state);
           renderBacklogView();
           refreshProgressView();
           persistState();
@@ -18628,6 +19651,15 @@
         eventBus.on(EVENT_NAMES.ANSWER_CORRECT, onAnswerProcessed);
         eventBus.on(EVENT_NAMES.ANSWER_WRONG, onAnswerProcessed);
         eventBus.on(EVENT_NAMES.QUIZ_REQUEST_NEW, () => newQuestion());
+        eventBus.on(EVENT_NAMES.QUIZ_DATASET_CHANGED, () => {
+          state.activeDataset = elements.datasetSelect.value;
+          syncDatasetControls();
+          queueManager.updateQueueMeta();
+          renderBacklogView();
+          refreshProgressView();
+          persistState();
+          newQuestion();
+        });
         eventBus.on(EVENT_NAMES.QUIZ_MODE_CHANGED, () => {
           switchModeUI();
           newQuestion();
@@ -18637,7 +19669,7 @@
           newQuestion();
         });
         eventBus.on(EVENT_NAMES.QUIZ_STRATEGY_CHANGED, () => {
-          state2.practiceStrategy = elements.practiceStrategySelect.value;
+          state.practiceStrategy = elements.practiceStrategySelect.value;
           queueManager.updateQueueMeta();
           persistState();
           newQuestion();
@@ -18695,9 +19727,18 @@
         });
         eventBus.on(EVENT_NAMES.SETTINGS_SAVE_GOAL, () => saveDailyGoalFromUi());
         eventBus.on(EVENT_NAMES.SETTINGS_DRAW_GUIDE_CHANGED, () => {
-          state2.drawGuideEnabled = elements.drawGuideToggle.checked;
-          drawingFeature.setGuideEnabled(state2.drawGuideEnabled);
+          state.drawGuideEnabled = elements.drawGuideToggle.checked;
+          drawingFeature.setGuideEnabled(state.drawGuideEnabled);
           persistState();
+        });
+        eventBus.on(EVENT_NAMES.SETTINGS_HELPER_TOGGLE_CHANGED, () => {
+          if (state.activeDataset === DATASET_IDS.WORDS) {
+            state.showWordHelper = elements.helperToggle.checked;
+          } else if (state.activeDataset === DATASET_IDS.KANJI) {
+            state.showKanjiHelper = elements.helperToggle.checked;
+          }
+          persistState();
+          newQuestion();
         });
         eventBus.on(EVENT_NAMES.DATA_EXPORT, () => exportLocalProgress());
         eventBus.on(EVENT_NAMES.DATA_IMPORT, async ({ file }) => {
@@ -18745,20 +19786,17 @@
       function setupKeyboardShortcuts() {
         const keyboard = new KeyboardController(elements.answerInput);
         keyboard.register("Space", () => {
-          const mode = elements.modeSelect.value;
-          if (mode === "romajiToKana" || mode === "mixedPractice") {
+          if (state.currentQuestion && state.currentQuestion.kind === "drawing") {
             eventBus.emit(EVENT_NAMES.QUIZ_REVEAL_DRAWING);
           }
         });
         keyboard.register("KeyR", () => {
-          const mode = elements.modeSelect.value;
-          if (mode === "romajiToKana" || mode === "mixedPractice") {
+          if (state.currentQuestion && state.currentQuestion.kind === "drawing") {
             if (!elements.markRightBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT);
           }
         });
         keyboard.register("KeyW", () => {
-          const mode = elements.modeSelect.value;
-          if (mode === "romajiToKana" || mode === "mixedPractice") {
+          if (state.currentQuestion && state.currentQuestion.kind === "drawing") {
             if (!elements.markWrongBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG);
           }
         });
@@ -18767,13 +19805,13 @@
       function init() {
         loadProgress({
           storageKey: STORAGE_KEY,
-          state: state2,
+          state,
           kanaData,
           maxDrawingsPerKana: MAX_DRAWINGS_PER_KANA,
           dailyHistoryLimit: DAILY_HISTORY_LIMIT
         });
         progressPreferencesManager = createProgressPreferencesManager({
-          state: state2,
+          state,
           elements,
           persistState,
           refreshProgressView,
@@ -18781,12 +19819,12 @@
           showResult: (msg, ok) => showResult(elements, msg, ok)
         });
         progressLayoutManager = createProgressLayoutManager({
-          state: state2,
+          state,
           elements,
           persistState
         });
         backupManager = createBackupManager({
-          state: state2,
+          state,
           kanaData,
           MAX_DRAWINGS_PER_KANA,
           DAILY_HISTORY_LIMIT,
@@ -18795,39 +19833,40 @@
           applyProgressPayload,
           onImportComplete() {
             ensureTodayEntry();
-            elements.practiceStrategySelect.value = state2.practiceStrategy;
-            elements.drawGuideToggle.checked = state2.drawGuideEnabled;
+            syncDatasetControls();
+            elements.practiceStrategySelect.value = state.practiceStrategy;
+            elements.drawGuideToggle.checked = state.drawGuideEnabled;
             renderDailyGoalInputs();
             renderBacklogFilterInputs();
-            drawingFeature.setGuideEnabled(state2.drawGuideEnabled);
+            drawingFeature.setGuideEnabled(state.drawGuideEnabled);
             audioManager.refreshAudioButton();
-            updateStats(elements, state2);
-            renderGoalProgress(elements, state2);
+            updateStats(elements, state);
+            renderGoalProgress(elements, state);
             renderBacklogView();
             refreshProgressView();
             queueManager.updateQueueMeta();
             persistState();
           }
         });
-        distractorRenderer = createDistractorRenderer({ elements, state: state2, kanaData });
+        distractorRenderer = createDistractorRenderer({ elements, state, kanaData });
         ensureTodayEntry();
         setupCloudSync({
           elements,
-          state: state2,
+          state,
           getLocalPayload,
           applyRemotePayload,
           onLocalStateApplied() {
-            updateStats(elements, state2);
-            renderGoalProgress(elements, state2);
+            updateStats(elements, state);
+            renderGoalProgress(elements, state);
             renderBacklogView();
             refreshProgressView();
             queueManager.updateQueueMeta();
-            saveProgress({ storageKey: STORAGE_KEY, state: state2, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
+            saveProgress({ storageKey: STORAGE_KEY, state, dailyHistoryLimit: DAILY_HISTORY_LIMIT });
           },
           onLocalStateSaved(payload) {
-            state2.lastSavedAt = Number(payload.savedAt || state2.lastSavedAt || 0);
-            state2.lastCloudSyncAt = Number(payload.cloudSyncedAt || state2.lastCloudSyncAt || 0);
-            state2.syncUserEmail = payload.userEmail || state2.syncUserEmail || "";
+            state.lastSavedAt = Number(payload.savedAt || state.lastSavedAt || 0);
+            state.lastCloudSyncAt = Number(payload.cloudSyncedAt || state.lastCloudSyncAt || 0);
+            state.syncUserEmail = payload.userEmail || state.syncUserEmail || "";
           },
           eventBus
         }).then((syncApi) => {
@@ -18836,26 +19875,27 @@
           elements.syncStatus.textContent = `Cloud sync unavailable: ${error.message}`;
         });
         subscribeToEvents();
-        bindEvents(elements, state2);
+        bindEvents(elements, state);
         drawingFeature.bindCanvasEvents();
         setupKeyboardShortcuts();
         ensureAudioButtonsAboveKanaBox();
         setupAnswerInputGuards();
         setupPwaInstall();
-        elements.practiceStrategySelect.value = state2.practiceStrategy;
-        elements.drawGuideToggle.checked = state2.drawGuideEnabled;
+        syncDatasetControls();
+        elements.practiceStrategySelect.value = state.practiceStrategy;
+        elements.drawGuideToggle.checked = state.drawGuideEnabled;
         normalizeDailyGoalsFromState();
         normalizeProgressLayoutState();
         renderDailyGoalInputs();
         renderBacklogFilterInputs();
         renderProgressSubtabUi();
-        drawingFeature.setGuideEnabled(state2.drawGuideEnabled);
+        drawingFeature.setGuideEnabled(state.drawGuideEnabled);
         audioManager.refreshAudioButton();
         queueManager.updateQueueMeta();
         switchModeUI();
         drawingFeature.clearAllCanvases();
-        updateStats(elements, state2);
-        renderGoalProgress(elements, state2);
+        updateStats(elements, state);
+        renderGoalProgress(elements, state);
         renderBacklogView();
         refreshProgressView();
         setActiveProgressTab(elements, "backlog");

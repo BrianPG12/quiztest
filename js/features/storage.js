@@ -140,11 +140,36 @@ function normalizeBacklogFilters(payload) {
     : {};
 
   const status = ["all", "weak", "strong", "unseen"].includes(source.status) ? source.status : "all";
-  const script = ["all", "hiragana", "katakana"].includes(source.script) ? source.script : "all";
+  const script = typeof source.script === "string" && source.script.trim()
+    ? source.script.trim().slice(0, 64)
+    : "all";
   const weakness = ["all", "typing", "drawing"].includes(source.weakness) ? source.weakness : "all";
   const minAttempts = clampGoal(source.minAttempts, 0, 999, 0);
+  const compact = Boolean(source.compact);
 
-  return { status, script, weakness, minAttempts };
+  return { status, script, weakness, minAttempts, compact };
+}
+
+function normalizeBacklogFiltersByDataset(payload, activeDataset) {
+  const datasetIds = ["kana", "words", "kanji"];
+  const source = payload && payload.backlogFiltersByDataset && typeof payload.backlogFiltersByDataset === "object"
+    ? payload.backlogFiltersByDataset
+    : null;
+  const activeId = datasetIds.includes(activeDataset) ? activeDataset : "kana";
+  const legacy = normalizeBacklogFilters(payload);
+  const out = {};
+
+  datasetIds.forEach((datasetId) => {
+    if (source && source[datasetId] && typeof source[datasetId] === "object") {
+      out[datasetId] = normalizeBacklogFilters({ backlogFilters: source[datasetId] });
+      return;
+    }
+    out[datasetId] = datasetId === activeId
+      ? { ...legacy }
+      : { status: "all", script: "all", weakness: "all", minAttempts: 0, compact: false };
+  });
+
+  return out;
 }
 
 function normalizeProgressSubtab(payload) {
@@ -199,6 +224,7 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
     dailyGoal: state.dailyGoal,
     dailyGoals: state.dailyGoals,
     backlogFilters: state.backlogFilters,
+    backlogFiltersByDataset: state.backlogFiltersByDataset,
     progressSubtab: state.progressSubtab,
     progressCollapsedSections: state.progressCollapsedSections,
     lastCloudSyncAt: state.lastCloudSyncAt,
@@ -223,7 +249,9 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   }
 
   state.lastSavedAt = Number(payload.savedAt || 0);
-  state.activeDataset = typeof payload.activeDataset === "string" ? payload.activeDataset : "kana";
+  state.activeDataset = ["kana", "words", "kanji"].includes(payload.activeDataset)
+    ? payload.activeDataset
+    : "kana";
   state.showWordHelper = Boolean(payload.showWordHelper);
   state.showKanjiHelper = Boolean(payload.showKanjiHelper);
 
@@ -245,7 +273,8 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   state.drawGuideEnabled = payload.drawGuideEnabled !== false;
   state.dailyGoals = normalizeDailyGoals(state, payload);
   state.dailyGoal = state.dailyGoals.total;
-  state.backlogFilters = normalizeBacklogFilters(payload);
+  state.backlogFiltersByDataset = normalizeBacklogFiltersByDataset(payload, state.activeDataset);
+  state.backlogFilters = { ...(state.backlogFiltersByDataset[state.activeDataset] || normalizeBacklogFilters(payload)) };
   state.progressSubtab = normalizeProgressSubtab(payload);
   state.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
   state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);

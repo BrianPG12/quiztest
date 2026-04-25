@@ -14,6 +14,62 @@ export function createProgressPreferencesManager({
   renderBacklogView,
   showResult
 }) {
+  const DATASET_IDS = ["kana", "words", "kanji"];
+
+  function createDefaultBacklogFilters() {
+    return {
+      status: "all",
+      script: "all",
+      weakness: "all",
+      minAttempts: 0,
+      compact: false
+    };
+  }
+
+  function normalizeBacklogFiltersShape(filters) {
+    const source = filters && typeof filters === "object" ? filters : {};
+    const status = ["all", "weak", "strong", "unseen"].includes(source.status) ? source.status : "all";
+    const weakness = ["all", "typing", "drawing"].includes(source.weakness) ? source.weakness : "all";
+    const scriptValue = typeof source.script === "string" && source.script.trim()
+      ? source.script.trim().slice(0, 64)
+      : "all";
+    return {
+      status,
+      script: scriptValue,
+      weakness,
+      minAttempts: clampDailyGoal(source.minAttempts, 0, 999, 0),
+      compact: Boolean(source.compact)
+    };
+  }
+
+  function getActiveDatasetId() {
+    return DATASET_IDS.includes(state.activeDataset) ? state.activeDataset : "kana";
+  }
+
+  function ensureBacklogFiltersByDataset() {
+    const activeDatasetId = getActiveDatasetId();
+    const sourceMap = state.backlogFiltersByDataset && typeof state.backlogFiltersByDataset === "object"
+      ? state.backlogFiltersByDataset
+      : {};
+    const legacyActiveFilters = normalizeBacklogFiltersShape(state.backlogFilters);
+    const nextMap = {};
+
+    DATASET_IDS.forEach((datasetId) => {
+      if (sourceMap[datasetId] && typeof sourceMap[datasetId] === "object") {
+        nextMap[datasetId] = normalizeBacklogFiltersShape(sourceMap[datasetId]);
+        return;
+      }
+      if (datasetId === activeDatasetId) {
+        nextMap[datasetId] = legacyActiveFilters;
+        return;
+      }
+      nextMap[datasetId] = createDefaultBacklogFilters();
+    });
+
+    state.backlogFiltersByDataset = nextMap;
+    state.backlogFilters = { ...nextMap[activeDatasetId] };
+    return state.backlogFilters;
+  }
 
   function normalizeDailyGoalsFromState() {
     const current = state.dailyGoals || {};
@@ -56,19 +112,15 @@ export function createProgressPreferencesManager({
   }
 
   function resetBacklogFilters() {
-    state.backlogFilters = {
-      status: "all",
-      script: "all",
-      weakness: "all",
-      minAttempts: 0,
-      compact: false
-    };
+    ensureBacklogFiltersByDataset();
+    const activeDatasetId = getActiveDatasetId();
+    const defaults = createDefaultBacklogFilters();
+    state.backlogFiltersByDataset[activeDatasetId] = defaults;
+    state.backlogFilters = { ...defaults };
   }
 
   function renderBacklogFilterInputs() {
-    if (!state.backlogFilters || typeof state.backlogFilters !== "object") {
-      resetBacklogFilters();
-    }
+    ensureBacklogFiltersByDataset();
 
     function setSelectValue(selectElement, desiredValue, fallback = "all") {
       const options = Array.from(selectElement.options).map((option) => option.value);
@@ -90,13 +142,17 @@ export function createProgressPreferencesManager({
   }
 
   function applyBacklogFiltersFromUi() {
-    state.backlogFilters = {
+    ensureBacklogFiltersByDataset();
+    const activeDatasetId = getActiveDatasetId();
+    const nextFilters = {
       status: elements.backlogStatusFilter.value,
       script: elements.backlogScriptFilter.value,
       weakness: elements.backlogWeaknessFilter.value,
       minAttempts: clampDailyGoal(elements.backlogMinAttemptsFilter.value, 0, 999, 0),
       compact: Boolean(elements.backlogCompactToggle && elements.backlogCompactToggle.checked)
     };
+    state.backlogFilters = nextFilters;
+    state.backlogFiltersByDataset[activeDatasetId] = { ...nextFilters };
     renderBacklogFilterInputs();
     renderBacklogView();
     persistState();

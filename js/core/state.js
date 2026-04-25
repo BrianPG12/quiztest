@@ -6,6 +6,16 @@ export const DATASET_IDS = {
   KANJI: "kanji"
 };
 
+function createDefaultBacklogFilters() {
+  return {
+    status: "all",
+    script: "all",
+    weakness: "all",
+    minAttempts: 0,
+    compact: false
+  };
+}
+
 function createGenericBacklog(items, getId, getMeta = () => ({})) {
   return items.reduce((acc, item) => {
     const id = getId(item);
@@ -225,12 +235,11 @@ export function createState(kanaData) {
       dakuten: 6,
       yoon: 6
     },
-    backlogFilters: {
-      status: "all",
-      script: "all",
-      weakness: "all",
-      minAttempts: 0,
-      compact: false
+    backlogFilters: createDefaultBacklogFilters(),
+    backlogFiltersByDataset: {
+      [DATASET_IDS.KANA]: createDefaultBacklogFilters(),
+      [DATASET_IDS.WORDS]: createDefaultBacklogFilters(),
+      [DATASET_IDS.KANJI]: createDefaultBacklogFilters()
     },
     installPromptSeen: false,
     lastSavedAt: 0,
