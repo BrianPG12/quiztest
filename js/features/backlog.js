@@ -202,10 +202,49 @@ export function renderDatasetBacklog({ datasetId, items, backlog, drawingsByItem
     return;
   }
 
+  function passesFilters(row, item) {
+    const attempts = getTotalAttempts(row);
+    const minAttempts = Math.max(0, Number(container.dataset.minAttempts || 0));
+    if (attempts < minAttempts) {
+      return false;
+    }
+
+    const statusFilter = container.dataset.statusFilter || "all";
+    const status = getCardStatus(row);
+    if (statusFilter === "unseen" && attempts > 0) {
+      return false;
+    }
+    if (statusFilter === "weak" && status !== "status-bad" && status !== "status-mixed") {
+      return false;
+    }
+    if (statusFilter === "strong" && status !== "status-good") {
+      return false;
+    }
+
+    const weaknessFilter = container.dataset.weaknessFilter || "all";
+    if (weaknessFilter === "typing" && !(row.typingWrong > row.typingRight)) {
+      return false;
+    }
+    if (weaknessFilter === "drawing" && !(row.drawingWrong > row.drawingRight)) {
+      return false;
+    }
+
+    const categoryFilter = container.dataset.categoryFilter || "all";
+    const category = String(item.category || "core");
+    if (categoryFilter !== "all" && category !== categoryFilter) {
+      return false;
+    }
+
+    return true;
+  }
+
   const cards = items.map((item) => {
     const itemId = item.id;
     const row = backlog[itemId];
     if (!row) {
+      return "";
+    }
+    if (!passesFilters(row, item)) {
       return "";
     }
 
@@ -215,15 +254,19 @@ export function renderDatasetBacklog({ datasetId, items, backlog, drawingsByItem
       ? `${escapeHtml(item.romaji)} • ${escapeHtml(item.meanings[0] || "")}`
       : `${escapeHtml((item.romaji || []).join(", "))} • ${escapeHtml(item.meanings[0] || "")}`;
     const primary = datasetId === "words" ? item.japanese : item.kanji;
+    const category = String(item.category || "core");
     const drawingsCount = datasetId === "kanji" ? ((drawingsByItem[primary] || []).length) : 0;
 
     return `
       <div class="kana-card ${status}">
         <div class="kana-char">${escapeHtml(primary)}</div>
         <div class="kana-romaji">${helper}</div>
+        <div class="kana-romaji">Category: ${escapeHtml(category)}</div>
         <div class="kana-stats">
           <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">✓${row.typingRight}</span><span class="k-wrong">✗${row.typingWrong}</span></div>
-          <div class="mode-row"><span class="mode-tag">D</span><span class="k-right">✓${row.drawingRight}</span><span class="k-wrong">✗${row.drawingWrong}</span></div>
+          ${datasetId === "words"
+            ? ""
+            : `<div class="mode-row"><span class="mode-tag">D</span><span class="k-right">✓${row.drawingRight}</span><span class="k-wrong">✗${row.drawingWrong}</span></div>`}
         </div>
         <div class="kana-romaji">Attempts: ${attempts}</div>
         ${datasetId === "kanji" ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml(primary)}">Drawings (${drawingsCount})</button>` : ""}

@@ -188,7 +188,7 @@ function renderBacklogView() {
   const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
   elements.datasetBacklogFallback.classList.toggle("hidden", isKanaDataset);
 
-  elements.backlogPanel.querySelectorAll(".backlog-filters, .backlog-category").forEach((element) => {
+  elements.backlogPanel.querySelectorAll(".backlog-category").forEach((element) => {
     element.classList.toggle("hidden", !isKanaDataset);
   });
 
@@ -198,6 +198,11 @@ function renderBacklogView() {
   }
 
   if (!isKanaDataset) {
+    elements.datasetBacklogFallback.dataset.statusFilter = state.backlogFilters.status;
+    elements.datasetBacklogFallback.dataset.weaknessFilter = state.backlogFilters.weakness;
+    elements.datasetBacklogFallback.dataset.categoryFilter = state.backlogFilters.script;
+    elements.datasetBacklogFallback.dataset.minAttempts = String(state.backlogFilters.minAttempts || 0);
+
     renderDatasetBacklog({
       datasetId: state.activeDataset,
       items: state.activeDataset === DATASET_IDS.WORDS ? wordsData : kanjiData,
@@ -279,6 +284,48 @@ function syncDatasetControls() {
   elements.datasetSelect.value = state.activeDataset;
   populateModeOptions(state.activeDataset);
   elements.practiceStrategySelect.value = state.practiceStrategy;
+
+  if (state.activeDataset === DATASET_IDS.KANA) {
+    elements.backlogScriptFilterLabel.textContent = "Script";
+    elements.backlogScriptFilter.innerHTML = `
+      <option value="all">Both</option>
+      <option value="hiragana">Hiragana only</option>
+      <option value="katakana">Katakana only</option>
+    `;
+    elements.backlogWeaknessFilterLabel.textContent = "Weakness";
+    elements.backlogWeaknessFilter.innerHTML = `
+      <option value="all">Any</option>
+      <option value="typing">Typing weak</option>
+      <option value="drawing">Drawing weak</option>
+    `;
+  } else if (state.activeDataset === DATASET_IDS.WORDS) {
+    const categories = [...new Set(wordsData.map((item) => String(item.category || "core")))].sort();
+    elements.backlogScriptFilterLabel.textContent = "Category";
+    elements.backlogScriptFilter.innerHTML = `
+      <option value="all">All</option>
+      ${categories.map((category) => `<option value="${category}">${category}</option>`).join("")}
+    `;
+    elements.backlogWeaknessFilterLabel.textContent = "Weakness";
+    elements.backlogWeaknessFilter.innerHTML = `
+      <option value="all">Any</option>
+      <option value="typing">Typing weak</option>
+    `;
+  } else {
+    const categories = [...new Set(kanjiData.map((item) => String(item.category || "numbers")))].sort();
+    elements.backlogScriptFilterLabel.textContent = "Category";
+    elements.backlogScriptFilter.innerHTML = `
+      <option value="all">All</option>
+      ${categories.map((category) => `<option value="${category}">${category}</option>`).join("")}
+    `;
+    elements.backlogWeaknessFilterLabel.textContent = "Weakness";
+    elements.backlogWeaknessFilter.innerHTML = `
+      <option value="all">Any</option>
+      <option value="typing">Typing weak</option>
+      <option value="drawing">Drawing weak</option>
+    `;
+  }
+
+  renderBacklogFilterInputs();
 
   const showHelperToggle = state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.KANJI;
   elements.helperToggleGroup.classList.toggle("hidden", !showHelperToggle);

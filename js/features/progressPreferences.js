@@ -69,9 +69,20 @@ export function createProgressPreferencesManager({
     if (!state.backlogFilters || typeof state.backlogFilters !== "object") {
       resetBacklogFilters();
     }
-    elements.backlogStatusFilter.value = state.backlogFilters.status;
-    elements.backlogScriptFilter.value = state.backlogFilters.script;
-    elements.backlogWeaknessFilter.value = state.backlogFilters.weakness;
+
+    function setSelectValue(selectElement, desiredValue, fallback = "all") {
+      const options = Array.from(selectElement.options).map((option) => option.value);
+      if (options.includes(desiredValue)) {
+        selectElement.value = desiredValue;
+        return desiredValue;
+      }
+      selectElement.value = options.includes(fallback) ? fallback : (options[0] || "");
+      return selectElement.value;
+    }
+
+    state.backlogFilters.status = setSelectValue(elements.backlogStatusFilter, state.backlogFilters.status, "all");
+    state.backlogFilters.script = setSelectValue(elements.backlogScriptFilter, state.backlogFilters.script, "all");
+    state.backlogFilters.weakness = setSelectValue(elements.backlogWeaknessFilter, state.backlogFilters.weakness, "all");
     elements.backlogMinAttemptsFilter.value = String(state.backlogFilters.minAttempts);
     if (elements.backlogCompactToggle) {
       elements.backlogCompactToggle.checked = Boolean(state.backlogFilters.compact);
