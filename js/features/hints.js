@@ -12,7 +12,7 @@ export function createHintsManager() {
 
   /** Call when a new question is set. */
   function setQuestion(question) {
-    _fullAnswer = String(question && question.romaji ? question.romaji : "");
+    _fullAnswer = String(question && (question.hintAnswer || question.romaji) ? (question.hintAnswer || question.romaji) : "");
     _revealed = 0;
   }
 

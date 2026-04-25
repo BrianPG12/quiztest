@@ -1,5 +1,13 @@
 import { asPercent, formatDateLabel, getTodayKey } from "../core/utils.js";
 
+function getDatasetLabel(state) {
+  return state.activeDataset === "words" ? "Words" : state.activeDataset === "kanji" ? "Kanji" : "Kana";
+}
+
+function getBacklogDisplayLabel(row) {
+  return row.label || row.romaji || row.id || "item";
+}
+
 function getSortedDateKeys(dailyStats) {
   return Object.keys(dailyStats).sort((a, b) => b.localeCompare(a));
 }
@@ -216,7 +224,7 @@ function renderDayComparison(elements, dailyStats) {
   `;
 }
 
-function renderDailyHistoryTable(elements, dailyStats, dailyDetailStats = {}) {
+function renderDailyHistoryTable(elements, state, dailyStats, dailyDetailStats = {}) {
   const dateKeys = getSortedDateKeys(dailyStats);
   if (dateKeys.length === 0) {
     elements.dailyHistoryTable.innerHTML = "<div class=\"compare-empty\">No daily history yet. Start practicing to populate this table.</div>";
@@ -269,12 +277,17 @@ function renderDailyHistoryTable(elements, dailyStats, dailyDetailStats = {}) {
       }
 
       const detailItems = Object.entries(details)
-        .map(([romaji, entry]) => ({ romaji, right: Number(entry.right || 0), wrong: Number(entry.wrong || 0) }))
+        .map(([romaji, entry]) => ({
+          romaji,
+          label: getBacklogDisplayLabel((state.backlog && state.backlog[romaji]) || { id: romaji }),
+          right: Number(entry.right || 0),
+          wrong: Number(entry.wrong || 0)
+        }))
         .sort((a, b) => (b.right + b.wrong) - (a.right + a.wrong));
 
       panel.innerHTML = detailItems.length
-        ? `<strong>Attempt breakdown:</strong> ${detailItems.map((d) => `${d.romaji} (✓${d.right}/✗${d.wrong})`).join(", ")}`
-        : "No detailed per-kana stats stored for this day yet.";
+        ? `<strong>Attempt breakdown:</strong> ${detailItems.map((d) => `${d.label} (✓${d.right}/✗${d.wrong})`).join(", ")}`
+        : "No detailed per-item stats stored for this day yet.";
 
       detailRow.classList.remove("hidden");
     });
@@ -286,6 +299,7 @@ function renderInsights(elements, state) {
     return;
   }
 
+  const datasetLabel = getDatasetLabel(state);
   const now = Date.now();
   const dueCount = Object.values(state.srsByRomaji || {}).filter((entry) => Number(entry.dueAt || 0) <= now).length;
   const mistakesCount = (state.recentMistakes || []).length;
@@ -306,7 +320,7 @@ function renderInsights(elements, state) {
       const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
       const right = row.typingRight + row.drawingRight;
       const accuracy = attempts ? Math.round((right / attempts) * 100) : 100;
-      return { romaji: row.romaji, attempts, accuracy };
+      return { label: getBacklogDisplayLabel(row), attempts, accuracy };
     })
     .filter((row) => row.attempts >= 4)
     .sort((a, b) => a.accuracy - b.accuracy)
@@ -323,7 +337,7 @@ function renderInsights(elements, state) {
   const weekAccuracy = weekTotal ? `${Math.round((weekRight / weekTotal) * 100)}%` : "-";
 
   const weakText = weakRows.length
-    ? weakRows.map((row) => `${row.romaji} (${row.accuracy}%)`).join(", ")
+    ? weakRows.map((row) => `${row.label} (${row.accuracy}%)`).join(", ")
     : "Need more attempts";
 
   const typingDone = today.typingRight + today.typingWrong;
@@ -344,16 +358,16 @@ function renderInsights(elements, state) {
     <article class="insight-card">
       <h4>Mistake Queue</h4>
       <div class="insight-value">${mistakesCount}</div>
-      <p>Kana waiting for review mode.</p>
+      <p>${datasetLabel} waiting for review mode.</p>
     </article>
     <article class="insight-card">
       <h4>Today Goals</h4>
       <div class="insight-value">${todayDone}/${goals.total}</div>
       <p>${goalLine("Typing", typingDone, goals.typing)}</p>
       <p>${goalLine("Drawing", drawingDone, goals.drawing)}</p>
-      <p>${goalLine("Normal", todayCategory.normal, goals.normal)}</p>
+      ${state.activeDataset === "kana" ? `<p>${goalLine("Normal", todayCategory.normal, goals.normal)}</p>
       <p>${goalLine("Dakuten", todayCategory.dakuten, goals.dakuten)}</p>
-      <p>${goalLine("Yoon", todayCategory.yoon, goals.yoon)}</p>
+      <p>${goalLine("Yoon", todayCategory.yoon, goals.yoon)}</p>` : ""}
     </article>
     <article class="insight-card">
       <h4>7-Day Accuracy</h4>
@@ -361,7 +375,7 @@ function renderInsights(elements, state) {
       <p>Typing + drawing combined.</p>
     </article>
     <article class="insight-card wide">
-      <h4>Weakest Kana</h4>
+      <h4>Weakest ${datasetLabel}</h4>
       <p>${weakText}</p>
     </article>
   `;
@@ -383,6 +397,39 @@ function getRomajiRowGroup(romaji) {
 
 function renderScriptHeatmap(elements, state) {
   if (!elements.scriptHeatmap) {
+    return;
+  }
+
+  if (state.activeDataset !== "kana") {
+    const sortedRows = Object.values(state.backlog || {})
+      .map((row) => {
+        const attempts = row.typingRight + row.typingWrong + row.drawingRight + row.drawingWrong;
+        const right = row.typingRight + row.drawingRight;
+        const accuracy = attempts > 0 ? Math.round((right / attempts) * 100) : 0;
+        return {
+          label: getBacklogDisplayLabel(row),
+          attempts,
+          accuracy,
+          typing: `${row.typingRight}/${row.typingRight + row.typingWrong || 0}`,
+          drawing: `${row.drawingRight}/${row.drawingRight + row.drawingWrong || 0}`
+        };
+      })
+      .filter((row) => row.attempts > 0)
+      .sort((a, b) => b.attempts - a.attempts || a.accuracy - b.accuracy)
+      .slice(0, 12);
+
+    elements.scriptHeatmap.innerHTML = sortedRows.length
+      ? `
+        <div class="heat-head">Item</div>
+        <div class="heat-head">Accuracy</div>
+        <div class="heat-head">Mode Split</div>
+        ${sortedRows.map((row) => `
+          <div class="heat-row-label">${row.label}</div>
+          <div class="heat-cell"><strong>${row.accuracy}%</strong><small>${row.attempts} attempts</small></div>
+          <div class="heat-cell"><strong>T ${row.typing}</strong><small>D ${row.drawing}</small></div>
+        `).join("")}
+      `
+      : `<div class="compare-empty">No ${getDatasetLabel(state).toLowerCase()} attempts yet. Start practicing to see item-level progress.</div>`;
     return;
   }
 
@@ -500,9 +547,11 @@ export function renderGoalProgress(elements, state) {
     bar("Total", totalDone, goals.total) +
     bar("Typing", typingDone, goals.typing) +
     bar("Drawing", drawingDone, goals.drawing) +
-    bar("Normal", todayCategory.normal || 0, goals.normal) +
-    bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) +
-    bar("Yoon", todayCategory.yoon || 0, goals.yoon);
+    (state.activeDataset === "kana"
+      ? bar("Normal", todayCategory.normal || 0, goals.normal) +
+        bar("Dakuten", todayCategory.dakuten || 0, goals.dakuten) +
+        bar("Yoon", todayCategory.yoon || 0, goals.yoon)
+      : "");
 }
 
 /**
@@ -594,7 +643,7 @@ export function renderDailyProgress({ elements, state, setActiveProgressTab }) {
 
   renderDailyProgressGraph(elements, state.dailyStats);
   renderDayComparison(elements, state.dailyStats);
-  renderDailyHistoryTable(elements, state.dailyStats, state.dailyDetailStats || {});
+  renderDailyHistoryTable(elements, state, state.dailyStats, state.dailyDetailStats || {});
   renderInsights(elements, state);
   renderScriptHeatmap(elements, state);
   renderSrsScheduleGraph(elements, state);

@@ -40,6 +40,15 @@ function getTotalAttempts(stats) {
   return stats.typingRight + stats.typingWrong + stats.drawingRight + stats.drawingWrong;
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function getScriptStats(row, scriptType) {
   if (scriptType === "hiragana") {
     return {
@@ -186,6 +195,46 @@ export function renderBacklog({ kanaData, backlog, drawingsByKana, getKanaCatego
   } else {
     if (existingMsg) existingMsg.remove();
   }
+}
+
+export function renderDatasetBacklog({ datasetId, items, backlog, drawingsByItem, container }) {
+  if (!container) {
+    return;
+  }
+
+  const cards = items.map((item) => {
+    const itemId = item.id;
+    const row = backlog[itemId];
+    if (!row) {
+      return "";
+    }
+
+    const status = getCardStatus(row);
+    const attempts = getTotalAttempts(row);
+    const helper = datasetId === "words"
+      ? `${escapeHtml(item.romaji)} • ${escapeHtml(item.meanings[0] || "")}`
+      : `${escapeHtml((item.romaji || []).join(", "))} • ${escapeHtml(item.meanings[0] || "")}`;
+    const primary = datasetId === "words" ? item.japanese : item.kanji;
+    const drawingsCount = datasetId === "kanji" ? ((drawingsByItem[primary] || []).length) : 0;
+
+    return `
+      <div class="kana-card ${status}">
+        <div class="kana-char">${escapeHtml(primary)}</div>
+        <div class="kana-romaji">${helper}</div>
+        <div class="kana-stats">
+          <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">✓${row.typingRight}</span><span class="k-wrong">✗${row.typingWrong}</span></div>
+          <div class="mode-row"><span class="mode-tag">D</span><span class="k-right">✓${row.drawingRight}</span><span class="k-wrong">✗${row.drawingWrong}</span></div>
+        </div>
+        <div class="kana-romaji">Attempts: ${attempts}</div>
+        ${datasetId === "kanji" ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml(primary)}">Drawings (${drawingsCount})</button>` : ""}
+      </div>
+    `;
+  }).filter(Boolean);
+
+  container.innerHTML = cards.length
+    ? `<div class="kana-grid">${cards.join("")}</div>`
+    : `<div class="compare-empty">No ${datasetId} attempts yet. Start a few rounds to build progress.</div>`;
+  container.classList.remove("hidden");
 }
 
 export function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answerMode }) {

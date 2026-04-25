@@ -25,6 +25,15 @@
 
     <section class="controls card">
       <div class="control-group">
+        <label for="datasetSelect">Dataset</label>
+        <select id="datasetSelect">
+          <option value="kana">Kana</option>
+          <option value="words">Words</option>
+          <option value="kanji">Kanji</option>
+        </select>
+      </div>
+
+      <div class="control-group">
         <label for="scriptSelect">Script</label>
         <select id="scriptSelect">
           <option value="hiragana">Hiragana</option>
@@ -72,6 +81,11 @@
         </select>
       </div>
 
+      <div id="helperToggleGroup" class="control-group hidden">
+        <label for="helperToggle">Show Helper</label>
+        <label class="compact-toggle-label"><input id="helperToggle" type="checkbox" /> Show romaji helper</label>
+      </div>
+
       <button id="newQuestionBtn" class="btn-primary">New Question</button>
     </section>
 
@@ -87,10 +101,11 @@
           <span id="queueMeta" class="queue-meta">Due: 0</span>
         </div>
         <div id="prompt" class="prompt">Press "New Question" to begin</div>
+        <div id="promptHelper" class="result hidden"></div>
       </div>
 
       <div id="typingArea" class="answer-block">
-        <label for="answerInput">Type romaji</label>
+        <label id="answerInputLabel" for="answerInput">Type romaji</label>
         <div class="input-row">
           <input id="answerInput" type="text" name="kana_practice_value" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="latin" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="e.g. ka" />
           <button id="hintBtn" class="btn-secondary hint-btn" type="button">Hint</button>
@@ -106,11 +121,11 @@
         <label class="guide-toggle"><input id="drawGuideToggle" type="checkbox" checked /> Show draw guide</label>
         <div class="draw-grid">
           <div class="draw-pane">
-            <h3>Hiragana</h3>
+            <h3 id="drawPaneTitlePrimary">Hiragana</h3>
             <canvas id="drawCanvasHiragana" class="draw-canvas" width="360" height="220" aria-label="Hiragana drawing pad"></canvas>
           </div>
           <div class="draw-pane">
-            <h3>Katakana</h3>
+            <h3 id="drawPaneTitleSecondary">Katakana</h3>
             <canvas id="drawCanvasKatakana" class="draw-canvas" width="360" height="220" aria-label="Katakana drawing pad"></canvas>
           </div>
         </div>
@@ -149,6 +164,7 @@
         </div>
       </div>
       <div id="backlogPanel" role="tabpanel">
+        <div id="datasetBacklogFallback" class="compare-empty hidden">Backlog cards are shown for Kana. Use Progress by Day for Words and Kanji while their dedicated progress views are being added.</div>
         <p>Green = typing and drawing both have more right than wrong &nbsp;|&nbsp; Yellow = one mode is better while the other is worse or untouched &nbsp;|&nbsp; Red = attempted mode(s) have more wrong than right &nbsp;|&nbsp; Grey = not yet seen.</p>
           <div class="backlog-filters" aria-label="Backlog filters">
             <div class="control-group">

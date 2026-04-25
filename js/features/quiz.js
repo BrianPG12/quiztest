@@ -47,6 +47,57 @@ export function pickQuestion({
   return pool[pool.length - 1];
 }
 
+function pickGenericQuestion({
+  items,
+  backlog,
+  preferredIds = null,
+  avoidId = null,
+  getItemId
+}) {
+  const safeItems = Array.isArray(items) ? items : [];
+  let pool = safeItems;
+
+  if (Array.isArray(preferredIds) && preferredIds.length > 0) {
+    const preferredSet = new Set(preferredIds);
+    const targeted = safeItems.filter((item) => preferredSet.has(getItemId(item)));
+    if (targeted.length > 0) {
+      pool = targeted;
+    }
+  }
+
+  if (typeof avoidId === "string" && avoidId && pool.length > 1) {
+    const filtered = pool.filter((item) => getItemId(item) !== avoidId);
+    if (filtered.length > 0) {
+      pool = filtered;
+    }
+  }
+
+  if (pool.length === 0) {
+    throw new Error("No quiz items available for the current settings.");
+  }
+
+  const weights = pool.map((item) => {
+    const itemId = getItemId(item);
+    const row = backlog && backlog[itemId] ? backlog[itemId] : null;
+    if (!row || row.right + row.wrong === 0) {
+      return 4;
+    }
+    return Math.max(1, 3 + row.wrong - row.right);
+  });
+
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  let rand = Math.random() * totalWeight;
+
+  for (let i = 0; i < pool.length; i++) {
+    rand -= weights[i];
+    if (rand <= 0) {
+      return pool[i];
+    }
+  }
+
+  return pool[pool.length - 1];
+}
+
 function resolveTypingRomaji(item, scriptName) {
   if (scriptName === "Hiragana" && item.hiragana === "を") {
     return "o";
@@ -193,4 +244,136 @@ export function pickWritingQuestion({
 
 export function getScriptContextForTyping(question) {
   return question.scriptName === "Hiragana" ? "hiragana" : "katakana";
+}
+
+export function pickWordQuestion({
+  wordsData,
+  mode,
+  backlog,
+  preferredIds,
+  avoidId,
+  showRomaji
+}) {
+  const item = pickGenericQuestion({
+    items: wordsData,
+    backlog,
+    preferredIds,
+    avoidId,
+    getItemId: (entry) => entry.id
+  });
+
+  if (mode === "englishToJapanese") {
+    return {
+      kind: "typing",
+      dataset: "words",
+      trackingId: item.id,
+      promptText: item.meanings[0],
+      helperText: showRomaji ? item.helperRomaji || item.romaji : "",
+      answerLabel: "Type Japanese",
+      placeholder: "e.g. daigaku",
+      acceptedAnswers: [item.japanese, item.romaji],
+      answerNormalizer: "forgiving-romaji",
+      displayAnswer: item.japanese,
+      hintAnswer: item.romaji,
+      quickAnswerEnabled: false
+    };
+  }
+
+  return {
+    kind: "typing",
+    dataset: "words",
+    trackingId: item.id,
+    promptText: item.japanese,
+    helperText: showRomaji && item.helperRomaji && item.helperRomaji !== item.japanese ? item.helperRomaji : "",
+    answerLabel: "Type English",
+    placeholder: "e.g. college",
+    acceptedAnswers: item.meanings,
+    answerNormalizer: "english",
+    displayAnswer: item.meanings[0],
+    hintAnswer: item.meanings[0],
+    quickAnswerEnabled: false
+  };
+}
+
+export function pickKanjiQuestion({
+  kanjiData,
+  mode,
+  backlog,
+  preferredIds,
+  avoidId,
+  showRomaji
+}) {
+  const item = pickGenericQuestion({
+    items: kanjiData,
+    backlog,
+    preferredIds,
+    avoidId,
+    getItemId: (entry) => entry.id
+  });
+
+  if (mode === "meaningToKanji") {
+    return {
+      kind: "typing",
+      dataset: "kanji",
+      trackingId: item.id,
+      promptText: item.meanings[0],
+      helperText: showRomaji ? item.romaji.join(", ") : "",
+      answerLabel: "Type Kanji",
+      placeholder: "e.g. 一",
+      acceptedAnswers: [item.kanji],
+      answerNormalizer: "exact",
+      displayAnswer: item.kanji,
+      hintAnswer: item.kanji,
+      quickAnswerEnabled: false
+    };
+  }
+
+  if (mode === "promptToKanji") {
+    const useMeaningPrompt = Math.random() > 0.5;
+    const promptText = useMeaningPrompt
+      ? item.meanings[0]
+      : ((item.romaji && item.romaji[0]) || (item.onyomi && item.onyomi[0]) || (item.kunyomi && item.kunyomi[0]) || item.meanings[0]);
+    return {
+      kind: "typing",
+      dataset: "kanji",
+      trackingId: item.id,
+      promptText,
+      helperText: useMeaningPrompt && showRomaji ? item.romaji.join(", ") : "",
+      answerLabel: "Type Kanji",
+      placeholder: "e.g. 一",
+      acceptedAnswers: [item.kanji],
+      answerNormalizer: "exact",
+      displayAnswer: item.kanji,
+      hintAnswer: item.kanji,
+      quickAnswerEnabled: false
+    };
+  }
+
+  if (mode === "kanjiDrawing") {
+    return {
+      kind: "drawing",
+      dataset: "kanji",
+      trackingId: item.id,
+      romaji: item.id,
+      kanji: item.kanji,
+      canvasMode: "kanji",
+      promptText: `Draw ${item.kanji}`,
+      revealText: `Answer: ${item.kanji} (${item.meanings[0]}${item.romaji.length ? ` | ${item.romaji.join(", ")}` : ""}). Mark yourself right or wrong.`
+    };
+  }
+
+  return {
+    kind: "typing",
+    dataset: "kanji",
+    trackingId: item.id,
+    promptText: item.kanji,
+    helperText: showRomaji ? item.romaji.join(", ") : "",
+    answerLabel: "Type Meaning",
+    placeholder: "e.g. one",
+    acceptedAnswers: item.meanings,
+    answerNormalizer: "english",
+    displayAnswer: item.meanings[0],
+    hintAnswer: item.meanings[0],
+    quickAnswerEnabled: false
+  };
 }

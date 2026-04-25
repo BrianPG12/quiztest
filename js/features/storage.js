@@ -9,6 +9,106 @@ export function trimDailyStatsToLimit(dailyStats, limit) {
   });
 }
 
+function getDatasetBucket(payload, datasetId) {
+  if (payload && payload.datasets && typeof payload.datasets === "object") {
+    const bucket = payload.datasets[datasetId];
+    if (bucket && typeof bucket === "object") {
+      return bucket;
+    }
+  }
+  return null;
+}
+
+function ensureDatasetObject(value) {
+  return value && typeof value === "object" ? value : {};
+}
+
+function buildDatasetPayload(datasetState) {
+  return {
+    practiceStrategy: datasetState.practiceStrategy,
+    recentMistakes: datasetState.recentMistakes,
+    recentTypingMistakes: datasetState.recentTypingMistakes,
+    recentDrawingMistakes: datasetState.recentDrawingMistakes,
+    srsByItem: datasetState.srsByItem,
+    typingRightCount: datasetState.typingRightCount,
+    typingWrongCount: datasetState.typingWrongCount,
+    drawingRightCount: datasetState.drawingRightCount,
+    drawingWrongCount: datasetState.drawingWrongCount,
+    backlog: datasetState.backlog,
+    drawingsByItem: datasetState.drawingsByItem,
+    dailyStats: datasetState.dailyStats,
+    dailyCategoryStats: datasetState.dailyCategoryStats,
+    dailyDetailStats: datasetState.dailyDetailStats,
+    confusionPairs: datasetState.confusionPairs,
+    srsAccuracyWindow: datasetState.srsAccuracyWindow
+  };
+}
+
+function normalizeDatasetRuntimeState(targetDataset, sourceDataset) {
+  const source = ensureDatasetObject(sourceDataset);
+  targetDataset.practiceStrategy = source.practiceStrategy === "mistakeReview" || source.practiceStrategy === "mixed" || source.practiceStrategy === "frequentMistakes"
+    ? source.practiceStrategy
+    : "srs";
+  targetDataset.recentMistakes = Array.isArray(source.recentMistakes)
+    ? source.recentMistakes.filter((item) => typeof item === "string").slice(0, 120)
+    : [];
+  targetDataset.recentTypingMistakes = Array.isArray(source.recentTypingMistakes)
+    ? source.recentTypingMistakes.filter((item) => typeof item === "string").slice(0, 120)
+    : [];
+  targetDataset.recentDrawingMistakes = Array.isArray(source.recentDrawingMistakes)
+    ? source.recentDrawingMistakes.filter((item) => typeof item === "string").slice(0, 120)
+    : [];
+  const nextSrsByItem = ensureDatasetObject(targetDataset.srsByItem);
+  Object.entries(ensureDatasetObject(source.srsByItem)).forEach(([itemId, entry]) => {
+    nextSrsByItem[itemId] = {
+      dueAt: Number(entry && entry.dueAt || 0),
+      intervalHours: Number(entry && entry.intervalHours || 0),
+      lastSeenAt: Number(entry && entry.lastSeenAt || 0),
+      lastCorrect: Boolean(entry && entry.lastCorrect)
+    };
+  });
+  targetDataset.srsByItem = nextSrsByItem;
+  targetDataset.typingRightCount = Number(source.typingRightCount || 0);
+  targetDataset.typingWrongCount = Number(source.typingWrongCount || 0);
+  targetDataset.drawingRightCount = Number(source.drawingRightCount || 0);
+  targetDataset.drawingWrongCount = Number(source.drawingWrongCount || 0);
+  const nextBacklog = ensureDatasetObject(targetDataset.backlog);
+  Object.entries(ensureDatasetObject(source.backlog)).forEach(([itemId, entry]) => {
+    nextBacklog[itemId] = {
+      ...(nextBacklog[itemId] || {}),
+      ...entry
+    };
+  });
+  targetDataset.backlog = nextBacklog;
+  targetDataset.drawingsByItem = ensureDatasetObject(source.drawingsByItem);
+  targetDataset.dailyStats = ensureDatasetObject(source.dailyStats);
+  targetDataset.dailyCategoryStats = ensureDatasetObject(source.dailyCategoryStats);
+  targetDataset.dailyDetailStats = ensureDatasetObject(source.dailyDetailStats);
+  targetDataset.confusionPairs = ensureDatasetObject(source.confusionPairs);
+  targetDataset.srsAccuracyWindow = ensureDatasetObject(source.srsAccuracyWindow);
+}
+
+function buildLegacyKanaDatasetPayload(payload) {
+  return {
+    practiceStrategy: payload.practiceStrategy,
+    recentMistakes: payload.recentMistakes,
+    recentTypingMistakes: payload.recentTypingMistakes,
+    recentDrawingMistakes: payload.recentDrawingMistakes,
+    srsByItem: payload.srsByRomaji,
+    typingRightCount: payload.typingRightCount,
+    typingWrongCount: payload.typingWrongCount,
+    drawingRightCount: payload.drawingRightCount,
+    drawingWrongCount: payload.drawingWrongCount,
+    backlog: payload.backlog,
+    drawingsByItem: payload.drawingsByKana,
+    dailyStats: payload.dailyStats,
+    dailyCategoryStats: payload.dailyCategoryStats,
+    dailyDetailStats: payload.dailyDetailStats,
+    confusionPairs: payload.confusionPairs,
+    srsAccuracyWindow: payload.srsAccuracyWindow
+  };
+}
+
 function clampGoal(value, min = 0, max = 200, fallback = 0) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -68,12 +168,27 @@ function normalizeProgressCollapsedSections(payload) {
 export function buildProgressPayload({ state, dailyHistoryLimit }) {
   trimDailyStatsToLimit(state.dailyStats, dailyHistoryLimit);
   trimDailyStatsToLimit(state.dailyCategoryStats, dailyHistoryLimit);
+  Object.values(state.datasets || {}).forEach((datasetState) => {
+    trimDailyStatsToLimit(datasetState.dailyStats || {}, dailyHistoryLimit);
+    trimDailyStatsToLimit(datasetState.dailyCategoryStats || {}, dailyHistoryLimit);
+  });
 
   const savedAt = Date.now();
   state.lastSavedAt = savedAt;
 
+  const kanaDataset = state.datasets && state.datasets.kana ? state.datasets.kana : {};
+
   return {
+    schemaVersion: 2,
     savedAt,
+    activeDataset: state.activeDataset || "kana",
+    showWordHelper: Boolean(state.showWordHelper),
+    showKanjiHelper: Boolean(state.showKanjiHelper),
+    datasets: {
+      kana: buildDatasetPayload(kanaDataset),
+      words: buildDatasetPayload((state.datasets && state.datasets.words) || {}),
+      kanji: buildDatasetPayload((state.datasets && state.datasets.kanji) || {})
+    },
     practiceStrategy: state.practiceStrategy,
     recentMistakes: state.recentMistakes,
     recentTypingMistakes: state.recentTypingMistakes,
@@ -88,14 +203,17 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
     progressCollapsedSections: state.progressCollapsedSections,
     lastCloudSyncAt: state.lastCloudSyncAt,
     syncUserEmail: state.syncUserEmail,
-    typingRightCount: state.typingRightCount,
-    typingWrongCount: state.typingWrongCount,
-    drawingRightCount: state.drawingRightCount,
-    drawingWrongCount: state.drawingWrongCount,
-    backlog: state.backlog,
-    drawingsByKana: state.drawingsByKana,
-    dailyStats: state.dailyStats,
-    dailyCategoryStats: state.dailyCategoryStats
+    typingRightCount: kanaDataset.typingRightCount,
+    typingWrongCount: kanaDataset.typingWrongCount,
+    drawingRightCount: kanaDataset.drawingRightCount,
+    drawingWrongCount: kanaDataset.drawingWrongCount,
+    backlog: kanaDataset.backlog,
+    drawingsByKana: kanaDataset.drawingsByItem,
+    dailyStats: kanaDataset.dailyStats,
+    dailyCategoryStats: kanaDataset.dailyCategoryStats,
+    dailyDetailStats: kanaDataset.dailyDetailStats,
+    confusionPairs: kanaDataset.confusionPairs,
+    srsAccuracyWindow: kanaDataset.srsAccuracyWindow
   };
 }
 
@@ -105,23 +223,24 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   }
 
   state.lastSavedAt = Number(payload.savedAt || 0);
-  state.practiceStrategy = payload.practiceStrategy === "mistakeReview" || payload.practiceStrategy === "mixed" || payload.practiceStrategy === "frequentMistakes"
-    ? payload.practiceStrategy
-    : "srs";
+  state.activeDataset = typeof payload.activeDataset === "string" ? payload.activeDataset : "kana";
+  state.showWordHelper = Boolean(payload.showWordHelper);
+  state.showKanjiHelper = Boolean(payload.showKanjiHelper);
 
-  const legacyMistakes = Array.isArray(payload.recentMistakes)
-    ? payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
-    : [];
+  const kanaPayload = getDatasetBucket(payload, "kana") || buildLegacyKanaDatasetPayload(payload);
+  const wordsPayload = getDatasetBucket(payload, "words") || {};
+  const kanjiPayload = getDatasetBucket(payload, "kanji") || {};
 
-  state.recentTypingMistakes = Array.isArray(payload.recentTypingMistakes)
-    ? payload.recentTypingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
-    : [...legacyMistakes];
+  normalizeDatasetRuntimeState(state.datasets.kana, kanaPayload);
+  normalizeDatasetRuntimeState(state.datasets.words, wordsPayload);
+  normalizeDatasetRuntimeState(state.datasets.kanji, kanjiPayload);
 
-  state.recentDrawingMistakes = Array.isArray(payload.recentDrawingMistakes)
-    ? payload.recentDrawingMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120)
-    : [...legacyMistakes];
+  if (state.recentTypingMistakes.length === 0 && Array.isArray(payload.recentMistakes)) {
+    state.recentTypingMistakes = payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120);
+    state.recentDrawingMistakes = [...state.recentTypingMistakes];
+    state.recentMistakes = [...new Set(state.recentTypingMistakes)].slice(0, 120);
+  }
 
-  state.recentMistakes = [...new Set([...state.recentTypingMistakes, ...state.recentDrawingMistakes])].slice(0, 120);
   state.audioMuted = Boolean(payload.audioMuted);
   state.drawGuideEnabled = payload.drawGuideEnabled !== false;
   state.dailyGoals = normalizeDailyGoals(state, payload);
@@ -131,23 +250,9 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   state.progressCollapsedSections = normalizeProgressCollapsedSections(payload);
   state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
   state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
-  state.typingRightCount = Number(payload.typingRightCount || 0);
-  state.typingWrongCount = Number(payload.typingWrongCount || 0);
-  state.drawingRightCount = Number(payload.drawingRightCount || 0);
-  state.drawingWrongCount = Number(payload.drawingWrongCount || 0);
-
-  Object.keys(state.drawingsByKana).forEach((kanaChar) => {
-    delete state.drawingsByKana[kanaChar];
-  });
-  Object.keys(state.dailyStats).forEach((dateKey) => {
-    delete state.dailyStats[dateKey];
-  });
-  Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
-    delete state.dailyCategoryStats[dateKey];
-  });
 
   kanaData.forEach((item) => {
-    const savedSrs = payload.srsByRomaji && payload.srsByRomaji[item.romaji];
+    const savedSrs = state.srsByRomaji && state.srsByRomaji[item.romaji];
     state.srsByRomaji[item.romaji] = {
       dueAt: Number(savedSrs && savedSrs.dueAt || 0),
       intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
@@ -156,9 +261,9 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
     };
   });
 
-  if (payload.backlog && typeof payload.backlog === "object") {
+  if (state.backlog && typeof state.backlog === "object") {
     kanaData.forEach((item) => {
-      const saved = payload.backlog[item.romaji];
+      const saved = state.backlog[item.romaji];
       if (!saved || typeof saved !== "object") {
         return;
       }
@@ -185,9 +290,9 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
     });
   }
 
-  if (payload.drawingsByKana && typeof payload.drawingsByKana === "object") {
-    Object.keys(payload.drawingsByKana).forEach((kanaChar) => {
-      const savedList = payload.drawingsByKana[kanaChar];
+  if (state.drawingsByKana && typeof state.drawingsByKana === "object") {
+    Object.keys(state.drawingsByKana).forEach((kanaChar) => {
+      const savedList = state.drawingsByKana[kanaChar];
       if (Array.isArray(savedList)) {
         state.drawingsByKana[kanaChar] = savedList
           .filter((value) => typeof value === "string")
@@ -196,13 +301,13 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
     });
   }
 
-  if (payload.dailyStats && typeof payload.dailyStats === "object") {
-    Object.keys(payload.dailyStats).forEach((dateKey) => {
+  if (state.dailyStats && typeof state.dailyStats === "object") {
+    Object.keys(state.dailyStats).forEach((dateKey) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
         return;
       }
 
-      const saved = payload.dailyStats[dateKey];
+      const saved = state.dailyStats[dateKey];
       if (!saved || typeof saved !== "object") {
         return;
       }
@@ -216,13 +321,13 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
     });
   }
 
-  if (payload.dailyCategoryStats && typeof payload.dailyCategoryStats === "object") {
-    Object.keys(payload.dailyCategoryStats).forEach((dateKey) => {
+  if (state.dailyCategoryStats && typeof state.dailyCategoryStats === "object") {
+    Object.keys(state.dailyCategoryStats).forEach((dateKey) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
         return;
       }
 
-      const saved = payload.dailyCategoryStats[dateKey];
+      const saved = state.dailyCategoryStats[dateKey];
       if (!saved || typeof saved !== "object") {
         return;
       }

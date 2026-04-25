@@ -15,6 +15,46 @@ export function sanitizeRomaji(text) {
   return raw.trim().toLowerCase();
 }
 
+export function normalizeLooseText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[’']/g, "")
+    .replace(/\s+/g, " ");
+}
+
+export function normalizeEnglishAnswer(text) {
+  return normalizeLooseText(text)
+    .replace(/[.;:,!?()[\]{}]/g, "")
+    .replace(/\b(the|a|an)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function normalizeForgivingRomaji(text) {
+  return sanitizeRomaji(text)
+    .replace(/-/g, "")
+    .replace(/ou/g, "oo")
+    .replace(/ei/g, "ee")
+    .replace(/sy/g, "sh")
+    .replace(/ty/g, "ch")
+    .replace(/si/g, "shi")
+    .replace(/ti/g, "chi")
+    .replace(/tu/g, "tsu")
+    .replace(/hu/g, "fu")
+    .replace(/zi/g, "ji")
+    .replace(/du/g, "zu");
+}
+
+export function matchesAnyNormalizedAnswer(input, acceptedAnswers, normalizeFn = normalizeLooseText) {
+  const normalizedInput = normalizeFn(input);
+  if (!normalizedInput) {
+    return false;
+  }
+
+  return acceptedAnswers.some((answer) => normalizeFn(answer) === normalizedInput);
+}
+
 export function getTodayKey() {
   const now = new Date();
   const year = now.getFullYear();

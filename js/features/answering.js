@@ -9,7 +9,13 @@
  * Dependency Inversion: depends on eventBus abstraction, not concrete callbacks.
  */
 
-import { getTodayKey } from "../core/utils.js";
+import {
+  getTodayKey,
+  matchesAnyNormalizedAnswer,
+  normalizeEnglishAnswer,
+  normalizeForgivingRomaji,
+  normalizeLooseText
+} from "../core/utils.js";
 
 export function createAnsweringManager({
   state,
@@ -43,6 +49,27 @@ export function createAnsweringManager({
     return accepted;
   }
 
+  function getAnswerNormalizer(question) {
+    if (question && question.answerNormalizer === "english") {
+      return normalizeEnglishAnswer;
+    }
+    if (question && question.answerNormalizer === "forgiving-romaji") {
+      return normalizeForgivingRomaji;
+    }
+    if (question && question.answerNormalizer === "exact") {
+      return (value) => String(value || "").trim();
+    }
+    return normalizeLooseText;
+  }
+
+  function isTypingAnswerCorrect(question, userAnswer) {
+    if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) {
+      return matchesAnyNormalizedAnswer(userAnswer, question.acceptedAnswers, getAnswerNormalizer(question));
+    }
+
+    return getAcceptedRomajiSet(question).has(userAnswer);
+  }
+
   /** Track per-day per-romaji outcomes for the drill-down view (Phase 3). */
   function recordDailyDetail(romaji, wasCorrect) {
     if (!state.dailyDetailStats) state.dailyDetailStats = {};
@@ -55,11 +82,14 @@ export function createAnsweringManager({
 
   // ─── Validate ───────────────────────────────────────────────────────────────
 
-  function validateTypingAnswer(romaji) {
-    if (!romaji) {
-      return { correct: false, answer: "", reason: "Type a romaji answer" };
+  function validateTypingAnswer(answer) {
+    if (!answer) {
+      const reason = state.currentQuestion && state.currentQuestion.answerLabel
+        ? `${state.currentQuestion.answerLabel}.`
+        : "Type an answer.";
+      return { correct: false, answer: "", reason };
     }
-    return { correct: true, answer: romaji };
+    return { correct: true, answer };
   }
 
   // ─── Process typing ─────────────────────────────────────────────────────────
@@ -76,10 +106,9 @@ export function createAnsweringManager({
       return { accepted: false, correct: false };
     }
 
-    const correctAnswer = state.currentQuestion.romaji;
-    const trackingRomaji = state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
-    const acceptedAnswers = getAcceptedRomajiSet(state.currentQuestion);
-    const correct = acceptedAnswers.has(userRomaji);
+    const correctAnswer = state.currentQuestion.displayAnswer || state.currentQuestion.romaji;
+    const trackingRomaji = state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji;
+    const correct = isTypingAnswerCorrect(state.currentQuestion, userRomaji);
     const hintUsed = hintsManager && hintsManager.getHintsUsed() > 0;
 
     if (correct) {
@@ -102,7 +131,7 @@ export function createAnsweringManager({
       backlog: state.backlog,
       romaji: trackingRomaji,
       wasCorrect: correct,
-      scriptContext: state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana",
+      scriptContext: state.currentQuestion.scriptContext || (state.currentQuestion.scriptName === "Hiragana" ? "hiragana" : "katakana"),
       answerMode: "typing"
     });
 
@@ -130,7 +159,7 @@ export function createAnsweringManager({
       state.drawingWrongCount += 1;
     }
 
-    const romaji = state.currentQuestion.romaji;
+    const romaji = state.currentQuestion.trackingId || state.currentQuestion.romaji;
 
     updateBacklog({ backlog: state.backlog, romaji, wasCorrect, scriptContext: state.currentQuestion.canvasMode, answerMode: "drawing" });
     srsManager.updateSrsOnAttempt(romaji, wasCorrect, "drawing", false);

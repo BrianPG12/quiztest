@@ -18,13 +18,15 @@ import {
   MAX_DRAWINGS_PER_KANA,
   DAILY_HISTORY_LIMIT
 } from "../data/kanaData.js";
+import { wordsData } from "../data/wordsData.js";
+import { kanjiData } from "../data/kanjiData.js";
 import { getElements } from "../dom/elements.js";
-import { createState } from "../core/state.js";
+import { createState, DATASET_IDS } from "../core/state.js";
 import { sanitizeRomaji, getTodayKey } from "../core/utils.js";
 import { eventBus, EVENT_NAMES } from "../core/eventBus.js";
 import { updateStats, resetResult, showResult, showTypingMistake, setActiveProgressTab } from "../core/ui.js";
-import { getKanaCategory, renderBacklog, updateBacklog, getQuestionWeight } from "../features/backlog.js";
-import { pickTypingQuestion, pickWritingQuestion } from "../features/quiz.js";
+import { getKanaCategory, renderBacklog, renderDatasetBacklog, updateBacklog, getQuestionWeight } from "../features/backlog.js";
+import { pickTypingQuestion, pickWritingQuestion, pickWordQuestion, pickKanjiQuestion } from "../features/quiz.js";
 import { saveProgress, loadProgress, buildProgressPayload, applyProgressPayload } from "../features/storage.js";
 import {
   addDailyAttempt,
@@ -51,7 +53,25 @@ import { bindEvents } from "./eventBinder.js";
 // ─── Module-level singletons ─────────────────────────────────────────────────
 
 const elements = getElements();
-const state = createState(kanaData);
+const state = createState({ kanaData, wordsData, kanjiData });
+
+const DATASET_MODE_OPTIONS = {
+  [DATASET_IDS.KANA]: [
+    { value: "kanaToRomaji", label: "Kana → Romaji (type)" },
+    { value: "romajiToKana", label: "Romaji → Kana (draw)" },
+    { value: "mixedPractice", label: "Mixed (type + draw)" }
+  ],
+  [DATASET_IDS.WORDS]: [
+    { value: "japaneseToEnglish", label: "Japanese → English" },
+    { value: "englishToJapanese", label: "English → Japanese" }
+  ],
+  [DATASET_IDS.KANJI]: [
+    { value: "kanjiToMeaning", label: "Kanji → Meaning" },
+    { value: "meaningToKanji", label: "Meaning → Kanji" },
+    { value: "promptToKanji", label: "Reading/Meaning → Kanji" },
+    { value: "kanjiDrawing", label: "Kanji → Drawing" }
+  ]
+};
 
 const drawingFeature = createDrawingFeature({
   elements,
@@ -77,7 +97,8 @@ const answeringManager = createAnsweringManager({
   showTypingMistake: (user, correct) => showTypingMistake(elements, user, correct),
   updateBacklog,
   addDailyAttemptFn: (targetState, mode, wasCorrect, romaji) => {
-    addDailyAttempt(targetState, mode, wasCorrect, getKanaCategoryFn(romaji));
+    const category = state.activeDataset === DATASET_IDS.KANA ? getKanaCategoryFn(romaji) : null;
+    addDailyAttempt(targetState, mode, wasCorrect, category);
   },
   eventBus
 });
@@ -164,6 +185,31 @@ function setupPwaInstall() {
 // ─── State helpers ────────────────────────────────────────────────────────────
 
 function renderBacklogView() {
+  const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
+  elements.datasetBacklogFallback.classList.toggle("hidden", isKanaDataset);
+
+  elements.backlogPanel.querySelectorAll(".backlog-filters, .backlog-category").forEach((element) => {
+    element.classList.toggle("hidden", !isKanaDataset);
+  });
+
+  const backlogIntro = elements.backlogPanel.querySelector("p");
+  if (backlogIntro) {
+    backlogIntro.classList.toggle("hidden", !isKanaDataset);
+  }
+
+  if (!isKanaDataset) {
+    renderDatasetBacklog({
+      datasetId: state.activeDataset,
+      items: state.activeDataset === DATASET_IDS.WORDS ? wordsData : kanjiData,
+      backlog: state.backlog,
+      drawingsByItem: state.drawingsByKana,
+      container: elements.datasetBacklogFallback
+    });
+    return;
+  }
+
+  elements.datasetBacklogFallback.innerHTML = "";
+
   renderBacklog({
     kanaData,
     backlog: state.backlog,
@@ -207,19 +253,76 @@ function ensureTodayEntry() {
   }
 }
 
+function populateModeOptions(datasetId) {
+  const options = DATASET_MODE_OPTIONS[datasetId] || DATASET_MODE_OPTIONS[DATASET_IDS.KANA];
+  const currentValue = elements.modeSelect.value;
+  elements.modeSelect.innerHTML = options
+    .map((option) => `<option value="${option.value}">${option.label}</option>`)
+    .join("");
+
+  if (options.some((option) => option.value === currentValue)) {
+    elements.modeSelect.value = currentValue;
+  }
+}
+
+function isHelperToggleEnabled() {
+  if (state.activeDataset === DATASET_IDS.WORDS) {
+    return state.showWordHelper;
+  }
+  if (state.activeDataset === DATASET_IDS.KANJI) {
+    return state.showKanjiHelper;
+  }
+  return false;
+}
+
+function syncDatasetControls() {
+  elements.datasetSelect.value = state.activeDataset;
+  populateModeOptions(state.activeDataset);
+  elements.practiceStrategySelect.value = state.practiceStrategy;
+
+  const showHelperToggle = state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.KANJI;
+  elements.helperToggleGroup.classList.toggle("hidden", !showHelperToggle);
+  elements.helperToggle.checked = isHelperToggleEnabled();
+}
+
+function renderPromptHelper(text = "") {
+  elements.promptHelper.textContent = text;
+  elements.promptHelper.classList.toggle("hidden", !text);
+}
+
+function configureDrawingTitles(question) {
+  if (question.canvasMode === "kanji") {
+    elements.drawPaneTitlePrimary.textContent = "Kanji";
+    elements.drawPaneTitleSecondary.textContent = "Reference";
+    return;
+  }
+
+  elements.drawPaneTitlePrimary.textContent = "Hiragana";
+  elements.drawPaneTitleSecondary.textContent = "Katakana";
+}
+
 // ─── Quiz logic ───────────────────────────────────────────────────────────────
 
 function switchModeUI() {
+  syncDatasetControls();
+
+  const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
   const mode = elements.modeSelect.value;
-  const isMixedMode = mode === "mixedPractice";
+  const isMixedMode = isKanaDataset && mode === "mixedPractice";
   const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
-  const isTypingQuestion = mode === "kanaToRomaji" || (isMixedMode && activeQuestionKind === "typing");
-  const isDrawingQuestion = mode === "romajiToKana" || (isMixedMode && activeQuestionKind === "drawing");
+  const isTypingQuestion = isKanaDataset
+    ? (mode === "kanaToRomaji" || (isMixedMode && activeQuestionKind === "typing"))
+    : mode !== "kanjiDrawing";
+  const isDrawingQuestion = isKanaDataset
+    ? (mode === "romajiToKana" || (isMixedMode && activeQuestionKind === "drawing"))
+    : mode === "kanjiDrawing";
 
   elements.typingArea.classList.toggle("hidden", !isTypingQuestion);
   elements.drawingArea.classList.toggle("hidden", !isDrawingQuestion);
-  elements.scriptSelect.disabled = !isTypingQuestion;
-  elements.writingScriptGroup.classList.toggle("hidden", !isDrawingQuestion);
+  elements.scriptSelect.closest(".control-group").classList.toggle("hidden", !isKanaDataset || !isTypingQuestion);
+  elements.kanaSetSelect.closest(".control-group").classList.toggle("hidden", !isKanaDataset);
+  elements.writingScriptGroup.classList.toggle("hidden", !isKanaDataset || !isDrawingQuestion);
+  elements.scriptSelect.disabled = !isKanaDataset || !isTypingQuestion;
   drawingFeature.setDrawingMarkButtonsEnabled(false);
 
   if (isDrawingQuestion) {
@@ -233,7 +336,9 @@ function switchModeUI() {
 
   if (isTypingQuestion) {
     if (shouldAutoFocusAnswer()) focusAnswerInput();
-    if (elements.quickAnswerOptions) elements.quickAnswerOptions.classList.remove("hidden");
+    if (elements.quickAnswerOptions) {
+      elements.quickAnswerOptions.classList.toggle("hidden", !(state.activeDataset === DATASET_IDS.KANA));
+    }
   } else if (elements.quickAnswerOptions) {
     elements.quickAnswerOptions.classList.add("hidden");
   }
@@ -251,17 +356,21 @@ function newQuestion() {
 
   try {
     const mode = elements.modeSelect.value;
-    const nextQuestionKind = mode === "kanaToRomaji"
-      ? "typing"
-      : mode === "romajiToKana"
+    const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA
+      ? (mode === "kanaToRomaji"
+        ? "typing"
+        : mode === "romajiToKana"
+          ? "drawing"
+          : (Math.random() > 0.5 ? "typing" : "drawing"))
+      : mode === "kanjiDrawing"
         ? "drawing"
-        : (Math.random() > 0.5 ? "typing" : "drawing");
+        : "typing";
     const previousRomaji = state.currentQuestion
-      ? (state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null)
+      ? (state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null)
       : null;
     const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
 
-    if (nextQuestionKind === "typing") {
+    if (state.activeDataset === DATASET_IDS.KANA && nextQuestionKind === "typing") {
       state.currentQuestion = pickTypingQuestion({
         kanaData,
         scriptMode: elements.scriptSelect.value,
@@ -272,7 +381,7 @@ function newQuestion() {
         preferredRomajiList,
         avoidRomaji: previousRomaji
       });
-    } else {
+    } else if (state.activeDataset === DATASET_IDS.KANA) {
       state.currentQuestion = pickWritingQuestion({
         kanaData,
         writingMode: elements.writingScriptSelect.value,
@@ -282,6 +391,24 @@ function newQuestion() {
         backlog: state.backlog,
         preferredRomajiList,
         avoidRomaji: previousRomaji
+      });
+    } else if (state.activeDataset === DATASET_IDS.WORDS) {
+      state.currentQuestion = pickWordQuestion({
+        wordsData,
+        mode,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji,
+        showRomaji: state.showWordHelper
+      });
+    } else {
+      state.currentQuestion = pickKanjiQuestion({
+        kanjiData,
+        mode,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji,
+        showRomaji: state.showKanjiHelper
       });
     }
   } catch (error) {
@@ -295,18 +422,27 @@ function newQuestion() {
   setAnswerInputValue("");
   drawingFeature.clearAllCanvases();
   drawingFeature.setDrawingMarkButtonsEnabled(false);
+  renderPromptHelper(state.currentQuestion.helperText || "");
 
   if (state.currentQuestion.kind === "typing") {
-    elements.promptElement.textContent = state.currentQuestion.kana;
+    elements.promptElement.textContent = state.currentQuestion.promptText || state.currentQuestion.kana;
+    elements.answerInputLabel.textContent = state.currentQuestion.answerLabel || "Type answer";
+    elements.answerInput.placeholder = state.currentQuestion.placeholder || "Type your answer";
     hintsManager.setQuestion(state.currentQuestion);
     updateHintButton();
     if (shouldAutoFocusAnswer()) focusAnswerInput();
   } else {
+    configureDrawingTitles(state.currentQuestion);
     drawingFeature.setDrawingCanvasVisibility(state.currentQuestion.canvasMode);
     elements.promptElement.textContent = state.currentQuestion.promptText;
   }
 
-  distractorRenderer && distractorRenderer.renderQuickAnswerOptions();
+  if (state.activeDataset === DATASET_IDS.KANA) {
+    distractorRenderer && distractorRenderer.renderQuickAnswerOptions();
+  } else if (elements.quickAnswerOptions) {
+    elements.quickAnswerOptions.innerHTML = "";
+    elements.quickAnswerOptions.classList.add("hidden");
+  }
   queueManager.updateQueueMeta();
   eventBus.emit(EVENT_NAMES.QUESTION_NEW);
 }
@@ -393,10 +529,48 @@ async function resetAllData() {
   state.typingWrongCount = 0;
   state.drawingRightCount = 0;
   state.drawingWrongCount = 0;
-  state.recentMistakes = [];
-  state.recentTypingMistakes = [];
-  state.recentDrawingMistakes = [];
-  state.practiceStrategy = "srs";
+  Object.values(state.datasets).forEach((datasetState) => {
+    datasetState.practiceStrategy = "srs";
+    datasetState.recentMistakes = [];
+    datasetState.recentTypingMistakes = [];
+    datasetState.recentDrawingMistakes = [];
+    datasetState.typingRightCount = 0;
+    datasetState.typingWrongCount = 0;
+    datasetState.drawingRightCount = 0;
+    datasetState.drawingWrongCount = 0;
+    datasetState.confusionPairs = {};
+    datasetState.srsAccuracyWindow = {};
+    datasetState.dailyDetailStats = {};
+
+    Object.keys(datasetState.srsByItem || {}).forEach((itemId) => {
+      datasetState.srsByItem[itemId] = {
+        dueAt: 0,
+        intervalHours: 0,
+        lastSeenAt: 0,
+        lastCorrect: false
+      };
+    });
+
+    Object.keys(datasetState.backlog || {}).forEach((itemId) => {
+      const row = datasetState.backlog[itemId];
+      row.right = 0; row.wrong = 0;
+      row.typingRight = 0; row.typingWrong = 0;
+      row.drawingRight = 0; row.drawingWrong = 0;
+      if ("hiraganaTypingRight" in row) {
+        row.hiraganaTypingRight = 0; row.hiraganaTypingWrong = 0;
+        row.hiraganaDrawingRight = 0; row.hiraganaDrawingWrong = 0;
+        row.hiraganaRight = 0; row.hiraganaWrong = 0;
+        row.katakanaTypingRight = 0; row.katakanaTypingWrong = 0;
+        row.katakanaDrawingRight = 0; row.katakanaDrawingWrong = 0;
+        row.katakanaRight = 0; row.katakanaWrong = 0;
+      }
+    });
+
+    Object.keys(datasetState.drawingsByItem || {}).forEach((key) => delete datasetState.drawingsByItem[key]);
+    Object.keys(datasetState.dailyStats || {}).forEach((key) => delete datasetState.dailyStats[key]);
+    Object.keys(datasetState.dailyCategoryStats || {}).forEach((key) => delete datasetState.dailyCategoryStats[key]);
+  });
+
   state.lastCloudSyncAt = 0;
   state.syncUserEmail = "";
   state.dailyGoals = {
@@ -408,9 +582,8 @@ async function resetAllData() {
     yoon: 6
   };
   state.dailyGoal = 25;
-  state.confusionPairs = {};
-  state.srsAccuracyWindow = {};
-  state.dailyDetailStats = {};
+  state.showWordHelper = false;
+  state.showKanjiHelper = false;
 
   progressPreferencesManager && progressPreferencesManager.resetBacklogFilters();
   state.progressSubtab = "overview";
@@ -421,36 +594,12 @@ async function resetAllData() {
     sync: false
   };
 
-  Object.keys(state.srsByRomaji).forEach((romaji) => {
-    state.srsByRomaji[romaji] = {
-      dueAt: 0,
-      intervalHours: 0,
-      lastSeenAt: 0,
-      lastCorrect: false
-    };
-  });
-
-  Object.keys(state.backlog).forEach((romaji) => {
-    const row = state.backlog[romaji];
-    row.right = 0; row.wrong = 0;
-    row.typingRight = 0; row.typingWrong = 0;
-    row.drawingRight = 0; row.drawingWrong = 0;
-    row.hiraganaTypingRight = 0; row.hiraganaTypingWrong = 0;
-    row.hiraganaDrawingRight = 0; row.hiraganaDrawingWrong = 0;
-    row.hiraganaRight = 0; row.hiraganaWrong = 0;
-    row.katakanaTypingRight = 0; row.katakanaTypingWrong = 0;
-    row.katakanaDrawingRight = 0; row.katakanaDrawingWrong = 0;
-    row.katakanaRight = 0; row.katakanaWrong = 0;
-  });
-
-  Object.keys(state.drawingsByKana).forEach((k) => delete state.drawingsByKana[k]);
-  Object.keys(state.dailyStats).forEach((k) => delete state.dailyStats[k]);
-  Object.keys(state.dailyCategoryStats).forEach((k) => delete state.dailyCategoryStats[k]);
-
   state.progressUiDayMarker = getTodayKey();
   state.lastSavedAt = 0;
   localStorage.removeItem(STORAGE_KEY);
 
+  state.activeDataset = DATASET_IDS.KANA;
+  syncDatasetControls();
   elements.practiceStrategySelect.value = state.practiceStrategy;
   progressPreferencesManager && progressPreferencesManager.renderDailyGoalInputs();
   progressPreferencesManager && progressPreferencesManager.renderBacklogFilterInputs();
@@ -553,6 +702,16 @@ function subscribeToEvents() {
   // Quiz controls
   eventBus.on(EVENT_NAMES.QUIZ_REQUEST_NEW, () => newQuestion());
 
+  eventBus.on(EVENT_NAMES.QUIZ_DATASET_CHANGED, () => {
+    state.activeDataset = elements.datasetSelect.value;
+    syncDatasetControls();
+    queueManager.updateQueueMeta();
+    renderBacklogView();
+    refreshProgressView();
+    persistState();
+    newQuestion();
+  });
+
   eventBus.on(EVENT_NAMES.QUIZ_MODE_CHANGED, () => {
     switchModeUI();
     newQuestion();
@@ -646,6 +805,16 @@ function subscribeToEvents() {
     persistState();
   });
 
+  eventBus.on(EVENT_NAMES.SETTINGS_HELPER_TOGGLE_CHANGED, () => {
+    if (state.activeDataset === DATASET_IDS.WORDS) {
+      state.showWordHelper = elements.helperToggle.checked;
+    } else if (state.activeDataset === DATASET_IDS.KANJI) {
+      state.showKanjiHelper = elements.helperToggle.checked;
+    }
+    persistState();
+    newQuestion();
+  });
+
   // Data operations
   eventBus.on(EVENT_NAMES.DATA_EXPORT, () => exportLocalProgress());
   eventBus.on(EVENT_NAMES.DATA_IMPORT, async ({ file }) => {
@@ -711,22 +880,19 @@ function setupKeyboardShortcuts() {
   const keyboard = new KeyboardController(elements.answerInput);
 
   keyboard.register("Space", () => {
-    const mode = elements.modeSelect.value;
-    if (mode === "romajiToKana" || mode === "mixedPractice") {
+    if (state.currentQuestion && state.currentQuestion.kind === "drawing") {
       eventBus.emit(EVENT_NAMES.QUIZ_REVEAL_DRAWING);
     }
   });
 
   keyboard.register("KeyR", () => {
-    const mode = elements.modeSelect.value;
-    if (mode === "romajiToKana" || mode === "mixedPractice") {
+    if (state.currentQuestion && state.currentQuestion.kind === "drawing") {
       if (!elements.markRightBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_RIGHT);
     }
   });
 
   keyboard.register("KeyW", () => {
-    const mode = elements.modeSelect.value;
-    if (mode === "romajiToKana" || mode === "mixedPractice") {
+    if (state.currentQuestion && state.currentQuestion.kind === "drawing") {
       if (!elements.markWrongBtn.disabled) eventBus.emit(EVENT_NAMES.QUIZ_MARK_WRONG);
     }
   });
@@ -770,6 +936,7 @@ function init() {
     applyProgressPayload,
     onImportComplete() {
       ensureTodayEntry();
+      syncDatasetControls();
       elements.practiceStrategySelect.value = state.practiceStrategy;
       elements.drawGuideToggle.checked = state.drawGuideEnabled;
       renderDailyGoalInputs();
@@ -822,6 +989,7 @@ function init() {
   setupAnswerInputGuards();
   setupPwaInstall();
 
+  syncDatasetControls();
   elements.practiceStrategySelect.value = state.practiceStrategy;
   elements.drawGuideToggle.checked = state.drawGuideEnabled;
   normalizeDailyGoalsFromState();

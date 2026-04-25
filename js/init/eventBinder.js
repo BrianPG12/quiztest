@@ -23,6 +23,8 @@ export function bindEvents(elements, state) {
   // ── Quiz controls ──────────────────────────────────────────────────────────
   elements.newQuestionBtn.addEventListener("click", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
 
+  elements.datasetSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_DATASET_CHANGED));
+
   elements.modeSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_MODE_CHANGED));
 
   elements.scriptSelect.addEventListener("change", () => eventBus.emit(EVENT_NAMES.QUIZ_REQUEST_NEW));
@@ -154,6 +156,10 @@ export function bindEvents(elements, state) {
 
   elements.drawGuideToggle.addEventListener("change", () =>
     eventBus.emit(EVENT_NAMES.SETTINGS_DRAW_GUIDE_CHANGED)
+  );
+
+  elements.helperToggle.addEventListener("change", () =>
+    eventBus.emit(EVENT_NAMES.SETTINGS_HELPER_TOGGLE_CHANGED)
   );
 
   // ── Data operations ────────────────────────────────────────────────────────

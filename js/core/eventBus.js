@@ -16,6 +16,7 @@
  *   question:new     {}
  *   sync:conflictApplied  {}
  *   quiz:requestNewQuestion {}
+ *   quiz:datasetChanged  {}
  *   quiz:modeChanged  {}
  *   quiz:kanaSetChanged {}
  *   quiz:strategyChanged {}
@@ -35,6 +36,7 @@
  *   backlog:filterChanged {}
  *   backlog:filterReset {}
  *   settings:saveGoal {}
+ *   settings:helperToggleChanged {}
  *   settings:drawGuideChanged {}
  *   data:export       {}
  *   data:import       { file }
@@ -53,6 +55,7 @@ export const EVENT_NAMES = Object.freeze({
   QUESTION_NEW: "question:new",
   SYNC_CONFLICT_APPLIED: "sync:conflictApplied",
   QUIZ_REQUEST_NEW: "quiz:requestNewQuestion",
+  QUIZ_DATASET_CHANGED: "quiz:datasetChanged",
   QUIZ_MODE_CHANGED: "quiz:modeChanged",
   QUIZ_KANA_SET_CHANGED: "quiz:kanaSetChanged",
   QUIZ_STRATEGY_CHANGED: "quiz:strategyChanged",
@@ -72,6 +75,7 @@ export const EVENT_NAMES = Object.freeze({
   BACKLOG_FILTER_CHANGED: "backlog:filterChanged",
   BACKLOG_FILTER_RESET: "backlog:filterReset",
   SETTINGS_SAVE_GOAL: "settings:saveGoal",
+  SETTINGS_HELPER_TOGGLE_CHANGED: "settings:helperToggleChanged",
   SETTINGS_DRAW_GUIDE_CHANGED: "settings:drawGuideChanged",
   DATA_EXPORT: "data:export",
   DATA_IMPORT: "data:import",

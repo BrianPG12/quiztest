@@ -4,9 +4,13 @@
  */
 
 export function createQueueManager(state, elements, srsManager, getKanaCategoryFn) {
+  function getActiveDatasetId() {
+    return state.activeDataset || "kana";
+  }
+
   function getQuestionKindForCurrentMode() {
     const mode = elements.modeSelect.value;
-    if (mode === "romajiToKana") {
+    if (mode === "romajiToKana" || mode === "kanjiDrawing") {
       return "drawing";
     }
     if (mode === "mixedPractice") {
@@ -45,7 +49,7 @@ export function createQueueManager(state, elements, srsManager, getKanaCategoryF
         }
 
         return {
-          romaji: row.romaji,
+          romaji: row.id || row.romaji,
           wrong,
           right,
           pressure: wrong * 2 - right
@@ -62,6 +66,10 @@ export function createQueueManager(state, elements, srsManager, getKanaCategoryF
    * Filter list to only romaji in current kana set selection
    */
   function filterRomajiForCurrentKanaSet(romajiList) {
+    if (getActiveDatasetId() !== "kana") {
+      return romajiList;
+    }
+
     const setMode = elements.kanaSetSelect.value;
     if (setMode === "all") {
       return romajiList;

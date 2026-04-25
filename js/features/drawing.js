@@ -18,7 +18,7 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana, even
   }
 
   function setDrawingCanvasVisibility(mode) {
-    const showHiragana = mode === "both" || mode === "hiragana";
+    const showHiragana = mode === "both" || mode === "hiragana" || mode === "kanji";
     const showKatakana = mode === "both" || mode === "katakana";
 
     elements.canvasHiragana.closest(".draw-pane").classList.toggle("hidden", !showHiragana);
@@ -136,6 +136,11 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana, even
       return;
     }
 
+    if (state.currentQuestion.canvasMode === "kanji") {
+      addDrawingSnapshot(state.currentQuestion.kanji, elements.canvasHiragana, elements.ctxHiragana);
+      return;
+    }
+
     if (state.currentQuestion.canvasMode === "both") {
       addDrawingSnapshot(state.currentQuestion.hiragana, elements.canvasHiragana, elements.ctxHiragana);
       addDrawingSnapshot(state.currentQuestion.katakana, elements.canvasKatakana, elements.ctxKatakana);
@@ -155,7 +160,7 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana, even
     elements.galleryTitle.textContent = `Saved Drawings: ${kanaChar}`;
 
     if (drawings.length === 0) {
-      elements.galleryBody.innerHTML = "<div class=\"gallery-empty\">No saved drawings yet for this kana.</div>";
+      elements.galleryBody.innerHTML = "<div class=\"gallery-empty\">No saved drawings yet for this item.</div>";
     } else {
       renderGalleryItems(kanaChar);
     }
@@ -166,7 +171,7 @@ export function createDrawingFeature({ elements, state, maxDrawingsPerKana, even
   function renderGalleryItems(kanaChar) {
     const drawings = state.drawingsByKana[kanaChar] || [];
     if (drawings.length === 0) {
-      elements.galleryBody.innerHTML = "<div class=\"gallery-empty\">No saved drawings yet for this kana.</div>";
+      elements.galleryBody.innerHTML = "<div class=\"gallery-empty\">No saved drawings yet for this item.</div>";
       return;
     }
     elements.galleryBody.innerHTML = drawings
