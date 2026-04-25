@@ -65,8 +65,8 @@ const baseWords = [
   makeWordEntry({ id: "word-bangoshi", japanese: "べんごし", romaji: "bangoshi", meanings: ["lawyer"], category: "jobs" }),
   makeWordEntry({ id: "word-okaasan", japanese: "おかあさん", romaji: "okaasan", meanings: ["mother"], category: "family" }),
   makeWordEntry({ id: "word-otoosan", japanese: "おとうさん", romaji: "otoosan", meanings: ["father"], category: "family" }),
-  makeWordEntry({ id: "word-oneesan", japanese: "おねえさん", romaji: "oneesan", meanings: ["older sister"], category: "family" }),
-  makeWordEntry({ id: "word-oniisan", japanese: "おにいさん", romaji: "oniisan", meanings: ["older brother"], category: "family" }),
+  makeWordEntry({ id: "word-oneesan", japanese: "おねえさん", romaji: "oneesan", meanings: ["older sister", "big sister"], category: "family" }),
+  makeWordEntry({ id: "word-oniisan", japanese: "おにいさん", romaji: "oniisan", meanings: ["older brother", "big brother"], category: "family" }),
   makeWordEntry({ id: "word-imooto", japanese: "いもうと", romaji: "imooto", meanings: ["younger sister", "little sister"], category: "family" }),
   makeWordEntry({ id: "word-otooto", japanese: "おとうと", romaji: "otooto", meanings: ["younger brother", "little brother"], category: "family" })
 ];
