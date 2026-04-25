@@ -668,8 +668,14 @@ function setupAnswerInputGuards() {
 
   function looksLikeCredential(value) {
     if (!value) return false;
-    if (value.length > 24) return true;
-    return /@|\s|https?:\/\//i.test(value) || /[^a-z-]/i.test(value);
+    const trimmed = String(value).trim();
+    if (!trimmed) return false;
+
+    // Only detect patterns that are very likely credentials or URLs.
+    if (/https?:\/\//i.test(trimmed)) return true;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return true;
+    if (trimmed.length > 48 && /[A-Z]/.test(trimmed) && /\d/.test(trimmed) && /[^a-z0-9\s-]/i.test(trimmed)) return true;
+    return false;
   }
 
   function clearCredentialLikeValue() {
@@ -683,7 +689,6 @@ function setupAnswerInputGuards() {
   input.addEventListener("focus", clearCredentialLikeValue);
   input.addEventListener("pointerdown", clearCredentialLikeValue);
   input.addEventListener("touchstart", clearCredentialLikeValue);
-  input.addEventListener("keydown", clearCredentialLikeValue);
   setTimeout(clearCredentialLikeValue, 200);
 }
 
