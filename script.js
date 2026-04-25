@@ -221,6 +221,22 @@
       category
     };
   }
+  function getOrdinalLabel(year) {
+    const ordinals = {
+      1: "first",
+      2: "second",
+      3: "third",
+      4: "fourth",
+      5: "fifth"
+    };
+    return ordinals[year] || `${year}th`;
+  }
+  function getOrdinalNumberLabel(year) {
+    if (year === 1) return "1st";
+    if (year === 2) return "2nd";
+    if (year === 3) return "3rd";
+    return `${year}th`;
+  }
   var baseWords, yearWords, timeWords, ageWords, wordsData;
   var init_wordsData = __esm({
     "js/data/wordsData.js"() {
@@ -280,24 +296,33 @@
         makeWordEntry({ id: "word-bangoshi", japanese: "\u3079\u3093\u3054\u3057", romaji: "bangoshi", meanings: ["lawyer"], category: "jobs" }),
         makeWordEntry({ id: "word-okaasan", japanese: "\u304A\u304B\u3042\u3055\u3093", romaji: "okaasan", meanings: ["mother"], category: "family" }),
         makeWordEntry({ id: "word-otoosan", japanese: "\u304A\u3068\u3046\u3055\u3093", romaji: "otoosan", meanings: ["father"], category: "family" }),
-        makeWordEntry({ id: "word-oneesan", japanese: "\u304A\u306D\u3048\u3055\u3093", romaji: "oneesan", meanings: ["older sister"], category: "family" }),
-        makeWordEntry({ id: "word-oniisan", japanese: "\u304A\u306B\u3044\u3055\u3093", romaji: "oniisan", meanings: ["older brother"], category: "family" }),
-        makeWordEntry({ id: "word-imooto", japanese: "\u3044\u3082\u3046\u3068", romaji: "imooto", meanings: ["younger sister"], category: "family" }),
-        makeWordEntry({ id: "word-otooto", japanese: "\u304A\u3068\u3046\u3068", romaji: "otooto", meanings: ["younger brother"], category: "family" })
+        makeWordEntry({ id: "word-oneesan", japanese: "\u304A\u306D\u3048\u3055\u3093", romaji: "oneesan", meanings: ["older sister", "big sister"], category: "family" }),
+        makeWordEntry({ id: "word-oniisan", japanese: "\u304A\u306B\u3044\u3055\u3093", romaji: "oniisan", meanings: ["older brother", "big brother"], category: "family" }),
+        makeWordEntry({ id: "word-imooto", japanese: "\u3044\u3082\u3046\u3068", romaji: "imooto", meanings: ["younger sister", "little sister"], category: "family" }),
+        makeWordEntry({ id: "word-otooto", japanese: "\u304A\u3068\u3046\u3068", romaji: "otooto", meanings: ["younger brother", "little brother"], category: "family" })
       ];
       yearWords = [
-        [1, "\u3044\u3061\u306D\u3093\u305B\u3044", "ichinensee", "first year student"],
-        [2, "\u306B\u306D\u3093\u305B\u3044", "ninensee", "second year student"],
-        [3, "\u3055\u3093\u306D\u3093\u305B\u3044", "sannensee", "third year student"],
-        [4, "\u3088\u306D\u3093\u305B\u3044", "yonnensee", "fourth year student"],
-        [5, "\u3054\u306D\u3093\u305B\u3044", "gonensee", "fifth year student"]
-      ].map(([year, japanese, romaji, meaning]) => makeWordEntry({
-        id: `word-year-${year}`,
-        japanese,
-        romaji,
-        meanings: [meaning],
-        category: "school"
-      }));
+        [1, "\u3044\u3061\u306D\u3093\u305B\u3044", "ichinensee"],
+        [2, "\u306B\u306D\u3093\u305B\u3044", "ninensee"],
+        [3, "\u3055\u3093\u306D\u3093\u305B\u3044", "sannensee"],
+        [4, "\u3088\u306D\u3093\u305B\u3044", "yonnensee"],
+        [5, "\u3054\u306D\u3093\u305B\u3044", "gonensee"]
+      ].map(([year, japanese, romaji]) => {
+        const ordinal = getOrdinalLabel(year);
+        const numericOrdinal = getOrdinalNumberLabel(year);
+        return makeWordEntry({
+          id: `word-year-${year}`,
+          japanese,
+          romaji,
+          meanings: [
+            `${ordinal} year student`,
+            `${ordinal} year`,
+            `${numericOrdinal} year student`,
+            `${numericOrdinal} year`
+          ],
+          category: "school"
+        });
+      });
       timeWords = [
         ["\u306B\u3058 \u3055\u3093\u3058\u3085\u3046\u3088\u3093\u3077\u3093", "niji sanjuuyonpun", ["2:34", "2 34"]],
         ["\u3088\u3058 \u3058\u3085\u3046\u304D\u3085\u3046\u3075\u3093", "yoji juukyuufun", ["4:19", "4 19", "16:19", "16 19"]],

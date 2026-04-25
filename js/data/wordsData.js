@@ -71,19 +71,46 @@ const baseWords = [
   makeWordEntry({ id: "word-otooto", japanese: "おとうと", romaji: "otooto", meanings: ["younger brother", "little brother"], category: "family" })
 ];
 
+function getOrdinalLabel(year) {
+  const ordinals = {
+    1: "first",
+    2: "second",
+    3: "third",
+    4: "fourth",
+    5: "fifth"
+  };
+  return ordinals[year] || `${year}th`;
+}
+
+function getOrdinalNumberLabel(year) {
+  if (year === 1) return "1st";
+  if (year === 2) return "2nd";
+  if (year === 3) return "3rd";
+  return `${year}th`;
+}
+
 const yearWords = [
-  [1, "いちねんせい", "ichinensee", "first year student"],
-  [2, "にねんせい", "ninensee", "second year student"],
-  [3, "さんねんせい", "sannensee", "third year student"],
-  [4, "よねんせい", "yonnensee", "fourth year student"],
-  [5, "ごねんせい", "gonensee", "fifth year student"]
-].map(([year, japanese, romaji, meaning]) => makeWordEntry({
+  [1, "いちねんせい", "ichinensee"],
+  [2, "にねんせい", "ninensee"],
+  [3, "さんねんせい", "sannensee"],
+  [4, "よねんせい", "yonnensee"],
+  [5, "ごねんせい", "gonensee"]
+].map(([year, japanese, romaji]) => {
+  const ordinal = getOrdinalLabel(year);
+  const numericOrdinal = getOrdinalNumberLabel(year);
+  return makeWordEntry({
   id: `word-year-${year}`,
   japanese,
   romaji,
-  meanings: [meaning],
+  meanings: [
+    `${ordinal} year student`,
+    `${ordinal} year`,
+    `${numericOrdinal} year student`,
+    `${numericOrdinal} year`
+  ],
   category: "school"
-}));
+  });
+});
 
 const timeWords = [
   ["にじ さんじゅうよんぷん", "niji sanjuuyonpun", ["2:34", "2 34"]],
