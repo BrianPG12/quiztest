@@ -63,13 +63,15 @@ const DATASET_MODE_OPTIONS = {
   ],
   [DATASET_IDS.WORDS]: [
     { value: "japaneseToEnglish", label: "Japanese → English" },
-    { value: "englishToJapanese", label: "English → Japanese" }
+    { value: "englishToJapanese", label: "English → Japanese" },
+    { value: "wordsMixed", label: "Mixed (J↔E)" }
   ],
   [DATASET_IDS.KANJI]: [
     { value: "kanjiToMeaning", label: "Kanji → Meaning" },
     { value: "meaningToKanji", label: "Meaning → Kanji" },
     { value: "promptToKanji", label: "Reading/Meaning → Kanji" },
-    { value: "kanjiDrawing", label: "Kanji → Drawing" }
+    { value: "kanjiDrawing", label: "Kanji → Drawing" },
+    { value: "kanjiMixed", label: "Mixed (Type + Draw)" }
   ]
 };
 
@@ -356,13 +358,14 @@ function switchModeUI() {
   const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
   const mode = elements.modeSelect.value;
   const isMixedMode = isKanaDataset && mode === "mixedPractice";
+  const isKanjiMixedMode = state.activeDataset === DATASET_IDS.KANJI && mode === "kanjiMixed";
   const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
   const isTypingQuestion = isKanaDataset
     ? (mode === "kanaToRomaji" || (isMixedMode && activeQuestionKind === "typing"))
-    : mode !== "kanjiDrawing";
+    : (mode !== "kanjiDrawing" && (!isKanjiMixedMode || activeQuestionKind === "typing"));
   const isDrawingQuestion = isKanaDataset
     ? (mode === "romajiToKana" || (isMixedMode && activeQuestionKind === "drawing"))
-    : mode === "kanjiDrawing";
+    : (mode === "kanjiDrawing" || (isKanjiMixedMode && activeQuestionKind === "drawing"));
 
   elements.typingArea.classList.toggle("hidden", !isTypingQuestion);
   elements.drawingArea.classList.toggle("hidden", !isDrawingQuestion);
@@ -409,8 +412,12 @@ function newQuestion() {
         : mode === "romajiToKana"
           ? "drawing"
           : (Math.random() > 0.5 ? "typing" : "drawing"))
-      : mode === "kanjiDrawing"
-        ? "drawing"
+      : state.activeDataset === DATASET_IDS.KANJI
+        ? (mode === "kanjiDrawing"
+          ? "drawing"
+          : mode === "kanjiMixed"
+            ? (Math.random() < 0.3 ? "drawing" : "typing")
+            : "typing")
         : "typing";
     const previousRomaji = state.currentQuestion
       ? (state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null)

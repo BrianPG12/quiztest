@@ -13,7 +13,7 @@ export function createQueueManager(state, elements, srsManager, getKanaCategoryF
     if (mode === "romajiToKana" || mode === "kanjiDrawing") {
       return "drawing";
     }
-    if (mode === "mixedPractice") {
+    if (mode === "mixedPractice" || mode === "kanjiMixed") {
       return "mixed";
     }
     return "typing";

@@ -225,12 +225,12 @@
   var init_wordsData = __esm({
     "js/data/wordsData.js"() {
       baseWords = [
-        makeWordEntry({ id: "word-daigaku", japanese: "\u3060\u3044\u304C\u304F", romaji: "daigaku", meanings: ["college", "university"], category: "school" }),
+        makeWordEntry({ id: "word-daigaku", japanese: "\u3060\u3044\u304C\u304F", romaji: "daigaku", meanings: ["college", "university", "uni"], category: "school" }),
         makeWordEntry({ id: "word-kookoo", japanese: "\u3053\u3046\u3053\u3046", romaji: "kookoo", meanings: ["high school"], category: "school" }),
-        makeWordEntry({ id: "word-gakusee", japanese: "\u304C\u304F\u305B\u3044", romaji: "gakusee", meanings: ["student"], category: "school" }),
+        makeWordEntry({ id: "word-gakusee", japanese: "\u304C\u304F\u305B\u3044", romaji: "gakusee", meanings: ["student", "pupil"], category: "school" }),
         makeWordEntry({ id: "word-daigakusee", japanese: "\u3060\u3044\u304C\u304F\u305B\u3044", romaji: "daigakusee", meanings: ["college student"], category: "school" }),
-        makeWordEntry({ id: "word-ryuugakusee", japanese: "\u308A\u3085\u3046\u304C\u304F\u305B\u3044", romaji: "ryuugakusee", meanings: ["international student"], category: "school" }),
-        makeWordEntry({ id: "word-sensee", japanese: "\u305B\u3093\u305B\u3044", romaji: "sensee", meanings: ["teacher"], category: "school" }),
+        makeWordEntry({ id: "word-ryuugakusee", japanese: "\u308A\u3085\u3046\u304C\u304F\u305B\u3044", romaji: "ryuugakusee", meanings: ["international student", "foreign student", "exchange student"], category: "school" }),
+        makeWordEntry({ id: "word-sensee", japanese: "\u305B\u3093\u305B\u3044", romaji: "sensee", meanings: ["teacher", "instructor", "professor"], category: "school" }),
         makeWordEntry({ id: "word-senkoo", japanese: "\u305B\u3093\u3053\u3046", romaji: "senkoo", meanings: ["major"], category: "school" }),
         makeWordEntry({ id: "word-watashi", japanese: "\u308F\u305F\u3057", romaji: "watashi", meanings: ["i"], category: "people" }),
         makeWordEntry({ id: "word-tomodachi", japanese: "\u3068\u3082\u3060\u3061", romaji: "tomodachi", meanings: ["friend"], category: "people" }),
@@ -238,22 +238,22 @@
         makeWordEntry({ id: "word-jin", japanese: "\u3058\u3093", romaji: "jin", meanings: ["people"], category: "people" }),
         makeWordEntry({ id: "word-nihonjin", japanese: "\u306B\u307B\u3093\u3058\u3093", romaji: "nihonjin", meanings: ["japanese people", "japanese person"], category: "people" }),
         makeWordEntry({ id: "word-ima", japanese: "\u3044\u307E", romaji: "ima", meanings: ["now"], category: "time" }),
-        makeWordEntry({ id: "word-gozen", japanese: "\u3054\u305C\u3093", romaji: "gozen", meanings: ["a.m.", "am", "morning"], category: "time" }),
-        makeWordEntry({ id: "word-gogo", japanese: "\u3054\u3054", romaji: "gogo", meanings: ["p.m.", "pm"], category: "time" }),
+        makeWordEntry({ id: "word-gozen", japanese: "\u3054\u305C\u3093", romaji: "gozen", meanings: ["a.m.", "am", "morning", "before noon"], category: "time" }),
+        makeWordEntry({ id: "word-gogo", japanese: "\u3054\u3054", romaji: "gogo", meanings: ["p.m.", "pm", "afternoon"], category: "time" }),
         makeWordEntry({ id: "word-han", japanese: "\u306F\u3093", romaji: "han", meanings: ["half"], category: "time" }),
-        makeWordEntry({ id: "word-nihon", japanese: "\u306B\u307B\u3093", romaji: "nihon", meanings: ["japan"], category: "countries" }),
-        makeWordEntry({ id: "word-amerika", japanese: "\u30A2\u30E1\u30EA\u30AB", romaji: "amerika", meanings: ["usa", "us", "u.s.a", "u.s.", "united states", "united states of america", "america"], category: "countries" }),
+        makeWordEntry({ id: "word-nihon", japanese: "\u306B\u307B\u3093", romaji: "nihon", meanings: ["japan", "japanese nation"], category: "countries" }),
+        makeWordEntry({ id: "word-amerika", japanese: "\u30A2\u30E1\u30EA\u30AB", romaji: "amerika", meanings: ["usa", "us", "u.s.a", "u.s.", "united states", "united states of america", "america", "the states"], category: "countries" }),
         makeWordEntry({ id: "word-go", japanese: "\u3054", romaji: "go", meanings: ["language"], category: "core" }),
         makeWordEntry({ id: "word-sai", japanese: "\u3055\u3044", romaji: "sai", meanings: ["years old"], category: "core" }),
-        makeWordEntry({ id: "word-denwa", japanese: "\u3067\u3093\u308F", romaji: "denwa", meanings: ["telephone", "phone"], category: "core" }),
+        makeWordEntry({ id: "word-denwa", japanese: "\u3067\u3093\u308F", romaji: "denwa", meanings: ["telephone", "phone", "telephone call", "call"], category: "core" }),
         makeWordEntry({ id: "word-bangoo", japanese: "\u3070\u3093\u3054\u3046", romaji: "bangoo", meanings: ["number"], category: "core" }),
         makeWordEntry({ id: "word-namae", japanese: "\u306A\u307E\u3048", romaji: "namae", meanings: ["name"], category: "core" }),
-        makeWordEntry({ id: "word-nan-nani", japanese: "\u306A\u3093/\u306A\u306B", romaji: "nan/nani", meanings: ["what"], category: "core" }),
+        makeWordEntry({ id: "word-nan-nani", japanese: "\u306A\u3093/\u306A\u306B", romaji: "nan/nani", meanings: ["what", "which thing"], category: "core" }),
         makeWordEntry({ id: "word-anoo", japanese: "\u3042\u306E\u3046", romaji: "anoo", meanings: ["um"], category: "core" }),
         makeWordEntry({ id: "word-hai", japanese: "\u306F\u3044", romaji: "hai", meanings: ["yes"], category: "core" }),
         makeWordEntry({ id: "word-soo-desu", japanese: "\u305D\u3046\u3067\u3059", romaji: "soo desu", meanings: ["thats right", "that's right"], category: "core" }),
         makeWordEntry({ id: "word-soo-desu-ka", japanese: "\u305D\u3046\u3067\u3059\u304B", romaji: "soo desu ka", meanings: ["i see", "is that so"], category: "core" }),
-        makeWordEntry({ id: "word-igirisu", japanese: "\u30A4\u30AE\u30EA\u30B9", romaji: "igirisu", meanings: ["britain", "uk"], category: "countries" }),
+        makeWordEntry({ id: "word-igirisu", japanese: "\u30A4\u30AE\u30EA\u30B9", romaji: "igirisu", meanings: ["britain", "uk", "united kingdom"], category: "countries" }),
         makeWordEntry({ id: "word-oosutoria", japanese: "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2", romaji: "oosutoria", meanings: ["australia"], category: "countries" }),
         makeWordEntry({ id: "word-kankoku", japanese: "\u304B\u3093\u3053\u304F", romaji: "kankoku", meanings: ["korea"], category: "countries" }),
         makeWordEntry({ id: "word-kanada", japanese: "\u30AB\u30CA\u30C0", romaji: "kanada", meanings: ["canada"], category: "countries" }),
@@ -342,16 +342,16 @@
   var init_kanjiData = __esm({
     "js/data/kanjiData.js"() {
       kanjiData = [
-        makeKanjiEntry({ id: "kanji-ichi", kanji: "\u4E00", meanings: ["one", "1"], onyomi: ["ichi"], kunyomi: ["hito(tsu)"], romaji: ["ichi", "hitotsu"] }),
-        makeKanjiEntry({ id: "kanji-ni", kanji: "\u4E8C", meanings: ["two", "2"], onyomi: ["ni"], kunyomi: ["futa(tsu)"], romaji: ["ni", "futatsu"] }),
-        makeKanjiEntry({ id: "kanji-san", kanji: "\u4E09", meanings: ["three", "3"], onyomi: ["san"], kunyomi: ["mit(tsu)"], romaji: ["san", "mittsu"] }),
-        makeKanjiEntry({ id: "kanji-yon", kanji: "\u56DB", meanings: ["four", "4"], onyomi: ["shi"], kunyomi: ["yon", "yo(tsu)"], romaji: ["shi", "yon", "yottsu"] }),
-        makeKanjiEntry({ id: "kanji-go", kanji: "\u4E94", meanings: ["five", "5"], onyomi: ["go"], kunyomi: ["itsu(tsu)"], romaji: ["go", "itsutsu"] }),
-        makeKanjiEntry({ id: "kanji-roku", kanji: "\u516D", meanings: ["six", "6"], onyomi: ["roku"], kunyomi: ["mut(tsu)"], romaji: ["roku", "muttsu"] }),
-        makeKanjiEntry({ id: "kanji-nana", kanji: "\u4E03", meanings: ["seven", "7"], onyomi: ["shichi"], kunyomi: ["nana(tsu)"], romaji: ["shichi", "nana", "nanatsu"] }),
-        makeKanjiEntry({ id: "kanji-hachi", kanji: "\u516B", meanings: ["eight", "8"], onyomi: ["hachi"], kunyomi: ["ya(tsu)"], romaji: ["hachi", "yattsu"] }),
-        makeKanjiEntry({ id: "kanji-kyuu", kanji: "\u4E5D", meanings: ["nine", "9"], onyomi: ["kyuu", "ku"], kunyomi: ["kokono(tsu)"], romaji: ["kyuu", "ku", "kokonotsu"] }),
-        makeKanjiEntry({ id: "kanji-juu", kanji: "\u5341", meanings: ["ten", "10"], onyomi: ["juu"], kunyomi: ["too"], romaji: ["juu", "too"] })
+        makeKanjiEntry({ id: "kanji-ichi", kanji: "\u4E00", meanings: ["one", "1", "single", "first"], onyomi: ["ichi"], kunyomi: ["hito(tsu)"], romaji: ["ichi", "hitotsu"] }),
+        makeKanjiEntry({ id: "kanji-ni", kanji: "\u4E8C", meanings: ["two", "2", "double", "second"], onyomi: ["ni"], kunyomi: ["futa(tsu)"], romaji: ["ni", "futatsu"] }),
+        makeKanjiEntry({ id: "kanji-san", kanji: "\u4E09", meanings: ["three", "3", "triple", "third"], onyomi: ["san"], kunyomi: ["mit(tsu)"], romaji: ["san", "mittsu"] }),
+        makeKanjiEntry({ id: "kanji-yon", kanji: "\u56DB", meanings: ["four", "4", "fourth"], onyomi: ["shi"], kunyomi: ["yon", "yo(tsu)"], romaji: ["shi", "yon", "yottsu"] }),
+        makeKanjiEntry({ id: "kanji-go", kanji: "\u4E94", meanings: ["five", "5", "fifth"], onyomi: ["go"], kunyomi: ["itsu(tsu)"], romaji: ["go", "itsutsu"] }),
+        makeKanjiEntry({ id: "kanji-roku", kanji: "\u516D", meanings: ["six", "6", "sixth"], onyomi: ["roku"], kunyomi: ["mut(tsu)"], romaji: ["roku", "muttsu"] }),
+        makeKanjiEntry({ id: "kanji-nana", kanji: "\u4E03", meanings: ["seven", "7", "seventh"], onyomi: ["shichi"], kunyomi: ["nana(tsu)"], romaji: ["shichi", "nana", "nanatsu"] }),
+        makeKanjiEntry({ id: "kanji-hachi", kanji: "\u516B", meanings: ["eight", "8", "eighth"], onyomi: ["hachi"], kunyomi: ["ya(tsu)"], romaji: ["hachi", "yattsu"] }),
+        makeKanjiEntry({ id: "kanji-kyuu", kanji: "\u4E5D", meanings: ["nine", "9", "ninth"], onyomi: ["kyuu", "ku"], kunyomi: ["kokono(tsu)"], romaji: ["kyuu", "ku", "kokonotsu"] }),
+        makeKanjiEntry({ id: "kanji-juu", kanji: "\u5341", meanings: ["ten", "10", "tenth"], onyomi: ["juu"], kunyomi: ["too"], romaji: ["juu", "too"] })
       ];
     }
   });
@@ -1535,6 +1535,7 @@
     avoidId,
     showRomaji
   }) {
+    const resolvedMode = mode === "wordsMixed" ? Math.random() > 0.5 ? "japaneseToEnglish" : "englishToJapanese" : mode;
     const item = pickGenericQuestion({
       items: wordsData2,
       backlog,
@@ -1542,7 +1543,7 @@
       avoidId,
       getItemId: (entry) => entry.id
     });
-    if (mode === "englishToJapanese") {
+    if (resolvedMode === "englishToJapanese") {
       return {
         kind: "typing",
         dataset: "words",
@@ -1581,6 +1582,8 @@
     avoidId,
     showRomaji
   }) {
+    const typingModes = ["kanjiToMeaning", "meaningToKanji", "promptToKanji"];
+    const resolvedMode = mode === "kanjiMixed" ? Math.random() < 0.3 ? "kanjiDrawing" : typingModes[Math.floor(Math.random() * typingModes.length)] : mode;
     const item = pickGenericQuestion({
       items: kanjiData2,
       backlog,
@@ -1588,7 +1591,7 @@
       avoidId,
       getItemId: (entry) => entry.id
     });
-    if (mode === "meaningToKanji") {
+    if (resolvedMode === "meaningToKanji") {
       return {
         kind: "typing",
         dataset: "kanji",
@@ -1604,7 +1607,7 @@
         quickAnswerEnabled: false
       };
     }
-    if (mode === "promptToKanji") {
+    if (resolvedMode === "promptToKanji") {
       const useMeaningPrompt = Math.random() > 0.5;
       const promptText = useMeaningPrompt ? item.meanings[0] : item.romaji && item.romaji[0] || item.onyomi && item.onyomi[0] || item.kunyomi && item.kunyomi[0] || item.meanings[0];
       return {
@@ -1622,7 +1625,7 @@
         quickAnswerEnabled: false
       };
     }
-    if (mode === "kanjiDrawing") {
+    if (resolvedMode === "kanjiDrawing") {
       return {
         kind: "drawing",
         dataset: "kanji",
@@ -17780,7 +17783,7 @@
       if (mode === "romajiToKana" || mode === "kanjiDrawing") {
         return "drawing";
       }
-      if (mode === "mixedPractice") {
+      if (mode === "mixedPractice" || mode === "kanjiMixed") {
         return "mixed";
       }
       return "typing";
@@ -19077,13 +19080,15 @@
         ],
         [DATASET_IDS.WORDS]: [
           { value: "japaneseToEnglish", label: "Japanese \u2192 English" },
-          { value: "englishToJapanese", label: "English \u2192 Japanese" }
+          { value: "englishToJapanese", label: "English \u2192 Japanese" },
+          { value: "wordsMixed", label: "Mixed (J\u2194E)" }
         ],
         [DATASET_IDS.KANJI]: [
           { value: "kanjiToMeaning", label: "Kanji \u2192 Meaning" },
           { value: "meaningToKanji", label: "Meaning \u2192 Kanji" },
           { value: "promptToKanji", label: "Reading/Meaning \u2192 Kanji" },
-          { value: "kanjiDrawing", label: "Kanji \u2192 Drawing" }
+          { value: "kanjiDrawing", label: "Kanji \u2192 Drawing" },
+          { value: "kanjiMixed", label: "Mixed (Type + Draw)" }
         ]
       };
       var drawingFeature = createDrawingFeature({
@@ -19321,9 +19326,10 @@
         const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
         const mode = elements.modeSelect.value;
         const isMixedMode = isKanaDataset && mode === "mixedPractice";
+        const isKanjiMixedMode = state.activeDataset === DATASET_IDS.KANJI && mode === "kanjiMixed";
         const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
-        const isTypingQuestion = isKanaDataset ? mode === "kanaToRomaji" || isMixedMode && activeQuestionKind === "typing" : mode !== "kanjiDrawing";
-        const isDrawingQuestion = isKanaDataset ? mode === "romajiToKana" || isMixedMode && activeQuestionKind === "drawing" : mode === "kanjiDrawing";
+        const isTypingQuestion = isKanaDataset ? mode === "kanaToRomaji" || isMixedMode && activeQuestionKind === "typing" : mode !== "kanjiDrawing" && (!isKanjiMixedMode || activeQuestionKind === "typing");
+        const isDrawingQuestion = isKanaDataset ? mode === "romajiToKana" || isMixedMode && activeQuestionKind === "drawing" : mode === "kanjiDrawing" || isKanjiMixedMode && activeQuestionKind === "drawing";
         elements.typingArea.classList.toggle("hidden", !isTypingQuestion);
         elements.drawingArea.classList.toggle("hidden", !isDrawingQuestion);
         elements.scriptSelect.closest(".control-group").classList.toggle("hidden", !isKanaDataset || !isTypingQuestion);
@@ -19353,7 +19359,7 @@
         hintsManager.reset();
         try {
           const mode = elements.modeSelect.value;
-          const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA ? mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing" : mode === "kanjiDrawing" ? "drawing" : "typing";
+          const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA ? mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing" : state.activeDataset === DATASET_IDS.KANJI ? mode === "kanjiDrawing" ? "drawing" : mode === "kanjiMixed" ? Math.random() < 0.3 ? "drawing" : "typing" : "typing" : "typing";
           const previousRomaji = state.currentQuestion ? state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null : null;
           const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
           if (state.activeDataset === DATASET_IDS.KANA && nextQuestionKind === "typing") {

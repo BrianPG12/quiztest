@@ -254,6 +254,10 @@ export function pickWordQuestion({
   avoidId,
   showRomaji
 }) {
+  const resolvedMode = mode === "wordsMixed"
+    ? (Math.random() > 0.5 ? "japaneseToEnglish" : "englishToJapanese")
+    : mode;
+
   const item = pickGenericQuestion({
     items: wordsData,
     backlog,
@@ -262,7 +266,7 @@ export function pickWordQuestion({
     getItemId: (entry) => entry.id
   });
 
-  if (mode === "englishToJapanese") {
+  if (resolvedMode === "englishToJapanese") {
     return {
       kind: "typing",
       dataset: "words",
@@ -303,6 +307,11 @@ export function pickKanjiQuestion({
   avoidId,
   showRomaji
 }) {
+  const typingModes = ["kanjiToMeaning", "meaningToKanji", "promptToKanji"];
+  const resolvedMode = mode === "kanjiMixed"
+    ? (Math.random() < 0.3 ? "kanjiDrawing" : typingModes[Math.floor(Math.random() * typingModes.length)])
+    : mode;
+
   const item = pickGenericQuestion({
     items: kanjiData,
     backlog,
@@ -311,7 +320,7 @@ export function pickKanjiQuestion({
     getItemId: (entry) => entry.id
   });
 
-  if (mode === "meaningToKanji") {
+  if (resolvedMode === "meaningToKanji") {
     return {
       kind: "typing",
       dataset: "kanji",
@@ -328,7 +337,7 @@ export function pickKanjiQuestion({
     };
   }
 
-  if (mode === "promptToKanji") {
+  if (resolvedMode === "promptToKanji") {
     const useMeaningPrompt = Math.random() > 0.5;
     const promptText = useMeaningPrompt
       ? item.meanings[0]
@@ -349,7 +358,7 @@ export function pickKanjiQuestion({
     };
   }
 
-  if (mode === "kanjiDrawing") {
+  if (resolvedMode === "kanjiDrawing") {
     return {
       kind: "drawing",
       dataset: "kanji",
