@@ -238,11 +238,11 @@
         makeWordEntry({ id: "word-jin", japanese: "\u3058\u3093", romaji: "jin", meanings: ["people"], category: "people" }),
         makeWordEntry({ id: "word-nihonjin", japanese: "\u306B\u307B\u3093\u3058\u3093", romaji: "nihonjin", meanings: ["japanese people", "japanese person"], category: "people" }),
         makeWordEntry({ id: "word-ima", japanese: "\u3044\u307E", romaji: "ima", meanings: ["now"], category: "time" }),
-        makeWordEntry({ id: "word-gozen", japanese: "\u3054\u305C\u3093", romaji: "gozen", meanings: ["a.m.", "am"], category: "time" }),
+        makeWordEntry({ id: "word-gozen", japanese: "\u3054\u305C\u3093", romaji: "gozen", meanings: ["a.m.", "am", "morning"], category: "time" }),
         makeWordEntry({ id: "word-gogo", japanese: "\u3054\u3054", romaji: "gogo", meanings: ["p.m.", "pm"], category: "time" }),
         makeWordEntry({ id: "word-han", japanese: "\u306F\u3093", romaji: "han", meanings: ["half"], category: "time" }),
         makeWordEntry({ id: "word-nihon", japanese: "\u306B\u307B\u3093", romaji: "nihon", meanings: ["japan"], category: "countries" }),
-        makeWordEntry({ id: "word-amerika", japanese: "\u30A2\u30E1\u30EA\u30AB", romaji: "amerika", meanings: ["usa", "united states", "america"], category: "countries" }),
+        makeWordEntry({ id: "word-amerika", japanese: "\u30A2\u30E1\u30EA\u30AB", romaji: "amerika", meanings: ["usa", "us", "u.s.a", "u.s.", "united states", "united states of america", "america"], category: "countries" }),
         makeWordEntry({ id: "word-go", japanese: "\u3054", romaji: "go", meanings: ["language"], category: "core" }),
         makeWordEntry({ id: "word-sai", japanese: "\u3055\u3044", romaji: "sai", meanings: ["years old"], category: "core" }),
         makeWordEntry({ id: "word-denwa", japanese: "\u3067\u3093\u308F", romaji: "denwa", meanings: ["telephone", "phone"], category: "core" }),
@@ -19596,9 +19596,6 @@
             else input.textContent = "";
           }
         }
-        input.addEventListener("focus", clearCredentialLikeValue);
-        input.addEventListener("pointerdown", clearCredentialLikeValue);
-        input.addEventListener("touchstart", clearCredentialLikeValue);
         setTimeout(clearCredentialLikeValue, 200);
       }
       function normalizeDailyGoalsFromState() {

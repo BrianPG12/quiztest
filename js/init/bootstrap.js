@@ -686,9 +686,7 @@ function setupAnswerInputGuards() {
     }
   }
 
-  input.addEventListener("focus", clearCredentialLikeValue);
-  input.addEventListener("pointerdown", clearCredentialLikeValue);
-  input.addEventListener("touchstart", clearCredentialLikeValue);
+  // Only run once after boot to clear accidental autofill payloads.
   setTimeout(clearCredentialLikeValue, 200);
 }
 

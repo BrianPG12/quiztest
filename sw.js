@@ -1,4 +1,4 @@
-const CACHE_NAME = "kana-quiz-v40";
+const CACHE_NAME = "kana-quiz-v41";
 const SCOPE_URL = new URL(self.registration.scope);
 const BASE_PATH = SCOPE_URL.pathname.endsWith("/") ? SCOPE_URL.pathname : `${SCOPE_URL.pathname}/`;
 const INDEX_PATH = `${BASE_PATH}index.html`;
