@@ -326,7 +326,7 @@ export function pickKanjiQuestion({
       dataset: "kanji",
       trackingId: item.id,
       promptText: item.meanings[0],
-      helperText: showRomaji ? item.romaji.join(", ") : "",
+      helperText: "",
       answerLabel: "Type Kanji",
       placeholder: "e.g. 一",
       acceptedAnswers: [item.kanji],
@@ -338,16 +338,13 @@ export function pickKanjiQuestion({
   }
 
   if (resolvedMode === "promptToKanji") {
-    const useMeaningPrompt = Math.random() > 0.5;
-    const promptText = useMeaningPrompt
-      ? item.meanings[0]
-      : ((item.romaji && item.romaji[0]) || (item.onyomi && item.onyomi[0]) || (item.kunyomi && item.kunyomi[0]) || item.meanings[0]);
+    const promptText = item.meanings[Math.floor(Math.random() * item.meanings.length)] || item.meanings[0];
     return {
       kind: "typing",
       dataset: "kanji",
       trackingId: item.id,
       promptText,
-      helperText: useMeaningPrompt && showRomaji ? item.romaji.join(", ") : "",
+      helperText: "",
       answerLabel: "Type Kanji",
       placeholder: "e.g. 一",
       acceptedAnswers: [item.kanji],
@@ -367,7 +364,7 @@ export function pickKanjiQuestion({
       kanji: item.kanji,
       canvasMode: "kanji",
       promptText: `Draw ${item.kanji}`,
-      revealText: `Answer: ${item.kanji} (${item.meanings[0]}${item.romaji.length ? ` | ${item.romaji.join(", ")}` : ""}). Mark yourself right or wrong.`
+      revealText: `Answer: ${item.kanji} (${item.meanings[0]}). Mark yourself right or wrong.`
     };
   }
 
@@ -376,7 +373,7 @@ export function pickKanjiQuestion({
     dataset: "kanji",
     trackingId: item.id,
     promptText: item.kanji,
-    helperText: showRomaji ? item.romaji.join(", ") : "",
+    helperText: "",
     answerLabel: "Type Meaning",
     placeholder: "e.g. one",
     acceptedAnswers: item.meanings,
