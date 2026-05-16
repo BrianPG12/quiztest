@@ -250,12 +250,12 @@ export function renderDatasetBacklog({ datasetId, items, backlog, drawingsByItem
 
     const status = getCardStatus(row);
     const attempts = getTotalAttempts(row);
-    const helper = datasetId === "words"
-      ? `${escapeHtml(item.romaji)} • ${escapeHtml(item.meanings[0] || "")}`
-      : `${escapeHtml((item.romaji || []).join(", "))} • ${escapeHtml(item.meanings[0] || "")}`;
-    const primary = datasetId === "words" ? item.japanese : item.kanji;
+    const meaningText = Array.isArray(item.meanings) ? (item.meanings[0] || "") : "";
+    const helper = escapeHtml(meaningText);
+    const primary = item.japanese || item.word || item.pattern || item.kanji || item.promptText || item.id;
     const category = String(item.category || "core");
-    const drawingsCount = datasetId === "kanji" ? ((drawingsByItem[primary] || []).length) : 0;
+    const supportsDrawing = datasetId === "kanji" || datasetId === "n4kanji";
+    const drawingsCount = supportsDrawing ? ((drawingsByItem[primary] || []).length) : 0;
 
     return `
       <div class="kana-card ${status}">
@@ -264,12 +264,12 @@ export function renderDatasetBacklog({ datasetId, items, backlog, drawingsByItem
         <div class="kana-romaji">Category: ${escapeHtml(category)}</div>
         <div class="kana-stats">
           <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">✓${row.typingRight}</span><span class="k-wrong">✗${row.typingWrong}</span></div>
-          ${datasetId === "words"
-            ? ""
-            : `<div class="mode-row"><span class="mode-tag">D</span><span class="k-right">✓${row.drawingRight}</span><span class="k-wrong">✗${row.drawingWrong}</span></div>`}
+          ${supportsDrawing
+            ? `<div class="mode-row"><span class="mode-tag">D</span><span class="k-right">✓${row.drawingRight}</span><span class="k-wrong">✗${row.drawingWrong}</span></div>`
+            : ""}
         </div>
         <div class="kana-romaji">Attempts: ${attempts}</div>
-        ${datasetId === "kanji" ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml(primary)}">Drawings (${drawingsCount})</button>` : ""}
+        ${supportsDrawing ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml(primary)}">Drawings (${drawingsCount})</button>` : ""}
       </div>
     `;
   }).filter(Boolean);
@@ -306,7 +306,9 @@ export function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answ
     }
   }
 
-  if (scriptContext === "hiragana" || scriptContext === "both") {
+  const hasKanaSplitStats = "hiraganaTypingRight" in row && "katakanaTypingRight" in row;
+
+  if (hasKanaSplitStats && (scriptContext === "hiragana" || scriptContext === "both")) {
     if (answerMode === "typing") {
       if (wasCorrect) {
         row.hiraganaTypingRight += 1;
@@ -328,7 +330,7 @@ export function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answ
     }
   }
 
-  if (scriptContext === "katakana" || scriptContext === "both") {
+  if (hasKanaSplitStats && (scriptContext === "katakana" || scriptContext === "both")) {
     if (answerMode === "typing") {
       if (wasCorrect) {
         row.katakanaTypingRight += 1;
@@ -352,7 +354,8 @@ export function updateBacklog({ backlog, romaji, wasCorrect, scriptContext, answ
 }
 
 export function getQuestionWeight(backlog, item) {
-  const entry = backlog[item.romaji];
+  const key = item.romaji || item.id;
+  const entry = backlog[key];
   if (!entry || entry.right + entry.wrong === 0) {
     return 4;
   }

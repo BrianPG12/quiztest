@@ -251,8 +251,7 @@ export function pickWordQuestion({
   mode,
   backlog,
   preferredIds,
-  avoidId,
-  showRomaji
+  avoidId
 }) {
   const resolvedMode = mode === "wordsMixed"
     ? (Math.random() > 0.5 ? "japaneseToEnglish" : "englishToJapanese")
@@ -272,13 +271,13 @@ export function pickWordQuestion({
       dataset: "words",
       trackingId: item.id,
       promptText: item.meanings[0],
-      helperText: showRomaji ? item.helperRomaji || item.romaji : "",
+      helperText: "",
       answerLabel: "Type Japanese",
-      placeholder: "e.g. daigaku",
-      acceptedAnswers: [item.japanese, item.romaji],
-      answerNormalizer: "forgiving-romaji",
+      placeholder: "e.g. だいがく",
+      acceptedAnswers: [item.japanese],
+      answerNormalizer: "exact",
       displayAnswer: item.japanese,
-      hintAnswer: item.romaji,
+      hintAnswer: item.japanese,
       quickAnswerEnabled: false
     };
   }
@@ -288,13 +287,187 @@ export function pickWordQuestion({
     dataset: "words",
     trackingId: item.id,
     promptText: item.japanese,
-    helperText: showRomaji && item.helperRomaji && item.helperRomaji !== item.japanese ? item.helperRomaji : "",
+    helperText: "",
     answerLabel: "Type English",
     placeholder: "e.g. college",
     acceptedAnswers: item.meanings,
     answerNormalizer: "english",
     displayAnswer: item.meanings[0],
     hintAnswer: item.meanings[0],
+    quickAnswerEnabled: false
+  };
+}
+
+export function pickVocabQuestion({
+  vocabData,
+  mode,
+  backlog,
+  preferredIds,
+  avoidId
+}) {
+  const resolvedMode = mode === "wordsMixed"
+    ? (Math.random() > 0.5 ? "japaneseToEnglish" : "englishToJapanese")
+    : mode;
+
+  const item = pickGenericQuestion({
+    items: vocabData,
+    backlog,
+    preferredIds,
+    avoidId,
+    getItemId: (entry) => entry.id
+  });
+
+  if (resolvedMode === "englishToJapanese") {
+    return {
+      kind: "typing",
+      dataset: "n5vocab",
+      trackingId: item.id,
+      promptText: item.meanings[0],
+      helperText: "",
+      answerLabel: "Type Japanese",
+      placeholder: "e.g. がくせい",
+      acceptedAnswers: [item.word],
+      answerNormalizer: "exact",
+      displayAnswer: item.word,
+      hintAnswer: item.word,
+      quickAnswerEnabled: false
+    };
+  }
+
+  return {
+    kind: "typing",
+    dataset: "n5vocab",
+    trackingId: item.id,
+    promptText: item.word,
+    helperText: "",
+    answerLabel: "Type English",
+    placeholder: "e.g. student",
+    acceptedAnswers: item.meanings,
+    answerNormalizer: "english",
+    displayAnswer: item.meanings[0],
+    hintAnswer: item.meanings[0],
+    quickAnswerEnabled: false
+  };
+}
+
+export function pickGrammarQuestion({
+  grammarData,
+  mode,
+  backlog,
+  preferredIds,
+  avoidId,
+  showHelper
+}) {
+  const resolvedMode = mode === "grammarMixed"
+    ? (Math.random() > 0.5 ? "grammarPattern" : "grammarExample")
+    : mode;
+
+  const item = pickGenericQuestion({
+    items: grammarData,
+    backlog,
+    preferredIds,
+    avoidId,
+    getItemId: (entry) => entry.id
+  });
+
+  if (resolvedMode === "grammarExample") {
+    return {
+      kind: "typing",
+      dataset: "n5grammar",
+      trackingId: item.id,
+      promptText: item.example,
+      helperText: "",
+      answerLabel: "Type Grammar Pattern",
+      placeholder: "e.g. ～てください",
+      acceptedAnswers: [item.pattern],
+      answerNormalizer: "exact",
+      displayAnswer: item.pattern,
+      hintAnswer: item.pattern,
+      quickAnswerEnabled: false
+    };
+  }
+
+  return {
+    kind: "typing",
+    dataset: "n5grammar",
+    trackingId: item.id,
+    promptText: item.pattern,
+    helperText: showHelper ? (item.example || "") : "",
+    answerLabel: "Type Meaning (English)",
+    placeholder: "e.g. please do",
+    acceptedAnswers: item.meanings,
+    answerNormalizer: "english",
+    displayAnswer: item.meanings[0],
+    hintAnswer: item.meanings[0],
+    quickAnswerEnabled: false
+  };
+}
+
+export function pickSentenceQuestion({
+  sentencesData,
+  mode,
+  backlog,
+  preferredIds,
+  avoidId
+}) {
+  const resolvedMode = mode === "sentenceMixed"
+    ? ["sentenceToEnglish", "englishToSentence", "sentenceCloze"][Math.floor(Math.random() * 3)]
+    : mode;
+
+  const item = pickGenericQuestion({
+    items: sentencesData,
+    backlog,
+    preferredIds,
+    avoidId,
+    getItemId: (entry) => entry.id
+  });
+
+  if (resolvedMode === "englishToSentence") {
+    return {
+      kind: "typing",
+      dataset: "n5sentences",
+      trackingId: item.id,
+      promptText: item.englishAnswers[0],
+      helperText: "",
+      answerLabel: "Type Japanese Sentence",
+      placeholder: "e.g. わたしはがくせいです。",
+      acceptedAnswers: [item.japanese],
+      answerNormalizer: "exact",
+      displayAnswer: item.japanese,
+      hintAnswer: item.japanese,
+      quickAnswerEnabled: false
+    };
+  }
+
+  if (resolvedMode === "sentenceCloze") {
+    return {
+      kind: "typing",
+      dataset: "n5sentences",
+      trackingId: item.id,
+      promptText: item.clozePrompt || item.japanese,
+      helperText: "",
+      answerLabel: "Fill the Blank",
+      placeholder: "e.g. は",
+      acceptedAnswers: Array.isArray(item.clozeAnswers) && item.clozeAnswers.length > 0 ? item.clozeAnswers : [item.japanese],
+      answerNormalizer: "exact",
+      displayAnswer: Array.isArray(item.clozeAnswers) && item.clozeAnswers.length > 0 ? item.clozeAnswers[0] : item.japanese,
+      hintAnswer: item.japanese,
+      quickAnswerEnabled: false
+    };
+  }
+
+  return {
+    kind: "typing",
+    dataset: "n5sentences",
+    trackingId: item.id,
+    promptText: item.japanese,
+    helperText: "",
+    answerLabel: "Type English Meaning",
+    placeholder: "e.g. I am a student.",
+    acceptedAnswers: item.englishAnswers,
+    answerNormalizer: "english",
+    displayAnswer: item.englishAnswers[0],
+    hintAnswer: item.englishAnswers[0],
     quickAnswerEnabled: false
   };
 }
@@ -380,6 +553,37 @@ export function pickKanjiQuestion({
     answerNormalizer: "english",
     displayAnswer: item.meanings[0],
     hintAnswer: item.meanings[0],
+    quickAnswerEnabled: false
+  };
+}
+
+export function pickJlptTestQuestion({
+  dataset,
+  questions,
+  backlog,
+  preferredIds,
+  avoidId
+}) {
+  const item = pickGenericQuestion({
+    items: questions,
+    backlog,
+    preferredIds,
+    avoidId,
+    getItemId: (entry) => entry.id
+  });
+
+  return {
+    kind: "typing",
+    dataset,
+    trackingId: item.id,
+    promptText: item.promptText,
+    helperText: `Section: ${item.category}`,
+    answerLabel: item.answerLabel,
+    placeholder: item.placeholder,
+    acceptedAnswers: item.acceptedAnswers,
+    answerNormalizer: item.answerNormalizer,
+    displayAnswer: item.displayAnswer,
+    hintAnswer: item.hintAnswer,
     quickAnswerEnabled: false
   };
 }

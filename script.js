@@ -353,30 +353,791 @@
   });
 
   // js/data/kanjiData.js
-  function makeKanjiEntry({ id, kanji, meanings, onyomi = [], kunyomi = [], romaji = [] }) {
+  function makeKanjiEntry({ id, kanji, meanings, onyomi = [], kunyomi = [] }) {
     return {
       id,
       kanji,
       meanings,
       onyomi,
-      kunyomi,
-      romaji
+      kunyomi
     };
   }
   var kanjiData;
   var init_kanjiData = __esm({
     "js/data/kanjiData.js"() {
       kanjiData = [
-        makeKanjiEntry({ id: "kanji-ichi", kanji: "\u4E00", meanings: ["one", "1", "single", "first"], onyomi: ["ichi"], kunyomi: ["hito(tsu)"], romaji: ["ichi", "hitotsu"] }),
-        makeKanjiEntry({ id: "kanji-ni", kanji: "\u4E8C", meanings: ["two", "2", "double", "second"], onyomi: ["ni"], kunyomi: ["futa(tsu)"], romaji: ["ni", "futatsu"] }),
-        makeKanjiEntry({ id: "kanji-san", kanji: "\u4E09", meanings: ["three", "3", "triple", "third"], onyomi: ["san"], kunyomi: ["mit(tsu)"], romaji: ["san", "mittsu"] }),
-        makeKanjiEntry({ id: "kanji-yon", kanji: "\u56DB", meanings: ["four", "4", "fourth"], onyomi: ["shi"], kunyomi: ["yon", "yo(tsu)"], romaji: ["shi", "yon", "yottsu"] }),
-        makeKanjiEntry({ id: "kanji-go", kanji: "\u4E94", meanings: ["five", "5", "fifth"], onyomi: ["go"], kunyomi: ["itsu(tsu)"], romaji: ["go", "itsutsu"] }),
-        makeKanjiEntry({ id: "kanji-roku", kanji: "\u516D", meanings: ["six", "6", "sixth"], onyomi: ["roku"], kunyomi: ["mut(tsu)"], romaji: ["roku", "muttsu"] }),
-        makeKanjiEntry({ id: "kanji-nana", kanji: "\u4E03", meanings: ["seven", "7", "seventh"], onyomi: ["shichi"], kunyomi: ["nana(tsu)"], romaji: ["shichi", "nana", "nanatsu"] }),
-        makeKanjiEntry({ id: "kanji-hachi", kanji: "\u516B", meanings: ["eight", "8", "eighth"], onyomi: ["hachi"], kunyomi: ["ya(tsu)"], romaji: ["hachi", "yattsu"] }),
-        makeKanjiEntry({ id: "kanji-kyuu", kanji: "\u4E5D", meanings: ["nine", "9", "ninth"], onyomi: ["kyuu", "ku"], kunyomi: ["kokono(tsu)"], romaji: ["kyuu", "ku", "kokonotsu"] }),
-        makeKanjiEntry({ id: "kanji-juu", kanji: "\u5341", meanings: ["ten", "10", "tenth"], onyomi: ["juu"], kunyomi: ["too"], romaji: ["juu", "too"] })
+        makeKanjiEntry({ id: "kanji-ichi", kanji: "\u4E00", meanings: ["one"], onyomi: ["ichi"], kunyomi: ["hito"] }),
+        makeKanjiEntry({ id: "kanji-ni", kanji: "\u4E8C", meanings: ["two"], onyomi: ["ni"], kunyomi: ["futa"] }),
+        makeKanjiEntry({ id: "kanji-san", kanji: "\u4E09", meanings: ["three"], onyomi: ["san"], kunyomi: ["mi"] }),
+        makeKanjiEntry({ id: "kanji-shi", kanji: "\u56DB", meanings: ["four"], onyomi: ["shi"], kunyomi: ["yon"] }),
+        makeKanjiEntry({ id: "kanji-go", kanji: "\u4E94", meanings: ["five"], onyomi: ["go"], kunyomi: ["itsu"] }),
+        makeKanjiEntry({ id: "kanji-roku", kanji: "\u516D", meanings: ["six"], onyomi: ["roku"], kunyomi: ["mut"] }),
+        makeKanjiEntry({ id: "kanji-shichi", kanji: "\u4E03", meanings: ["seven"], onyomi: ["shichi"], kunyomi: ["nana"] }),
+        makeKanjiEntry({ id: "kanji-hachi", kanji: "\u516B", meanings: ["eight"], onyomi: ["hachi"], kunyomi: ["ya"] }),
+        makeKanjiEntry({ id: "kanji-kyu", kanji: "\u4E5D", meanings: ["nine"], onyomi: ["kyu", "ku"], kunyomi: ["kokono"] }),
+        makeKanjiEntry({ id: "kanji-ju", kanji: "\u5341", meanings: ["ten"], onyomi: ["ju"], kunyomi: ["too"] }),
+        makeKanjiEntry({ id: "kanji-hyaku", kanji: "\u767E", meanings: ["hundred"], onyomi: ["hyaku"], kunyomi: ["momo"] }),
+        makeKanjiEntry({ id: "kanji-sen-thousand", kanji: "\u5343", meanings: ["thousand"], onyomi: ["sen"], kunyomi: ["chi"] }),
+        makeKanjiEntry({ id: "kanji-man", kanji: "\u4E07", meanings: ["ten thousand"], onyomi: ["man"], kunyomi: ["yorozu"] }),
+        makeKanjiEntry({ id: "kanji-en-yen", kanji: "\u5186", meanings: ["yen", "circle"], onyomi: ["en"], kunyomi: ["maru"] }),
+        makeKanjiEntry({ id: "kanji-nichi", kanji: "\u65E5", meanings: ["day", "sun"], onyomi: ["nichi"], kunyomi: ["hi"] }),
+        makeKanjiEntry({ id: "kanji-gatsu", kanji: "\u6708", meanings: ["month", "moon"], onyomi: ["gatsu"], kunyomi: ["tsuki"] }),
+        makeKanjiEntry({ id: "kanji-ka", kanji: "\u706B", meanings: ["fire"], onyomi: ["ka"], kunyomi: ["hi"] }),
+        makeKanjiEntry({ id: "kanji-sui", kanji: "\u6C34", meanings: ["water"], onyomi: ["sui"], kunyomi: ["mizu"] }),
+        makeKanjiEntry({ id: "kanji-moku", kanji: "\u6728", meanings: ["wood", "tree"], onyomi: ["moku"], kunyomi: ["ki"] }),
+        makeKanjiEntry({ id: "kanji-kin", kanji: "\u91D1", meanings: ["gold", "money"], onyomi: ["kin"], kunyomi: ["kane"] }),
+        makeKanjiEntry({ id: "kanji-do", kanji: "\u571F", meanings: ["earth", "soil"], onyomi: ["do"], kunyomi: ["tsuchi"] }),
+        makeKanjiEntry({ id: "kanji-yo", kanji: "\u66DC", meanings: ["day of week"], onyomi: ["yo"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-ji", kanji: "\u6642", meanings: ["time", "hour"], onyomi: ["ji"], kunyomi: ["toki"] }),
+        makeKanjiEntry({ id: "kanji-fun", kanji: "\u5206", meanings: ["minute", "part"], onyomi: ["fun", "bun"], kunyomi: ["wa"] }),
+        makeKanjiEntry({ id: "kanji-byou", kanji: "\u79D2", meanings: ["second"], onyomi: ["byou"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-nen", kanji: "\u5E74", meanings: ["year"], onyomi: ["nen"], kunyomi: ["toshi"] }),
+        makeKanjiEntry({ id: "kanji-shu", kanji: "\u9031", meanings: ["week"], onyomi: ["shu"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-kan", kanji: "\u9593", meanings: ["space", "between"], onyomi: ["kan"], kunyomi: ["aida", "ma"] }),
+        makeKanjiEntry({ id: "kanji-ue", kanji: "\u4E0A", meanings: ["up", "above"], onyomi: ["jo"], kunyomi: ["kami", "agaru"] }),
+        makeKanjiEntry({ id: "kanji-shita", kanji: "\u4E0B", meanings: ["down", "below"], onyomi: ["ka", "ge"], kunyomi: ["shita", "oriru"] }),
+        makeKanjiEntry({ id: "kanji-hidari", kanji: "\u5DE6", meanings: ["left"], onyomi: ["sa"], kunyomi: ["hidari"] }),
+        makeKanjiEntry({ id: "kanji-migi", kanji: "\u53F3", meanings: ["right"], onyomi: ["u"], kunyomi: ["migi"] }),
+        makeKanjiEntry({ id: "kanji-chu", kanji: "\u4E2D", meanings: ["middle", "inside"], onyomi: ["chu"], kunyomi: ["naka"] }),
+        makeKanjiEntry({ id: "kanji-mae", kanji: "\u524D", meanings: ["front", "before"], onyomi: ["zen"], kunyomi: ["mae"] }),
+        makeKanjiEntry({ id: "kanji-ushiro", kanji: "\u5F8C", meanings: ["back", "after"], onyomi: ["go", "ko"], kunyomi: ["ushiro"] }),
+        makeKanjiEntry({ id: "kanji-higashi", kanji: "\u6771", meanings: ["east"], onyomi: ["to"], kunyomi: ["higashi"] }),
+        makeKanjiEntry({ id: "kanji-nishi", kanji: "\u897F", meanings: ["west"], onyomi: ["sei"], kunyomi: ["nishi"] }),
+        makeKanjiEntry({ id: "kanji-minami", kanji: "\u5357", meanings: ["south"], onyomi: ["nan"], kunyomi: ["minami"] }),
+        makeKanjiEntry({ id: "kanji-kita", kanji: "\u5317", meanings: ["north"], onyomi: ["hoku"], kunyomi: ["kita"] }),
+        makeKanjiEntry({ id: "kanji-dai", kanji: "\u5927", meanings: ["big", "large"], onyomi: ["dai"], kunyomi: ["ookii"] }),
+        makeKanjiEntry({ id: "kanji-sho", kanji: "\u5C0F", meanings: ["small", "little"], onyomi: ["sho"], kunyomi: ["chiisai"] }),
+        makeKanjiEntry({ id: "kanji-taka", kanji: "\u9AD8", meanings: ["high", "tall"], onyomi: ["ko"], kunyomi: ["takai"] }),
+        makeKanjiEntry({ id: "kanji-tei", kanji: "\u4F4E", meanings: ["low"], onyomi: ["tei"], kunyomi: ["hikui"] }),
+        makeKanjiEntry({ id: "kanji-naga", kanji: "\u9577", meanings: ["long"], onyomi: ["cho"], kunyomi: ["nagai"] }),
+        makeKanjiEntry({ id: "kanji-tan", kanji: "\u77ED", meanings: ["short"], onyomi: ["tan"], kunyomi: ["mijikai"] }),
+        makeKanjiEntry({ id: "kanji-shin", kanji: "\u65B0", meanings: ["new"], onyomi: ["shin"], kunyomi: ["atarashii"] }),
+        makeKanjiEntry({ id: "kanji-ko-old", kanji: "\u53E4", meanings: ["old"], onyomi: ["ko"], kunyomi: ["furui"] }),
+        makeKanjiEntry({ id: "kanji-oku", kanji: "\u591A", meanings: ["many", "much"], onyomi: ["ta"], kunyomi: ["ooi"] }),
+        makeKanjiEntry({ id: "kanji-shou", kanji: "\u5C11", meanings: ["few", "little"], onyomi: ["sho"], kunyomi: ["sukunai"] }),
+        makeKanjiEntry({ id: "kanji-ko-like", kanji: "\u597D", meanings: ["like", "prefer"], onyomi: ["ko"], kunyomi: ["suki", "konomi"] }),
+        makeKanjiEntry({ id: "kanji-aku", kanji: "\u60AA", meanings: ["bad", "evil"], onyomi: ["aku"], kunyomi: ["warui"] }),
+        makeKanjiEntry({ id: "kanji-otoko", kanji: "\u7537", meanings: ["man", "male"], onyomi: ["dan"], kunyomi: ["otoko"] }),
+        makeKanjiEntry({ id: "kanji-onna", kanji: "\u5973", meanings: ["woman", "female"], onyomi: ["jo"], kunyomi: ["onna"] }),
+        makeKanjiEntry({ id: "kanji-ko-child", kanji: "\u5B50", meanings: ["child"], onyomi: ["shi"], kunyomi: ["ko"] }),
+        makeKanjiEntry({ id: "kanji-nin", kanji: "\u4EBA", meanings: ["person"], onyomi: ["jin", "nin"], kunyomi: ["hito"] }),
+        makeKanjiEntry({ id: "kanji-gaku", kanji: "\u5B66", meanings: ["study", "school"], onyomi: ["gaku"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-sei", kanji: "\u751F", meanings: ["life", "birth", "student"], onyomi: ["sei"], kunyomi: ["nama", "umareru"] }),
+        makeKanjiEntry({ id: "kanji-sen-ahead", kanji: "\u5148", meanings: ["before", "ahead"], onyomi: ["sen"], kunyomi: ["saki"] }),
+        makeKanjiEntry({ id: "kanji-haha", kanji: "\u6BCD", meanings: ["mother"], onyomi: ["bo"], kunyomi: ["haha"] }),
+        makeKanjiEntry({ id: "kanji-chichi", kanji: "\u7236", meanings: ["father"], onyomi: ["fu"], kunyomi: ["chichi"] }),
+        makeKanjiEntry({ id: "kanji-ani", kanji: "\u5144", meanings: ["older brother"], onyomi: ["kei"], kunyomi: ["ani"] }),
+        makeKanjiEntry({ id: "kanji-ototo", kanji: "\u5F1F", meanings: ["younger brother"], onyomi: ["tei"], kunyomi: ["ototo"] }),
+        makeKanjiEntry({ id: "kanji-ane", kanji: "\u59C9", meanings: ["older sister"], onyomi: ["shi"], kunyomi: ["ane"] }),
+        makeKanjiEntry({ id: "kanji-imoto", kanji: "\u59B9", meanings: ["younger sister"], onyomi: ["mai"], kunyomi: ["imoto"] }),
+        makeKanjiEntry({ id: "kanji-ie", kanji: "\u5BB6", meanings: ["house", "home", "family"], onyomi: ["ka"], kunyomi: ["ie", "uchi"] }),
+        makeKanjiEntry({ id: "kanji-ai", kanji: "\u4F1A", meanings: ["meet", "association"], onyomi: ["kai"], kunyomi: ["au"] }),
+        makeKanjiEntry({ id: "kanji-sha", kanji: "\u793E", meanings: ["company", "society"], onyomi: ["sha"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-mise", kanji: "\u5E97", meanings: ["store", "shop"], onyomi: ["ten"], kunyomi: ["mise"] }),
+        makeKanjiEntry({ id: "kanji-yama", kanji: "\u5C71", meanings: ["mountain"], onyomi: ["san"], kunyomi: ["yama"] }),
+        makeKanjiEntry({ id: "kanji-kawa", kanji: "\u5DDD", meanings: ["river"], onyomi: ["sen"], kunyomi: ["kawa"] }),
+        makeKanjiEntry({ id: "kanji-umi", kanji: "\u6D77", meanings: ["sea", "ocean"], onyomi: ["kai"], kunyomi: ["umi"] }),
+        makeKanjiEntry({ id: "kanji-hayashi", kanji: "\u6797", meanings: ["forest", "woods"], onyomi: ["rin"], kunyomi: ["hayashi"] }),
+        makeKanjiEntry({ id: "kanji-mori", kanji: "\u68EE", meanings: ["forest"], onyomi: ["shin"], kunyomi: ["mori"] }),
+        makeKanjiEntry({ id: "kanji-ko-public", kanji: "\u516C", meanings: ["public"], onyomi: ["ko"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-en-park", kanji: "\u5712", meanings: ["garden", "park"], onyomi: ["en"], kunyomi: ["sono"] }),
+        makeKanjiEntry({ id: "kanji-ike", kanji: "\u6C60", meanings: ["pond"], onyomi: ["chi"], kunyomi: ["ike"] }),
+        makeKanjiEntry({ id: "kanji-hashi", kanji: "\u6A4B", meanings: ["bridge"], onyomi: ["kyo"], kunyomi: ["hashi"] }),
+        makeKanjiEntry({ id: "kanji-eki", kanji: "\u99C5", meanings: ["station"], onyomi: ["eki"], kunyomi: [] }),
+        makeKanjiEntry({ id: "kanji-michi", kanji: "\u9053", meanings: ["road", "way", "path"], onyomi: ["do"], kunyomi: ["michi"] }),
+        makeKanjiEntry({ id: "kanji-taberu", kanji: "\u98DF", meanings: ["eat", "food"], onyomi: ["shoku"], kunyomi: ["taberu", "kuu"] }),
+        makeKanjiEntry({ id: "kanji-nomu", kanji: "\u98F2", meanings: ["drink"], onyomi: ["in"], kunyomi: ["nomu"] }),
+        makeKanjiEntry({ id: "kanji-hanasu", kanji: "\u8A71", meanings: ["talk", "speak"], onyomi: ["wa"], kunyomi: ["hanasu", "hanashi"] }),
+        makeKanjiEntry({ id: "kanji-kiku", kanji: "\u805E", meanings: ["hear", "listen"], onyomi: ["bun"], kunyomi: ["kiku"] })
+      ];
+    }
+  });
+
+  // js/data/n4KanjiData.js
+  function makeKanjiEntry2({ id, kanji, meanings, onyomi = [], kunyomi = [] }) {
+    return {
+      id,
+      kanji,
+      meanings,
+      onyomi,
+      kunyomi
+    };
+  }
+  var n4KanjiData;
+  var init_n4KanjiData = __esm({
+    "js/data/n4KanjiData.js"() {
+      n4KanjiData = [
+        makeKanjiEntry2({ id: "kanji-n4-fu", kanji: "\u4E0D", meanings: ["not", "non"] }),
+        makeKanjiEntry2({ id: "kanji-n4-se", kanji: "\u4E16", meanings: ["world", "generation"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shu", kanji: "\u4E3B", meanings: ["main", "master"] }),
+        makeKanjiEntry2({ id: "kanji-n4-jo", kanji: "\u4E57", meanings: ["ride", "board"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ji", kanji: "\u4E8B", meanings: ["thing", "matter"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyo", kanji: "\u4EAC", meanings: ["capital"] }),
+        makeKanjiEntry2({ id: "kanji-n4-dai", kanji: "\u4EE3", meanings: ["generation", "substitute"] }),
+        makeKanjiEntry2({ id: "kanji-n4-i", kanji: "\u4EE5", meanings: ["by means of", "since"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tei", kanji: "\u4F4E", meanings: ["low"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ju", kanji: "\u4F4F", meanings: ["live", "reside"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi", kanji: "\u4F7F", meanings: ["use"] }),
+        makeKanjiEntry2({ id: "kanji-n4-rei", kanji: "\u4F8B", meanings: ["example"] }),
+        makeKanjiEntry2({ id: "kanji-n4-bin", kanji: "\u4FBF", meanings: ["convenience", "mail"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin", kanji: "\u4FE1", meanings: ["trust", "believe"] }),
+        makeKanjiEntry2({ id: "kanji-n4-so", kanji: "\u5009", meanings: ["warehouse"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shaku", kanji: "\u501F", meanings: ["borrow"] }),
+        makeKanjiEntry2({ id: "kanji-n4-do", kanji: "\u50CD", meanings: ["work"] }),
+        makeKanjiEntry2({ id: "kanji-n4-gen", kanji: "\u5143", meanings: ["origin", "former"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyo2", kanji: "\u5144", meanings: ["older brother"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ko", kanji: "\u5149", meanings: ["light"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sha", kanji: "\u5199", meanings: ["copy", "photograph"] }),
+        makeKanjiEntry2({ id: "kanji-n4-to", kanji: "\u51AC", meanings: ["winter"] }),
+        makeKanjiEntry2({ id: "kanji-n4-setsu", kanji: "\u5207", meanings: ["cut", "important"] }),
+        makeKanjiEntry2({ id: "kanji-n4-betsu", kanji: "\u5225", meanings: ["separate", "different"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ryoku", kanji: "\u529B", meanings: ["power", "strength"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ben2", kanji: "\u52C9", meanings: ["diligence"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ka", kanji: "\u5316", meanings: ["change", "transform"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ku", kanji: "\u533A", meanings: ["district", "ward"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sotsu", kanji: "\u5352", meanings: ["graduate"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyo3", kanji: "\u5354", meanings: ["cooperate"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tan", kanji: "\u5358", meanings: ["simple", "single"] }),
+        makeKanjiEntry2({ id: "kanji-n4-san", kanji: "\u53C2", meanings: ["participate", "visit"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ju2", kanji: "\u53D7", meanings: ["receive"] }),
+        makeKanjiEntry2({ id: "kanji-n4-go", kanji: "\u53F7", meanings: ["number", "issue"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kaku", kanji: "\u5404", meanings: ["each", "every"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ko2", kanji: "\u5411", meanings: ["facing", "toward"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kun", kanji: "\u541B", meanings: ["you", "lord"] }),
+        makeKanjiEntry2({ id: "kanji-n4-mi", kanji: "\u5473", meanings: ["taste", "flavor"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sho", kanji: "\u5546", meanings: ["commerce", "trade"] }),
+        makeKanjiEntry2({ id: "kanji-n4-mon", kanji: "\u554F", meanings: ["question", "ask"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kai", kanji: "\u56DE", meanings: ["times", "rotate"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kon", kanji: "\u56F0", meanings: ["troubled", "\u56F0\u308B"] }),
+        makeKanjiEntry2({ id: "kanji-n4-zu", kanji: "\u56F3", meanings: ["diagram", "plan"] }),
+        makeKanjiEntry2({ id: "kanji-n4-chi", kanji: "\u5730", meanings: ["ground", "earth"] }),
+        makeKanjiEntry2({ id: "kanji-n4-do2", kanji: "\u5802", meanings: ["hall"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ba", kanji: "\u5834", meanings: ["place", "scene"] }),
+        makeKanjiEntry2({ id: "kanji-n4-koe", kanji: "\u58F0", meanings: ["voice"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hen", kanji: "\u5909", meanings: ["change", "strange"] }),
+        makeKanjiEntry2({ id: "kanji-n4-fu2", kanji: "\u592B", meanings: ["husband"] }),
+        makeKanjiEntry2({ id: "kanji-n4-oku", kanji: "\u5965", meanings: ["inner", "deep"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ko3", kanji: "\u597D", meanings: ["like", "fond"] }),
+        makeKanjiEntry2({ id: "kanji-n4-jo2", kanji: "\u5A18", meanings: ["daughter", "young woman"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ki", kanji: "\u5B63", meanings: ["season"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tei2", kanji: "\u5B9A", meanings: ["decide", "fixed"] }),
+        makeKanjiEntry2({ id: "kanji-n4-jitsu", kanji: "\u5B9F", meanings: ["real", "truth"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyaku", kanji: "\u5BA2", meanings: ["guest", "customer"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyu", kanji: "\u5BAE", meanings: ["shrine", "palace"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shuku", kanji: "\u5BBF", meanings: ["inn", "lodge"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kan", kanji: "\u5BD2", meanings: ["cold"] }),
+        makeKanjiEntry2({ id: "kanji-n4-oku2", kanji: "\u5C4B", meanings: ["shop", "roof"] }),
+        makeKanjiEntry2({ id: "kanji-n4-gan", kanji: "\u5CB8", meanings: ["shore", "coast"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi2", kanji: "\u5E02", meanings: ["city", "market"] }),
+        makeKanjiEntry2({ id: "kanji-n4-seki", kanji: "\u5E2D", meanings: ["seat"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ki2", kanji: "\u5E30", meanings: ["return", "go home"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ko4", kanji: "\u5E83", meanings: ["wide", "broad"] }),
+        makeKanjiEntry2({ id: "kanji-n4-do3", kanji: "\u5EA6", meanings: ["degree", "times"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tei3", kanji: "\u5EAD", meanings: ["garden"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ken", kanji: "\u5EFA", meanings: ["build"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tai", kanji: "\u5F85", meanings: ["wait"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyu2", kanji: "\u6025", meanings: ["hurry", "urgent"] }),
+        makeKanjiEntry2({ id: "kanji-n4-aku", kanji: "\u60AA", meanings: ["bad"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hi", kanji: "\u60B2", meanings: ["sad"] }),
+        makeKanjiEntry2({ id: "kanji-n4-so2", kanji: "\u60F3", meanings: ["think", "idea"] }),
+        makeKanjiEntry2({ id: "kanji-n4-i2", kanji: "\u610F", meanings: ["meaning", "intention"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kan2", kanji: "\u611F", meanings: ["feeling"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sho2", kanji: "\u6240", meanings: ["place"] }),
+        makeKanjiEntry2({ id: "kanji-n4-da", kanji: "\u6253", meanings: ["hit"] }),
+        makeKanjiEntry2({ id: "kanji-n4-to2", kanji: "\u6295", meanings: ["throw"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ju3", kanji: "\u62FE", meanings: ["pick up"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ji2", kanji: "\u6301", meanings: ["hold", "have"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi3", kanji: "\u6307", meanings: ["finger", "point"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ho", kanji: "\u653E", meanings: ["release", "let go"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ryo", kanji: "\u65C5", meanings: ["travel"] }),
+        makeKanjiEntry2({ id: "kanji-n4-zoku", kanji: "\u65CF", meanings: ["tribe", "family"] }),
+        makeKanjiEntry2({ id: "kanji-n4-seki2", kanji: "\u6614", meanings: ["old times", "past"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sho3", kanji: "\u6691", meanings: ["hot", "heat"] }),
+        makeKanjiEntry2({ id: "kanji-n4-an", kanji: "\u6697", meanings: ["dark"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yo", kanji: "\u66DC", meanings: ["day of week"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yu", kanji: "\u6709", meanings: ["have", "exist"] }),
+        makeKanjiEntry2({ id: "kanji-n4-fuku", kanji: "\u670D", meanings: ["clothes"] }),
+        makeKanjiEntry2({ id: "kanji-n4-cho", kanji: "\u671D", meanings: ["morning"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ki3", kanji: "\u671F", meanings: ["period", "term"] }),
+        makeKanjiEntry2({ id: "kanji-n4-son", kanji: "\u6751", meanings: ["village"] }),
+        makeKanjiEntry2({ id: "kanji-n4-rin", kanji: "\u6797", meanings: ["woods"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sen", kanji: "\u67D3", meanings: ["dye", "stain"] }),
+        makeKanjiEntry2({ id: "kanji-n4-chu", kanji: "\u67F1", meanings: ["pillar"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kon2", kanji: "\u6839", meanings: ["root"] }),
+        makeKanjiEntry2({ id: "kanji-n4-bai", kanji: "\u6885", meanings: ["plum"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin2", kanji: "\u68EE", meanings: ["forest"] }),
+        makeKanjiEntry2({ id: "kanji-n4-gyo", kanji: "\u696D", meanings: ["business", "work"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sama", kanji: "\u69D8", meanings: ["manner", "appearance"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ou", kanji: "\u6A2A", meanings: ["side", "horizontal"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyo4", kanji: "\u6A4B", meanings: ["bridge"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi4", kanji: "\u6B6F", meanings: ["tooth"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi5", kanji: "\u6C0F", meanings: ["surname", "clan"] }),
+        makeKanjiEntry2({ id: "kanji-n4-min", kanji: "\u6C11", meanings: ["people", "nation"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ketsu", kanji: "\u6C7A", meanings: ["decide"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yo2", kanji: "\u6D0B", meanings: ["ocean", "western"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sen2", kanji: "\u6D17", meanings: ["wash"] }),
+        makeKanjiEntry2({ id: "kanji-n4-chu2", kanji: "\u6CE8", meanings: ["pour", "focus"] }),
+        makeKanjiEntry2({ id: "kanji-n4-katsu", kanji: "\u6D3B", meanings: ["active", "life"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin3", kanji: "\u6DF1", meanings: ["deep"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sai", kanji: "\u6E08", meanings: ["finish", "settle"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ko5", kanji: "\u6E2F", meanings: ["harbor"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ko6", kanji: "\u6E56", meanings: ["lake"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yu2", kanji: "\u6E6F", meanings: ["hot water"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kan3", kanji: "\u6F22", meanings: ["Chinese", "Han"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ten", kanji: "\u70B9", meanings: ["point", "dot"] }),
+        makeKanjiEntry2({ id: "kanji-n4-mu", kanji: "\u7121", meanings: ["nothing", "none"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sho4", kanji: "\u713C", meanings: ["burn", "bake"] }),
+        makeKanjiEntry2({ id: "kanji-n4-nen", kanji: "\u7136", meanings: ["so", "natural"] }),
+        makeKanjiEntry2({ id: "kanji-n4-toku", kanji: "\u7279", meanings: ["special"] }),
+        makeKanjiEntry2({ id: "kanji-n4-neko", kanji: "\u732B", meanings: ["cat"] }),
+        makeKanjiEntry2({ id: "kanji-n4-gyoku", kanji: "\u7389", meanings: ["ball", "jewel"] }),
+        makeKanjiEntry2({ id: "kanji-n4-san2", kanji: "\u7523", meanings: ["produce", "product"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yo3", kanji: "\u7528", meanings: ["use"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ta", kanji: "\u7530", meanings: ["rice field"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin4", kanji: "\u7533", meanings: ["say", "state"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kai2", kanji: "\u754C", meanings: ["world", "boundary"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hata", kanji: "\u7551", meanings: ["farm", "field"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hatsu", kanji: "\u767A", meanings: ["depart", "emit"] }),
+        makeKanjiEntry2({ id: "kanji-n4-to2b", kanji: "\u767B", meanings: ["climb", "register"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kai3", kanji: "\u7686", meanings: ["everyone", "all"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sara", kanji: "\u76BF", meanings: ["plate"] }),
+        makeKanjiEntry2({ id: "kanji-n4-so3", kanji: "\u76F8", meanings: ["mutual", "phase"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ken2", kanji: "\u770C", meanings: ["prefecture"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin5", kanji: "\u771F", meanings: ["true"] }),
+        makeKanjiEntry2({ id: "kanji-n4-chaku", kanji: "\u7740", meanings: ["arrive", "wear"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tan2", kanji: "\u77ED", meanings: ["short"] }),
+        makeKanjiEntry2({ id: "kanji-n4-seki3", kanji: "\u77F3", meanings: ["stone"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ken3", kanji: "\u7814", meanings: ["sharpen", "study"] }),
+        makeKanjiEntry2({ id: "kanji-n4-rei2", kanji: "\u793C", meanings: ["thanks", "courtesy"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin6", kanji: "\u795E", meanings: ["god", "spirit"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sai2", kanji: "\u796D", meanings: ["festival"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kin", kanji: "\u7981", meanings: ["forbid", "ban"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi6", kanji: "\u79C1", meanings: ["I", "private"] }),
+        makeKanjiEntry2({ id: "kanji-n4-aki", kanji: "\u79CB", meanings: ["autumn"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ka2", kanji: "\u79D1", meanings: ["department", "course"] }),
+        makeKanjiEntry2({ id: "kanji-n4-to3", kanji: "\u7B54", meanings: ["answer"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hako", kanji: "\u7BB1", meanings: ["box"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyu3", kanji: "\u7D1A", meanings: ["grade", "class"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shu2", kanji: "\u7D42", meanings: ["end", "finish"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ren", kanji: "\u7DF4", meanings: ["practice", "train"] }),
+        makeKanjiEntry2({ id: "kanji-n4-chi2", kanji: "\u7F6E", meanings: ["put", "place"] }),
+        makeKanjiEntry2({ id: "kanji-n4-bi", kanji: "\u7F8E", meanings: ["beauty", "beautiful"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shu3", kanji: "\u7FD2", meanings: ["learn", "practice"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sha2", kanji: "\u8005", meanings: ["person"] }),
+        makeKanjiEntry2({ id: "kanji-n4-iku", kanji: "\u80B2", meanings: ["raise", "grow"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ku2", kanji: "\u82E6", meanings: ["pain", "suffer"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ka3", kanji: "\u8377", meanings: ["luggage", "load"] }),
+        makeKanjiEntry2({ id: "kanji-n4-raku", kanji: "\u843D", meanings: ["fall", "drop"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yo4", kanji: "\u8449", meanings: ["leaf"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yaku", kanji: "\u85AC", meanings: ["medicine"] }),
+        makeKanjiEntry2({ id: "kanji-n4-zo", kanji: "\u8535", meanings: ["storehouse"] }),
+        makeKanjiEntry2({ id: "kanji-n4-jutsu", kanji: "\u8853", meanings: ["art", "technique"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yo5", kanji: "\u8981", meanings: ["need", "important"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kaku2", kanji: "\u899A", meanings: ["remember", "wake"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin7", kanji: "\u89AA", meanings: ["parent", "close"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kei", kanji: "\u8A08", meanings: ["measure", "plan"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kyo5", kanji: "\u8A31", meanings: ["permit", "allow"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shi7", kanji: "\u8A66", meanings: ["test", "try"] }),
+        makeKanjiEntry2({ id: "kanji-n4-setsu2", kanji: "\u8AAC", meanings: ["explain", "theory"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tai2", kanji: "\u8CB8", meanings: ["lend"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shitsu", kanji: "\u8CEA", meanings: ["quality", "nature"] }),
+        makeKanjiEntry2({ id: "kanji-n4-aka", kanji: "\u8D64", meanings: ["red"] }),
+        makeKanjiEntry2({ id: "kanji-n4-so4", kanji: "\u8D70", meanings: ["run"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ki4", kanji: "\u8D77", meanings: ["wake", "rise"] }),
+        makeKanjiEntry2({ id: "kanji-n4-cho2", kanji: "\u8D85", meanings: ["super", "exceed"] }),
+        makeKanjiEntry2({ id: "kanji-n4-soku", kanji: "\u8DB3", meanings: ["foot", "enough"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ro", kanji: "\u8DEF", meanings: ["road", "route"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ten2", kanji: "\u8EE2", meanings: ["turn", "roll"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kei2", kanji: "\u8EFD", meanings: ["light", "easy"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kin2", kanji: "\u8FD1", meanings: ["near"] }),
+        makeKanjiEntry2({ id: "kanji-n4-so5", kanji: "\u9001", meanings: ["send"] }),
+        makeKanjiEntry2({ id: "kanji-n4-soku2", kanji: "\u901F", meanings: ["fast", "quick"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shin8", kanji: "\u9032", meanings: ["advance", "proceed"] }),
+        makeKanjiEntry2({ id: "kanji-n4-chi3", kanji: "\u9045", meanings: ["late", "slow"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yu3", kanji: "\u904A", meanings: ["play", "visit"] }),
+        makeKanjiEntry2({ id: "kanji-n4-un", kanji: "\u904B", meanings: ["carry", "luck"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tatsu", kanji: "\u9054", meanings: ["attain", "plural suffix"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sen3", kanji: "\u9078", meanings: ["select", "choose"] }),
+        makeKanjiEntry2({ id: "kanji-n4-to3b", kanji: "\u90FD", meanings: ["metropolis", "capital"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hai", kanji: "\u914D", meanings: ["distribute"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shu4", kanji: "\u9152", meanings: ["alcohol", "sake"] }),
+        makeKanjiEntry2({ id: "kanji-n4-ju4", kanji: "\u91CD", meanings: ["heavy", "important"] }),
+        makeKanjiEntry2({ id: "kanji-n4-tetsu", kanji: "\u9244", meanings: ["iron"] }),
+        makeKanjiEntry2({ id: "kanji-n4-gin", kanji: "\u9280", meanings: ["silver"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kai4", kanji: "\u958B", meanings: ["open"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kan4", kanji: "\u95A2", meanings: ["barrier", "relation"] }),
+        makeKanjiEntry2({ id: "kanji-n4-riku", kanji: "\u9678", meanings: ["land", "shore"] }),
+        makeKanjiEntry2({ id: "kanji-n4-yo6", kanji: "\u967D", meanings: ["sun", "positive"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shu5", kanji: "\u96C6", meanings: ["gather", "collect"] }),
+        makeKanjiEntry2({ id: "kanji-n4-den", kanji: "\u96FB", meanings: ["electricity"] }),
+        makeKanjiEntry2({ id: "kanji-n4-sei", kanji: "\u9759", meanings: ["quiet"] }),
+        makeKanjiEntry2({ id: "kanji-n4-jun", kanji: "\u9806", meanings: ["order", "obey"] }),
+        makeKanjiEntry2({ id: "kanji-n4-gan2", kanji: "\u9858", meanings: ["wish", "request"] }),
+        makeKanjiEntry2({ id: "kanji-n4-rui", kanji: "\u985E", meanings: ["kind", "type"] }),
+        makeKanjiEntry2({ id: "kanji-n4-hi2", kanji: "\u98DB", meanings: ["fly"] }),
+        makeKanjiEntry2({ id: "kanji-n4-kan5", kanji: "\u9928", meanings: ["building", "hall"] }),
+        makeKanjiEntry2({ id: "kanji-n4-shu6", kanji: "\u9996", meanings: ["neck", "head"] }),
+        makeKanjiEntry2({ id: "kanji-n4-eki", kanji: "\u99C5", meanings: ["station"] })
+      ];
+    }
+  });
+
+  // js/data/n4VocabData.js
+  function makeN4VocabEntry({ id, word, meanings, category = "core" }) {
+    return { id, word, meanings, category };
+  }
+  var n4VocabData;
+  var init_n4VocabData = __esm({
+    "js/data/n4VocabData.js"() {
+      n4VocabData = [
+        makeN4VocabEntry({ id: "n4vocab-001", word: "\u3042\u3093\u3057\u3093", meanings: ["relief", "peace of mind"], category: "feelings" }),
+        makeN4VocabEntry({ id: "n4vocab-002", word: "\u3042\u3093\u306A\u3044", meanings: ["guidance", "information"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-003", word: "\u3044\u3061\u3069", meanings: ["once"], category: "time" }),
+        makeN4VocabEntry({ id: "n4vocab-004", word: "\u3044\u3063\u3071\u3044", meanings: ["full", "a lot"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-005", word: "\u3046\u3051\u3064\u3051", meanings: ["reception desk"], category: "places" }),
+        makeN4VocabEntry({ id: "n4vocab-006", word: "\u3046\u308A\u3070", meanings: ["sales floor", "department"], category: "places" }),
+        makeN4VocabEntry({ id: "n4vocab-007", word: "\u304A\u3044\u308F\u3044", meanings: ["celebration"], category: "people" }),
+        makeN4VocabEntry({ id: "n4vocab-008", word: "\u304A\u3055\u304D\u306B", meanings: ["before you", "excuse me for leaving first"], category: "polite" }),
+        makeN4VocabEntry({ id: "n4vocab-009", word: "\u304A\u307F\u307E\u3044", meanings: ["visiting someone who is sick"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-010", word: "\u304B\u306A\u3089\u305A", meanings: ["without fail", "certainly"], category: "adverbs" }),
+        makeN4VocabEntry({ id: "n4vocab-011", word: "\u304B\u308F\u308A", meanings: ["substitute", "replacement"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-012", word: "\u304D\u3053\u304F", meanings: ["return to one's country"], category: "travel" }),
+        makeN4VocabEntry({ id: "n4vocab-013", word: "\u304D\u3085\u3046\u306B", meanings: ["suddenly"], category: "adverbs" }),
+        makeN4VocabEntry({ id: "n4vocab-014", word: "\u304D\u3087\u3046\u307F", meanings: ["interest"], category: "feelings" }),
+        makeN4VocabEntry({ id: "n4vocab-015", word: "\u304F\u3046\u3053\u3046", meanings: ["airport"], category: "travel" }),
+        makeN4VocabEntry({ id: "n4vocab-016", word: "\u3050\u3042\u3044", meanings: ["condition", "state of health"], category: "health" }),
+        makeN4VocabEntry({ id: "n4vocab-017", word: "\u3051\u3044\u3051\u3093", meanings: ["experience"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-018", word: "\u3051\u3057\u304D", meanings: ["scenery", "landscape"], category: "nature" }),
+        makeN4VocabEntry({ id: "n4vocab-019", word: "\u3051\u3063\u3053\u3093\u3057\u304D", meanings: ["wedding ceremony"], category: "events" }),
+        makeN4VocabEntry({ id: "n4vocab-020", word: "\u3053\u3046\u3058\u3087\u3046", meanings: ["factory"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-021", word: "\u3053\u3046\u3064\u3046", meanings: ["traffic", "transportation"], category: "travel" }),
+        makeN4VocabEntry({ id: "n4vocab-022", word: "\u3053\u3057\u3087\u3046", meanings: ["breakdown", "failure"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-023", word: "\u3054\u307F\u3070\u3053", meanings: ["trash can"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-024", word: "\u3055\u304B", meanings: ["slope", "hill"], category: "places" }),
+        makeN4VocabEntry({ id: "n4vocab-025", word: "\u3058\u3053", meanings: ["accident"], category: "events" }),
+        makeN4VocabEntry({ id: "n4vocab-026", word: "\u3057\u3064\u3082\u3093", meanings: ["question"], category: "school" }),
+        makeN4VocabEntry({ id: "n4vocab-027", word: "\u3057\u306A\u3082\u306E", meanings: ["goods", "article"], category: "shopping" }),
+        makeN4VocabEntry({ id: "n4vocab-028", word: "\u3057\u3083\u3061\u3087\u3046", meanings: ["company president"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-029", word: "\u3057\u3085\u3046\u304B\u3093", meanings: ["habit", "custom"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-030", word: "\u3057\u3085\u3063\u3071\u3064", meanings: ["departure"], category: "travel" }),
+        makeN4VocabEntry({ id: "n4vocab-031", word: "\u3057\u3087\u3046\u304B\u3044", meanings: ["introduction"], category: "people" }),
+        makeN4VocabEntry({ id: "n4vocab-032", word: "\u3057\u3087\u304F\u3069\u3046", meanings: ["cafeteria", "dining hall"], category: "food" }),
+        makeN4VocabEntry({ id: "n4vocab-033", word: "\u3057\u308A\u3087\u3046", meanings: ["materials", "documents"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-034", word: "\u3058\u3085\u304E\u3087\u3046", meanings: ["class", "lesson"], category: "school" }),
+        makeN4VocabEntry({ id: "n4vocab-035", word: "\u3057\u3085\u307F", meanings: ["hobby"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-036", word: "\u3057\u3087\u3046\u304C\u3064", meanings: ["New Year"], category: "events" }),
+        makeN4VocabEntry({ id: "n4vocab-037", word: "\u3057\u3087\u3046\u3089\u3044", meanings: ["future"], category: "time" }),
+        makeN4VocabEntry({ id: "n4vocab-038", word: "\u3058\u3087\u3046\u307B\u3046", meanings: ["information"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-039", word: "\u3057\u3087\u308B\u3044", meanings: ["documents"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-040", word: "\u305B\u3044\u304B\u3064", meanings: ["life", "living"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-041", word: "\u305B\u304D\u306B\u3093", meanings: ["responsibility"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-042", word: "\u305B\u3064\u3081\u3044", meanings: ["explanation"], category: "school" }),
+        makeN4VocabEntry({ id: "n4vocab-043", word: "\u305B\u3093\u305F\u304F\u304D", meanings: ["washing machine"], category: "home" }),
+        makeN4VocabEntry({ id: "n4vocab-044", word: "\u305D\u3046\u3058", meanings: ["cleaning"], category: "home" }),
+        makeN4VocabEntry({ id: "n4vocab-045", word: "\u305D\u3064\u304E\u3087\u3046", meanings: ["graduation"], category: "school" }),
+        makeN4VocabEntry({ id: "n4vocab-046", word: "\u305F\u3044\u305B\u3064", meanings: ["important", "valuable"], category: "adjectives" }),
+        makeN4VocabEntry({ id: "n4vocab-047", word: "\u305F\u3044\u3066\u3044", meanings: ["usually", "mostly"], category: "adverbs" }),
+        makeN4VocabEntry({ id: "n4vocab-048", word: "\u305F\u3057\u304B", meanings: ["certain", "if I remember correctly"], category: "adverbs" }),
+        makeN4VocabEntry({ id: "n4vocab-049", word: "\u3060\u3093\u3060\u3093", meanings: ["gradually"], category: "adverbs" }),
+        makeN4VocabEntry({ id: "n4vocab-050", word: "\u3061\u3085\u3046\u3044", meanings: ["care", "caution"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-051", word: "\u3064\u3046\u304D\u3093", meanings: ["commuting"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-052", word: "\u3064\u3054\u3046", meanings: ["convenience", "circumstances"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-053", word: "\u3066\u3064\u3060\u3044", meanings: ["help", "assistant"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-054", word: "\u3067\u3093\u304D", meanings: ["electricity", "light"], category: "home" }),
+        makeN4VocabEntry({ id: "n4vocab-055", word: "\u3067\u3093\u308F\u3070\u3093\u3054\u3046", meanings: ["telephone number"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-056", word: "\u3069\u3046\u3050", meanings: ["tool", "equipment"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-057", word: "\u3068\u304F\u3044", meanings: ["good at", "one's forte"], category: "feelings" }),
+        makeN4VocabEntry({ id: "n4vocab-058", word: "\u3068\u304F\u3079\u3064", meanings: ["special"], category: "adjectives" }),
+        makeN4VocabEntry({ id: "n4vocab-059", word: "\u3068\u3061\u3085\u3046", meanings: ["on the way"], category: "time" }),
+        makeN4VocabEntry({ id: "n4vocab-060", word: "\u306A\u304A\u3059", meanings: ["fix", "repair", "correct"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-061", word: "\u306A\u308C\u308B", meanings: ["get used to", "become accustomed"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-062", word: "\u306B\u3042\u3046", meanings: ["suit", "look good on"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-063", word: "\u306C\u308C\u308B", meanings: ["get wet"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-064", word: "\u306D\u307C\u3046", meanings: ["oversleeping"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-065", word: "\u306E\u3053\u308B", meanings: ["remain", "be left"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-066", word: "\u306F\u3053\u3076", meanings: ["carry", "transport"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-067", word: "\u306F\u308C\u308B", meanings: ["clear up", "be sunny"], category: "weather" }),
+        makeN4VocabEntry({ id: "n4vocab-068", word: "\u3072\u308B\u3084\u3059\u307F", meanings: ["lunch break"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-069", word: "\u3075\u304F\u3057\u3085\u3046", meanings: ["review", "revision"], category: "school" }),
+        makeN4VocabEntry({ id: "n4vocab-070", word: "\u3075\u3064\u3046", meanings: ["normal", "regular"], category: "adjectives" }),
+        makeN4VocabEntry({ id: "n4vocab-071", word: "\u3076\u3093\u304B", meanings: ["culture"], category: "society" }),
+        makeN4VocabEntry({ id: "n4vocab-072", word: "\u3078\u3093\u3058", meanings: ["reply", "response"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-073", word: "\u307B\u3046\u307B\u3046", meanings: ["method", "way"], category: "work" }),
+        makeN4VocabEntry({ id: "n4vocab-074", word: "\u307E\u306B\u3042\u3046", meanings: ["be in time", "make it"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-075", word: "\u307F\u3064\u3051\u308B", meanings: ["find", "discover"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-076", word: "\u3080\u308A", meanings: ["impossible", "unreasonable"], category: "adjectives" }),
+        makeN4VocabEntry({ id: "n4vocab-077", word: "\u3081\u3093\u3069\u3046", meanings: ["trouble", "bother"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-078", word: "\u3084\u304F\u305D\u304F", meanings: ["promise", "appointment"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-079", word: "\u3086\u3046\u3079", meanings: ["last night"], category: "time" }),
+        makeN4VocabEntry({ id: "n4vocab-080", word: "\u3088\u3066\u3044", meanings: ["plan", "schedule"], category: "time" }),
+        makeN4VocabEntry({ id: "n4vocab-081", word: "\u308A\u3086\u3046", meanings: ["reason"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-082", word: "\u308C\u3093\u3057\u3085\u3046", meanings: ["practice"], category: "school" }),
+        makeN4VocabEntry({ id: "n4vocab-083", word: "\u308F\u3059\u308C\u3082\u306E", meanings: ["forgotten item"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-084", word: "\u308F\u3089\u3046", meanings: ["laugh", "smile"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-085", word: "\u308F\u3051\u308B", meanings: ["divide", "separate"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-086", word: "\u3042\u3093\u305C\u3093", meanings: ["safety", "secure"], category: "daily" }),
+        makeN4VocabEntry({ id: "n4vocab-087", word: "\u3044\u305D\u3050", meanings: ["hurry"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-088", word: "\u3048\u3089\u3076", meanings: ["choose", "select"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-089", word: "\u304A\u308C\u308B", meanings: ["break", "snap"], category: "verbs" }),
+        makeN4VocabEntry({ id: "n4vocab-090", word: "\u304B\u305F\u3065\u3051\u308B", meanings: ["tidy up", "put away"], category: "verbs" })
+      ];
+    }
+  });
+
+  // js/data/n4GrammarData.js
+  function makeN4GrammarEntry({ id, pattern, meanings, example, category = "grammar" }) {
+    return { id, pattern, meanings, example, category };
+  }
+  var n4GrammarData;
+  var init_n4GrammarData = __esm({
+    "js/data/n4GrammarData.js"() {
+      n4GrammarData = [
+        makeN4GrammarEntry({ id: "n4grammar-001", pattern: "V\u305F\u3053\u3068\u304C\u3042\u308B", meanings: ["have done before"], example: "\u308F\u305F\u3057\u306F\u306B\u307B\u3093\u3078\u3044\u3063\u305F\u3053\u3068\u304C\u3042\u308A\u307E\u3059\u3002", category: "experience" }),
+        makeN4GrammarEntry({ id: "n4grammar-002", pattern: "V\u306A\u3044\u3067\u304F\u3060\u3055\u3044", meanings: ["please don't do"], example: "\u3053\u3053\u3067\u3057\u3083\u3057\u3093\u3092\u3068\u3089\u306A\u3044\u3067\u304F\u3060\u3055\u3044\u3002", category: "requests" }),
+        makeN4GrammarEntry({ id: "n4grammar-003", pattern: "V\u306A\u3051\u308C\u3070\u306A\u308A\u307E\u305B\u3093", meanings: ["must do"], example: "\u307E\u3044\u306B\u3061\u3079\u3093\u304D\u3087\u3046\u3057\u306A\u3051\u308C\u3070\u306A\u308A\u307E\u305B\u3093\u3002", category: "obligation" }),
+        makeN4GrammarEntry({ id: "n4grammar-004", pattern: "V\u306A\u304F\u3066\u3082\u3044\u3044\u3067\u3059", meanings: ["don't have to do"], example: "\u304D\u3087\u3046\u306F\u3053\u306A\u304F\u3066\u3082\u3044\u3044\u3067\u3059\u3002", category: "obligation" }),
+        makeN4GrammarEntry({ id: "n4grammar-005", pattern: "V\u3088\u3046\u3068\u601D\u3044\u307E\u3059", meanings: ["intend to do"], example: "\u3089\u3044\u306D\u3093\u306B\u307B\u3093\u3078\u308A\u3085\u3046\u304C\u304F\u3057\u3088\u3046\u3068\u304A\u3082\u3044\u307E\u3059\u3002", category: "intentions" }),
+        makeN4GrammarEntry({ id: "n4grammar-006", pattern: "V\u4E88\u5B9A\u3067\u3059", meanings: ["be scheduled to do"], example: "\u3042\u3057\u305F\u3068\u3082\u3060\u3061\u3068\u3042\u3046\u3088\u3066\u3044\u3067\u3059\u3002", category: "plans" }),
+        makeN4GrammarEntry({ id: "n4grammar-007", pattern: "V\u3066\u3057\u307E\u3046", meanings: ["finish doing", "do unintentionally"], example: "\u3055\u3044\u3075\u3092\u306A\u304F\u3057\u3066\u3057\u307E\u3044\u307E\u3057\u305F\u3002", category: "completion" }),
+        makeN4GrammarEntry({ id: "n4grammar-008", pattern: "V\u3066\u304A\u304F", meanings: ["do in advance"], example: "\u3057\u3085\u304F\u3060\u3044\u3092\u3057\u3066\u304A\u304D\u307E\u3059\u3002", category: "preparation" }),
+        makeN4GrammarEntry({ id: "n4grammar-009", pattern: "V\u3066\u307F\u308B", meanings: ["try doing"], example: "\u3053\u306E\u304F\u3059\u308A\u3092\u306E\u3093\u3067\u307F\u3066\u304F\u3060\u3055\u3044\u3002", category: "try" }),
+        makeN4GrammarEntry({ id: "n4grammar-010", pattern: "V\u306A\u304C\u3089", meanings: ["while doing"], example: "\u304A\u3093\u304C\u304F\u3092\u304D\u304D\u306A\u304C\u3089\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3059\u3002", category: "simultaneous" }),
+        makeN4GrammarEntry({ id: "n4grammar-011", pattern: "V\u305F\u3042\u3068\u3067", meanings: ["after doing"], example: "\u3054\u306F\u3093\u3092\u305F\u3079\u305F\u3042\u3068\u3067\u3055\u3093\u307D\u3057\u307E\u3059\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-012", pattern: "V\u308B\u307E\u3048\u306B", meanings: ["before doing"], example: "\u306D\u308B\u307E\u3048\u306B\u306F\u3092\u307F\u304C\u304D\u307E\u3059\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-013", pattern: "V\u305F\u308AV\u305F\u308A\u3059\u308B", meanings: ["do things like A and B"], example: "\u3057\u3085\u3046\u307E\u3064\u306F\u3048\u3044\u304C\u3092\u307F\u305F\u308A\u307B\u3093\u3092\u3088\u3093\u3060\u308A\u3057\u307E\u3059\u3002", category: "examples" }),
+        makeN4GrammarEntry({ id: "n4grammar-014", pattern: "V\u305D\u3046\u3067\u3059 (hearsay)", meanings: ["I heard that"], example: "\u3042\u3057\u305F\u306F\u3042\u3081\u3060\u305D\u3046\u3067\u3059\u3002", category: "reported" }),
+        makeN4GrammarEntry({ id: "n4grammar-015", pattern: "V\u305D\u3046\u3067\u3059 (appearance)", meanings: ["looks like"], example: "\u3053\u306E\u30B1\u30FC\u30AD\u306F\u304A\u3044\u3057\u305D\u3046\u3067\u3059\u3002", category: "appearance" }),
+        makeN4GrammarEntry({ id: "n4grammar-016", pattern: "V\u3066\u304F\u308C\u308B", meanings: ["someone does for me"], example: "\u3068\u3082\u3060\u3061\u304C\u306B\u3082\u3064\u3092\u3082\u3063\u3066\u304F\u308C\u307E\u3057\u305F\u3002", category: "giving" }),
+        makeN4GrammarEntry({ id: "n4grammar-017", pattern: "V\u3066\u3082\u3089\u3046", meanings: ["receive favor of someone doing"], example: "\u305B\u3093\u305B\u3044\u306B\u304A\u3057\u3048\u3066\u3082\u3089\u3044\u307E\u3057\u305F\u3002", category: "giving" }),
+        makeN4GrammarEntry({ id: "n4grammar-018", pattern: "V\u3066\u3042\u3052\u308B", meanings: ["do for someone"], example: "\u3044\u3082\u3046\u3068\u306B\u307B\u3093\u3092\u304B\u3057\u3066\u3042\u3052\u307E\u3057\u305F\u3002", category: "giving" }),
+        makeN4GrammarEntry({ id: "n4grammar-019", pattern: "N\u306B\u3088\u308B\u3068", meanings: ["according to"], example: "\u3066\u3093\u304D\u3088\u307B\u3046\u306B\u3088\u308B\u3068\u3001\u3042\u3057\u305F\u306F\u306F\u308C\u3067\u3059\u3002", category: "reported" }),
+        makeN4GrammarEntry({ id: "n4grammar-020", pattern: "N\u306E\u3088\u3046\u3060", meanings: ["seems like", "appears as"], example: "\u304B\u308C\u306F\u3064\u304B\u308C\u3066\u3044\u308B\u3088\u3046\u3067\u3059\u3002", category: "appearance" }),
+        makeN4GrammarEntry({ id: "n4grammar-021", pattern: "A\u3059\u304E\u308B", meanings: ["too much"], example: "\u3053\u306E\u3078\u3084\u306F\u3057\u305A\u304B\u3059\u304E\u307E\u3059\u3002", category: "degree" }),
+        makeN4GrammarEntry({ id: "n4grammar-022", pattern: "V\u3084\u3059\u3044", meanings: ["easy to do"], example: "\u3053\u306E\u307B\u3093\u306F\u3088\u307F\u3084\u3059\u3044\u3067\u3059\u3002", category: "ability" }),
+        makeN4GrammarEntry({ id: "n4grammar-023", pattern: "V\u306B\u304F\u3044", meanings: ["hard to do"], example: "\u3053\u306E\u30DA\u30F3\u306F\u304B\u304D\u306B\u304F\u3044\u3067\u3059\u3002", category: "ability" }),
+        makeN4GrammarEntry({ id: "n4grammar-024", pattern: "\u307E\u3060V\u3066\u3044\u306A\u3044", meanings: ["have not done yet"], example: "\u307E\u3060\u3072\u308B\u3054\u306F\u3093\u3092\u305F\u3079\u3066\u3044\u307E\u305B\u3093\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-025", pattern: "\u3082\u3046V\u305F", meanings: ["already did"], example: "\u3082\u3046\u3057\u3085\u304F\u3060\u3044\u3092\u3057\u307E\u3057\u305F\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-026", pattern: "V\u306A\u3055\u3044", meanings: ["please do (instruction)"], example: "\u3057\u305A\u304B\u306B\u3057\u306A\u3055\u3044\u3002", category: "commands" }),
+        makeN4GrammarEntry({ id: "n4grammar-027", pattern: "V\u308B\u3053\u3068\u304C\u3067\u304D\u308B", meanings: ["can do"], example: "\u308F\u305F\u3057\u306F\u306B\u307B\u3093\u3054\u3092\u306F\u306A\u3059\u3053\u3068\u304C\u3067\u304D\u307E\u3059\u3002", category: "ability" }),
+        makeN4GrammarEntry({ id: "n4grammar-028", pattern: "V\u308B\u3053\u3068", meanings: ["doing as noun"], example: "\u307E\u3044\u306B\u3061\u3046\u3093\u3069\u3046\u3059\u308B\u3053\u3068\u306F\u305F\u3044\u305B\u3064\u3067\u3059\u3002", category: "nominalization" }),
+        makeN4GrammarEntry({ id: "n4grammar-029", pattern: "V\u308B\u3088\u3046\u306B\u3059\u308B", meanings: ["make an effort to do"], example: "\u306F\u3084\u304F\u306D\u308B\u3088\u3046\u306B\u3057\u3066\u3044\u307E\u3059\u3002", category: "habits" }),
+        makeN4GrammarEntry({ id: "n4grammar-030", pattern: "V\u308B\u3088\u3046\u306B\u306A\u308B", meanings: ["come to be able to do"], example: "\u306B\u307B\u3093\u3054\u304C\u3088\u3081\u308B\u3088\u3046\u306B\u306A\u308A\u307E\u3057\u305F\u3002", category: "change" }),
+        makeN4GrammarEntry({ id: "n4grammar-031", pattern: "V\u305F\u307B\u3046\u304C\u3044\u3044", meanings: ["had better do"], example: "\u306F\u3084\u304F\u3073\u3087\u3046\u3044\u3093\u3078\u3044\u3063\u305F\u307B\u3046\u304C\u3044\u3044\u3067\u3059\u3002", category: "advice" }),
+        makeN4GrammarEntry({ id: "n4grammar-032", pattern: "V\u306A\u3044\u307B\u3046\u304C\u3044\u3044", meanings: ["had better not do"], example: "\u3080\u308A\u3092\u3057\u306A\u3044\u307B\u3046\u304C\u3044\u3044\u3067\u3059\u3002", category: "advice" }),
+        makeN4GrammarEntry({ id: "n4grammar-033", pattern: "V\u308B\u304B\u3082\u3057\u308C\u306A\u3044", meanings: ["might do"], example: "\u3042\u3057\u305F\u3086\u304D\u304C\u3075\u308B\u304B\u3082\u3057\u308C\u307E\u305B\u3093\u3002", category: "possibility" }),
+        makeN4GrammarEntry({ id: "n4grammar-034", pattern: "V\u308B\u3067\u3057\u3087\u3046", meanings: ["probably will"], example: "\u304B\u308C\u306F\u3082\u3046\u3059\u3050\u304F\u308B\u3067\u3057\u3087\u3046\u3002", category: "probability" }),
+        makeN4GrammarEntry({ id: "n4grammar-035", pattern: "V\u308B\u306A\u3089", meanings: ["if (you) do"], example: "\u3044\u304F\u306A\u3089\u3001\u308F\u305F\u3057\u3082\u3044\u304D\u307E\u3059\u3002", category: "conditions" }),
+        makeN4GrammarEntry({ id: "n4grammar-036", pattern: "V\u305F\u3089", meanings: ["if", "when"], example: "\u3058\u304B\u3093\u304C\u3042\u3063\u305F\u3089\u3001\u3067\u304B\u3051\u307E\u3057\u3087\u3046\u3002", category: "conditions" }),
+        makeN4GrammarEntry({ id: "n4grammar-037", pattern: "V\u3070", meanings: ["if"], example: "\u306F\u3084\u304F\u3044\u3051\u3070\u3001\u307E\u306B\u3042\u3044\u307E\u3059\u3002", category: "conditions" }),
+        makeN4GrammarEntry({ id: "n4grammar-038", pattern: "N\u3057\u304BV\u306A\u3044", meanings: ["only", "nothing but"], example: "\u307F\u305A\u3057\u304B\u306E\u307F\u307E\u305B\u3093\u3002", category: "limits" }),
+        makeN4GrammarEntry({ id: "n4grammar-039", pattern: "N\u3060\u3051", meanings: ["only", "just"], example: "\u304D\u3087\u3046\u306F\u30D1\u30F3\u3060\u3051\u305F\u3079\u307E\u3057\u305F\u3002", category: "limits" }),
+        makeN4GrammarEntry({ id: "n4grammar-040", pattern: "N\u3067\u3082", meanings: ["even", "or something"], example: "\u304A\u3061\u3083\u3067\u3082\u306E\u307F\u307E\u305B\u3093\u304B\u3002", category: "suggestions" }),
+        makeN4GrammarEntry({ id: "n4grammar-041", pattern: "N\u306B\u3059\u308B", meanings: ["decide on"], example: "\u308F\u305F\u3057\u306F\u30B3\u30FC\u30D2\u30FC\u306B\u3057\u307E\u3059\u3002", category: "decisions" }),
+        makeN4GrammarEntry({ id: "n4grammar-042", pattern: "N\u306B\u3064\u3044\u3066", meanings: ["about", "regarding"], example: "\u306B\u307B\u3093\u306E\u308C\u304D\u3057\u306B\u3064\u3044\u3066\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3059\u3002", category: "topics" }),
+        makeN4GrammarEntry({ id: "n4grammar-043", pattern: "N\u306B\u3088\u3063\u3066", meanings: ["depending on", "by means of"], example: "\u3072\u3068\u306B\u3088\u3063\u3066\u304B\u3093\u304C\u3048\u304B\u305F\u304C\u3061\u304C\u3044\u307E\u3059\u3002", category: "variation" }),
+        makeN4GrammarEntry({ id: "n4grammar-044", pattern: "N\u305F\u3081\u306B", meanings: ["for", "because of"], example: "\u3057\u3054\u3068\u306E\u305F\u3081\u306B\u3068\u3046\u304D\u3087\u3046\u3078\u304D\u307E\u3057\u305F\u3002", category: "purpose" }),
+        makeN4GrammarEntry({ id: "n4grammar-045", pattern: "V\u308B\u305F\u3081\u306B", meanings: ["in order to do"], example: "\u306B\u307B\u3093\u3054\u3092\u3079\u3093\u304D\u3087\u3046\u3059\u308B\u305F\u3081\u306B\u3001\u306B\u307B\u3093\u3078\u304D\u307E\u3057\u305F\u3002", category: "purpose" }),
+        makeN4GrammarEntry({ id: "n4grammar-046", pattern: "V\u308B\u3068\u3053\u308D", meanings: ["about to do"], example: "\u3044\u307E\u304B\u3089\u3067\u304B\u3051\u308B\u3068\u3053\u308D\u3067\u3059\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-047", pattern: "V\u3066\u3044\u308B\u3068\u3053\u308D", meanings: ["in the middle of doing"], example: "\u3044\u307E\u3057\u3054\u3068\u3092\u3057\u3066\u3044\u308B\u3068\u3053\u308D\u3067\u3059\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-048", pattern: "V\u305F\u3068\u3053\u308D", meanings: ["just did"], example: "\u3044\u307E\u304B\u3048\u3063\u305F\u3068\u3053\u308D\u3067\u3059\u3002", category: "time" }),
+        makeN4GrammarEntry({ id: "n4grammar-049", pattern: "V\u305A\u306B", meanings: ["without doing"], example: "\u3042\u3055\u3054\u306F\u3093\u3092\u305F\u3079\u305A\u306B\u3067\u304B\u3051\u307E\u3057\u305F\u3002", category: "negative" }),
+        makeN4GrammarEntry({ id: "n4grammar-050", pattern: "V\u308B\u3053\u3068\u306B\u3059\u308B", meanings: ["decide to do"], example: "\u3042\u3057\u305F\u306F\u3084\u304F\u304A\u304D\u308B\u3053\u3068\u306B\u3057\u307E\u3059\u3002", category: "decisions" })
+      ];
+    }
+  });
+
+  // js/data/n5VocabData.js
+  function makeVocabEntry({ id, word, meanings, category }) {
+    return { id, word, meanings, category };
+  }
+  var n5VocabData;
+  var init_n5VocabData = __esm({
+    "js/data/n5VocabData.js"() {
+      n5VocabData = [
+        makeVocabEntry({ id: "vocab-001", word: "\u308F\u305F\u3057", meanings: ["I", "me"], category: "people" }),
+        makeVocabEntry({ id: "vocab-002", word: "\u3042\u306A\u305F", meanings: ["you"], category: "people" }),
+        makeVocabEntry({ id: "vocab-003", word: "\u304B\u308C", meanings: ["he", "boyfriend"], category: "people" }),
+        makeVocabEntry({ id: "vocab-004", word: "\u304B\u306E\u3058\u3087", meanings: ["she", "girlfriend"], category: "people" }),
+        makeVocabEntry({ id: "vocab-005", word: "\u3068\u3082\u3060\u3061", meanings: ["friend"], category: "people" }),
+        makeVocabEntry({ id: "vocab-006", word: "\u305B\u3093\u305B\u3044", meanings: ["teacher"], category: "people" }),
+        makeVocabEntry({ id: "vocab-007", word: "\u304C\u304F\u305B\u3044", meanings: ["student"], category: "people" }),
+        makeVocabEntry({ id: "vocab-008", word: "\u304B\u3044\u3057\u3083\u3044\u3093", meanings: ["office worker"], category: "people" }),
+        makeVocabEntry({ id: "vocab-009", word: "\u3044\u3057\u3083", meanings: ["doctor"], category: "people" }),
+        makeVocabEntry({ id: "vocab-010", word: "\u304B\u3093\u3054\u3057", meanings: ["nurse"], category: "people" }),
+        makeVocabEntry({ id: "vocab-011", word: "\u308A\u3087\u3046\u3057\u3093", meanings: ["parents"], category: "people" }),
+        makeVocabEntry({ id: "vocab-012", word: "\u304B\u305E\u304F", meanings: ["family"], category: "people" }),
+        makeVocabEntry({ id: "vocab-013", word: "\u3061\u3061", meanings: ["father"], category: "people" }),
+        makeVocabEntry({ id: "vocab-014", word: "\u306F\u306F", meanings: ["mother"], category: "people" }),
+        makeVocabEntry({ id: "vocab-015", word: "\u3042\u306B", meanings: ["older brother"], category: "people" }),
+        makeVocabEntry({ id: "vocab-016", word: "\u3042\u306D", meanings: ["older sister"], category: "people" }),
+        makeVocabEntry({ id: "vocab-017", word: "\u304A\u3068\u3046\u3068", meanings: ["younger brother"], category: "people" }),
+        makeVocabEntry({ id: "vocab-018", word: "\u3044\u3082\u3046\u3068", meanings: ["younger sister"], category: "people" }),
+        makeVocabEntry({ id: "vocab-019", word: "\u3053\u3069\u3082", meanings: ["child"], category: "people" }),
+        makeVocabEntry({ id: "vocab-020", word: "\u307F\u3093\u306A", meanings: ["everyone"], category: "people" }),
+        makeVocabEntry({ id: "vocab-021", word: "\u304C\u3063\u3053\u3046", meanings: ["school"], category: "places" }),
+        makeVocabEntry({ id: "vocab-022", word: "\u3060\u3044\u304C\u304F", meanings: ["university"], category: "places" }),
+        makeVocabEntry({ id: "vocab-023", word: "\u3048\u304D", meanings: ["station"], category: "places" }),
+        makeVocabEntry({ id: "vocab-024", word: "\u304F\u3046\u3053\u3046", meanings: ["airport"], category: "places" }),
+        makeVocabEntry({ id: "vocab-025", word: "\u304E\u3093\u3053\u3046", meanings: ["bank"], category: "places" }),
+        makeVocabEntry({ id: "vocab-026", word: "\u3086\u3046\u3073\u3093\u304D\u3087\u304F", meanings: ["post office"], category: "places" }),
+        makeVocabEntry({ id: "vocab-027", word: "\u3073\u3087\u3046\u3044\u3093", meanings: ["hospital"], category: "places" }),
+        makeVocabEntry({ id: "vocab-028", word: "\u307F\u305B", meanings: ["store", "shop"], category: "places" }),
+        makeVocabEntry({ id: "vocab-029", word: "\u30B9\u30FC\u30D1\u30FC", meanings: ["supermarket"], category: "places" }),
+        makeVocabEntry({ id: "vocab-030", word: "\u30C7\u30D1\u30FC\u30C8", meanings: ["department store"], category: "places" }),
+        makeVocabEntry({ id: "vocab-031", word: "\u30EC\u30B9\u30C8\u30E9\u30F3", meanings: ["restaurant"], category: "places" }),
+        makeVocabEntry({ id: "vocab-032", word: "\u3046\u3061", meanings: ["home", "house"], category: "places" }),
+        makeVocabEntry({ id: "vocab-033", word: "\u3078\u3084", meanings: ["room"], category: "places" }),
+        makeVocabEntry({ id: "vocab-034", word: "\u304F\u306B", meanings: ["country"], category: "places" }),
+        makeVocabEntry({ id: "vocab-035", word: "\u307E\u3061", meanings: ["town", "city"], category: "places" }),
+        makeVocabEntry({ id: "vocab-036", word: "\u3080\u3089", meanings: ["village"], category: "places" }),
+        makeVocabEntry({ id: "vocab-037", word: "\u3084\u307E", meanings: ["mountain"], category: "places" }),
+        makeVocabEntry({ id: "vocab-038", word: "\u304B\u308F", meanings: ["river"], category: "places" }),
+        makeVocabEntry({ id: "vocab-039", word: "\u3046\u307F", meanings: ["sea"], category: "places" }),
+        makeVocabEntry({ id: "vocab-040", word: "\u3053\u3046\u3048\u3093", meanings: ["park"], category: "places" }),
+        makeVocabEntry({ id: "vocab-041", word: "\u304D\u3087\u3046", meanings: ["today"], category: "time" }),
+        makeVocabEntry({ id: "vocab-042", word: "\u3042\u3057\u305F", meanings: ["tomorrow"], category: "time" }),
+        makeVocabEntry({ id: "vocab-043", word: "\u304D\u306E\u3046", meanings: ["yesterday"], category: "time" }),
+        makeVocabEntry({ id: "vocab-044", word: "\u304A\u3068\u3068\u3044", meanings: ["day before yesterday"], category: "time" }),
+        makeVocabEntry({ id: "vocab-045", word: "\u3042\u3055\u3063\u3066", meanings: ["day after tomorrow"], category: "time" }),
+        makeVocabEntry({ id: "vocab-046", word: "\u3042\u3055", meanings: ["morning"], category: "time" }),
+        makeVocabEntry({ id: "vocab-047", word: "\u3072\u308B", meanings: ["noon"], category: "time" }),
+        makeVocabEntry({ id: "vocab-048", word: "\u3070\u3093", meanings: ["evening"], category: "time" }),
+        makeVocabEntry({ id: "vocab-049", word: "\u3088\u308B", meanings: ["night"], category: "time" }),
+        makeVocabEntry({ id: "vocab-050", word: "\u3044\u307E", meanings: ["now"], category: "time" }),
+        makeVocabEntry({ id: "vocab-051", word: "\u3058\u304B\u3093", meanings: ["time", "hour"], category: "time" }),
+        makeVocabEntry({ id: "vocab-052", word: "\u307E\u3044\u306B\u3061", meanings: ["every day"], category: "time" }),
+        makeVocabEntry({ id: "vocab-053", word: "\u307E\u3044\u3057\u3085\u3046", meanings: ["every week"], category: "time" }),
+        makeVocabEntry({ id: "vocab-054", word: "\u307E\u3044\u3052\u3064", meanings: ["every month"], category: "time" }),
+        makeVocabEntry({ id: "vocab-055", word: "\u307E\u3044\u3068\u3057", meanings: ["every year"], category: "time" }),
+        makeVocabEntry({ id: "vocab-056", word: "\u3057\u3085\u3046\u307E\u3064", meanings: ["weekend"], category: "time" }),
+        makeVocabEntry({ id: "vocab-057", word: "\u3089\u3044\u3057\u3085\u3046", meanings: ["next week"], category: "time" }),
+        makeVocabEntry({ id: "vocab-058", word: "\u305B\u3093\u3057\u3085\u3046", meanings: ["last week"], category: "time" }),
+        makeVocabEntry({ id: "vocab-059", word: "\u3089\u3044\u306D\u3093", meanings: ["next year"], category: "time" }),
+        makeVocabEntry({ id: "vocab-060", word: "\u3053\u3068\u3057", meanings: ["this year"], category: "time" }),
+        makeVocabEntry({ id: "vocab-061", word: "\u307F\u305A", meanings: ["water"], category: "food" }),
+        makeVocabEntry({ id: "vocab-062", word: "\u304A\u3061\u3083", meanings: ["tea"], category: "food" }),
+        makeVocabEntry({ id: "vocab-063", word: "\u304E\u3085\u3046\u306B\u3085\u3046", meanings: ["milk"], category: "food" }),
+        makeVocabEntry({ id: "vocab-064", word: "\u30B8\u30E5\u30FC\u30B9", meanings: ["juice"], category: "food" }),
+        makeVocabEntry({ id: "vocab-065", word: "\u30B3\u30FC\u30D2\u30FC", meanings: ["coffee"], category: "food" }),
+        makeVocabEntry({ id: "vocab-066", word: "\u3054\u306F\u3093", meanings: ["rice", "meal"], category: "food" }),
+        makeVocabEntry({ id: "vocab-067", word: "\u30D1\u30F3", meanings: ["bread"], category: "food" }),
+        makeVocabEntry({ id: "vocab-068", word: "\u306B\u304F", meanings: ["meat"], category: "food" }),
+        makeVocabEntry({ id: "vocab-069", word: "\u3055\u304B\u306A", meanings: ["fish"], category: "food" }),
+        makeVocabEntry({ id: "vocab-070", word: "\u305F\u307E\u3054", meanings: ["egg"], category: "food" }),
+        makeVocabEntry({ id: "vocab-071", word: "\u3084\u3055\u3044", meanings: ["vegetable"], category: "food" }),
+        makeVocabEntry({ id: "vocab-072", word: "\u304F\u3060\u3082\u306E", meanings: ["fruit"], category: "food" }),
+        makeVocabEntry({ id: "vocab-073", word: "\u308A\u3093\u3054", meanings: ["apple"], category: "food" }),
+        makeVocabEntry({ id: "vocab-074", word: "\u307F\u304B\u3093", meanings: ["mandarin orange"], category: "food" }),
+        makeVocabEntry({ id: "vocab-075", word: "\u30D0\u30CA\u30CA", meanings: ["banana"], category: "food" }),
+        makeVocabEntry({ id: "vocab-076", word: "\u30B1\u30FC\u30AD", meanings: ["cake"], category: "food" }),
+        makeVocabEntry({ id: "vocab-077", word: "\u3059\u3057", meanings: ["sushi"], category: "food" }),
+        makeVocabEntry({ id: "vocab-078", word: "\u305D\u3070", meanings: ["soba noodles"], category: "food" }),
+        makeVocabEntry({ id: "vocab-079", word: "\u3046\u3069\u3093", meanings: ["udon noodles"], category: "food" }),
+        makeVocabEntry({ id: "vocab-080", word: "\u307F\u305D\u3057\u308B", meanings: ["miso soup"], category: "food" }),
+        makeVocabEntry({ id: "vocab-081", word: "\u307B\u3093", meanings: ["book"], category: "things" }),
+        makeVocabEntry({ id: "vocab-082", word: "\u3058\u3057\u3087", meanings: ["dictionary"], category: "things" }),
+        makeVocabEntry({ id: "vocab-083", word: "\u30CE\u30FC\u30C8", meanings: ["notebook"], category: "things" }),
+        makeVocabEntry({ id: "vocab-084", word: "\u3048\u3093\u3074\u3064", meanings: ["pencil"], category: "things" }),
+        makeVocabEntry({ id: "vocab-085", word: "\u30DA\u30F3", meanings: ["pen"], category: "things" }),
+        makeVocabEntry({ id: "vocab-086", word: "\u304B\u3070\u3093", meanings: ["bag"], category: "things" }),
+        makeVocabEntry({ id: "vocab-087", word: "\u3055\u3044\u3075", meanings: ["wallet"], category: "things" }),
+        makeVocabEntry({ id: "vocab-088", word: "\u304B\u304E", meanings: ["key"], category: "things" }),
+        makeVocabEntry({ id: "vocab-089", word: "\u304F\u3064", meanings: ["shoes"], category: "things" }),
+        makeVocabEntry({ id: "vocab-090", word: "\u3075\u304F", meanings: ["clothes"], category: "things" }),
+        makeVocabEntry({ id: "vocab-091", word: "\u30B7\u30E3\u30C4", meanings: ["shirt"], category: "things" }),
+        makeVocabEntry({ id: "vocab-092", word: "\u30BA\u30DC\u30F3", meanings: ["trousers"], category: "things" }),
+        makeVocabEntry({ id: "vocab-093", word: "\u307C\u3046\u3057", meanings: ["hat"], category: "things" }),
+        makeVocabEntry({ id: "vocab-094", word: "\u3081\u304C\u306D", meanings: ["glasses"], category: "things" }),
+        makeVocabEntry({ id: "vocab-095", word: "\u3067\u3093\u308F", meanings: ["telephone"], category: "things" }),
+        makeVocabEntry({ id: "vocab-096", word: "\u3051\u3044\u305F\u3044", meanings: ["mobile phone"], category: "things" }),
+        makeVocabEntry({ id: "vocab-097", word: "\u304F\u308B\u307E", meanings: ["car"], category: "transport" }),
+        makeVocabEntry({ id: "vocab-098", word: "\u3058\u3066\u3093\u3057\u3083", meanings: ["bicycle"], category: "transport" }),
+        makeVocabEntry({ id: "vocab-099", word: "\u3067\u3093\u3057\u3083", meanings: ["train"], category: "transport" }),
+        makeVocabEntry({ id: "vocab-100", word: "\u30D0\u30B9", meanings: ["bus"], category: "transport" }),
+        makeVocabEntry({ id: "vocab-101", word: "\u3044\u304F", meanings: ["go"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-102", word: "\u304F\u308B", meanings: ["come"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-103", word: "\u304B\u3048\u308B", meanings: ["return"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-104", word: "\u307F\u308B", meanings: ["see", "watch"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-105", word: "\u304D\u304F", meanings: ["listen", "ask"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-106", word: "\u3088\u3080", meanings: ["read"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-107", word: "\u304B\u304F", meanings: ["write"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-108", word: "\u306F\u306A\u3059", meanings: ["speak"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-109", word: "\u3044\u3046", meanings: ["say", "tell"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-110", word: "\u305F\u3079\u308B", meanings: ["eat"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-111", word: "\u306E\u3080", meanings: ["drink"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-112", word: "\u306D\u308B", meanings: ["sleep"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-113", word: "\u304A\u304D\u308B", meanings: ["wake up"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-114", word: "\u3042\u3046", meanings: ["meet"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-115", word: "\u304B\u3046", meanings: ["buy"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-116", word: "\u3046\u308B", meanings: ["sell"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-117", word: "\u3064\u304F\u308B", meanings: ["make"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-118", word: "\u3042\u3089\u3046", meanings: ["wash"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-119", word: "\u305D\u3046\u3058\u3059\u308B", meanings: ["clean"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-120", word: "\u3079\u3093\u304D\u3087\u3046\u3059\u308B", meanings: ["study"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-121", word: "\u3057\u3054\u3068\u3059\u308B", meanings: ["work"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-122", word: "\u3042\u305D\u3076", meanings: ["play"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-123", word: "\u3044\u305D\u3050", meanings: ["hurry"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-124", word: "\u307E\u3064", meanings: ["wait"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-125", word: "\u308F\u304B\u308B", meanings: ["understand"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-126", word: "\u304A\u3057\u3048\u308B", meanings: ["teach", "tell"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-127", word: "\u306A\u3089\u3046", meanings: ["learn"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-128", word: "\u3042\u3051\u308B", meanings: ["open (something)"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-129", word: "\u3057\u3081\u308B", meanings: ["close (something)"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-130", word: "\u306E\u308B", meanings: ["ride", "board"], category: "verbs" }),
+        makeVocabEntry({ id: "vocab-131", word: "\u304A\u304A\u304D\u3044", meanings: ["big"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-132", word: "\u3061\u3044\u3055\u3044", meanings: ["small"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-133", word: "\u305F\u304B\u3044", meanings: ["high", "expensive"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-134", word: "\u3072\u304F\u3044", meanings: ["low"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-135", word: "\u3084\u3059\u3044", meanings: ["cheap"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-136", word: "\u3042\u305F\u3089\u3057\u3044", meanings: ["new"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-137", word: "\u3075\u308B\u3044", meanings: ["old"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-138", word: "\u3042\u3064\u3044", meanings: ["hot"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-139", word: "\u3055\u3080\u3044", meanings: ["cold (weather)"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-140", word: "\u3064\u3081\u305F\u3044", meanings: ["cold (touch)"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-141", word: "\u304A\u3082\u3057\u308D\u3044", meanings: ["interesting"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-142", word: "\u3064\u307E\u3089\u306A\u3044", meanings: ["boring"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-143", word: "\u3044\u305D\u304C\u3057\u3044", meanings: ["busy"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-144", word: "\u3072\u307E", meanings: ["free", "not busy"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-145", word: "\u304D\u308C\u3044", meanings: ["clean", "beautiful"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-146", word: "\u3052\u3093\u304D", meanings: ["healthy", "energetic"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-147", word: "\u3057\u305A\u304B", meanings: ["quiet"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-148", word: "\u306B\u304E\u3084\u304B", meanings: ["lively"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-149", word: "\u3086\u3046\u3081\u3044", meanings: ["famous"], category: "adjectives" }),
+        makeVocabEntry({ id: "vocab-150", word: "\u3079\u3093\u308A", meanings: ["convenient"], category: "adjectives" })
+      ];
+    }
+  });
+
+  // js/data/n5GrammarData.js
+  function makeGrammarEntry({ id, pattern, meanings, example, category }) {
+    return { id, pattern, meanings, example, category };
+  }
+  var n5GrammarData;
+  var init_n5GrammarData = __esm({
+    "js/data/n5GrammarData.js"() {
+      n5GrammarData = [
+        makeGrammarEntry({ id: "grammar-001", pattern: "N\u306FN\u3067\u3059", meanings: ["N is N"], example: "\u308F\u305F\u3057\u306F\u304C\u304F\u305B\u3044\u3067\u3059\u3002", category: "copula" }),
+        makeGrammarEntry({ id: "grammar-002", pattern: "N\u306FN\u3058\u3083\u3042\u308A\u307E\u305B\u3093", meanings: ["N is not N"], example: "\u3053\u308C\u306F\u30DA\u30F3\u3058\u3083\u3042\u308A\u307E\u305B\u3093\u3002", category: "copula" }),
+        makeGrammarEntry({ id: "grammar-003", pattern: "N\u306FN\u3067\u3057\u305F", meanings: ["N was N"], example: "\u304D\u306E\u3046\u306F\u3084\u3059\u307F\u3067\u3057\u305F\u3002", category: "copula" }),
+        makeGrammarEntry({ id: "grammar-004", pattern: "N\u306FN\u3058\u3083\u3042\u308A\u307E\u305B\u3093\u3067\u3057\u305F", meanings: ["N was not N"], example: "\u305B\u3093\u3057\u3085\u3046\u306F\u3072\u307E\u3058\u3083\u3042\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002", category: "copula" }),
+        makeGrammarEntry({ id: "grammar-005", pattern: "\uFF5E\u304B", meanings: ["question marker"], example: "\u306B\u307B\u3093\u3058\u3093\u3067\u3059\u304B\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-006", pattern: "N\u306EN", meanings: ["N of N", "N's N"], example: "\u308F\u305F\u3057\u306E\u307B\u3093\u3067\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-007", pattern: "N\u3092V", meanings: ["object marker"], example: "\u30D1\u30F3\u3092\u305F\u3079\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-008", pattern: "N\u306BV", meanings: ["to/in/at marker"], example: "\u304C\u3063\u3053\u3046\u306B\u3044\u304D\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-009", pattern: "N\u3067V", meanings: ["at/with/by means of"], example: "\u3048\u3093\u3074\u3064\u3067\u304B\u304D\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-010", pattern: "N\u3078V", meanings: ["toward", "to"], example: "\u306B\u307B\u3093\u3078\u304D\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-011", pattern: "N\u3068N", meanings: ["and", "with"], example: "\u3068\u3082\u3060\u3061\u3068\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-012", pattern: "N\u3082", meanings: ["also", "too"], example: "\u308F\u305F\u3057\u3082\u3044\u304D\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-013", pattern: "N\u304B\u3089N\u307E\u3067", meanings: ["from N to N"], example: "\u304F\u3058\u304B\u3089\u3054\u3058\u307E\u3067\u306F\u305F\u3089\u304D\u307E\u3059\u3002", category: "particles" }),
+        makeGrammarEntry({ id: "grammar-014", pattern: "V\u307E\u3059", meanings: ["polite present/future"], example: "\u307E\u3044\u306B\u3061\u307B\u3093\u3092\u3088\u307F\u307E\u3059\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-015", pattern: "V\u307E\u305B\u3093", meanings: ["polite negative"], example: "\u30B3\u30FC\u30D2\u30FC\u3092\u306E\u307F\u307E\u305B\u3093\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-016", pattern: "V\u307E\u3057\u305F", meanings: ["polite past"], example: "\u304D\u306E\u3046\u3048\u3044\u304C\u3092\u307F\u307E\u3057\u305F\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-017", pattern: "V\u307E\u305B\u3093\u3067\u3057\u305F", meanings: ["polite past negative"], example: "\u304D\u306E\u3046\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u305B\u3093\u3067\u3057\u305F\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-018", pattern: "V\u3066\u304F\u3060\u3055\u3044", meanings: ["please do"], example: "\u3053\u3053\u306B\u3059\u308F\u3063\u3066\u304F\u3060\u3055\u3044\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-019", pattern: "V\u3066\u3082\u3044\u3044", meanings: ["may do", "is allowed"], example: "\u3053\u3053\u3067\u305F\u3079\u3066\u3082\u3044\u3044\u3067\u3059\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-020", pattern: "V\u3066\u306F\u3044\u3051\u307E\u305B\u3093", meanings: ["must not do"], example: "\u3053\u3053\u3067\u305F\u3070\u3053\u3092\u3059\u3063\u3066\u306F\u3044\u3051\u307E\u305B\u3093\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-021", pattern: "V\u3066\u3044\u307E\u3059", meanings: ["is doing", "ongoing state"], example: "\u3044\u307E\u3079\u3093\u304D\u3087\u3046\u3057\u3066\u3044\u307E\u3059\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-022", pattern: "V\u305F\u3044\u3067\u3059", meanings: ["want to do"], example: "\u306B\u307B\u3093\u3078\u3044\u304D\u305F\u3044\u3067\u3059\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-023", pattern: "V\u307E\u3057\u3087\u3046", meanings: ["let's do"], example: "\u3044\u3063\u3057\u3087\u306B\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3057\u3087\u3046\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-024", pattern: "V\u307E\u3057\u3087\u3046\u304B", meanings: ["shall I do"], example: "\u306B\u3082\u3064\u3092\u3082\u3061\u307E\u3057\u3087\u3046\u304B\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-025", pattern: "V\u306B\u3044\u304D\u307E\u3059", meanings: ["go to do"], example: "\u3048\u3044\u304C\u3092\u307F\u306B\u3044\u304D\u307E\u3059\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-026", pattern: "A\u3044\u3067\u3059", meanings: ["is adjective"], example: "\u3053\u306E\u307B\u3093\u306F\u304A\u3082\u3057\u308D\u3044\u3067\u3059\u3002", category: "adjectives" }),
+        makeGrammarEntry({ id: "grammar-027", pattern: "A\u304F\u306A\u3044\u3067\u3059", meanings: ["is not adjective"], example: "\u3053\u306E\u3078\u3084\u306F\u3072\u308D\u304F\u306A\u3044\u3067\u3059\u3002", category: "adjectives" }),
+        makeGrammarEntry({ id: "grammar-028", pattern: "A\u304B\u3063\u305F\u3067\u3059", meanings: ["was adjective"], example: "\u304D\u306E\u3046\u306F\u3055\u3080\u304B\u3063\u305F\u3067\u3059\u3002", category: "adjectives" }),
+        makeGrammarEntry({ id: "grammar-029", pattern: "A\u304F\u306A\u304B\u3063\u305F\u3067\u3059", meanings: ["was not adjective"], example: "\u30C6\u30B9\u30C8\u306F\u3080\u305A\u304B\u3057\u304F\u306A\u304B\u3063\u305F\u3067\u3059\u3002", category: "adjectives" }),
+        makeGrammarEntry({ id: "grammar-030", pattern: "N\u304C\u307B\u3057\u3044\u3067\u3059", meanings: ["want N"], example: "\u3042\u305F\u3089\u3057\u3044\u304F\u308B\u307E\u304C\u307B\u3057\u3044\u3067\u3059\u3002", category: "desire" }),
+        makeGrammarEntry({ id: "grammar-031", pattern: "A\u3084N\u306A\u3069", meanings: ["A and N and so on"], example: "\u307B\u3093\u3084\u3056\u3063\u3057\u306A\u3069\u3092\u3088\u307F\u307E\u3059\u3002", category: "lists" }),
+        makeGrammarEntry({ id: "grammar-032", pattern: "N\u304C\u3044\u307E\u3059", meanings: ["there is animate N"], example: "\u3078\u3084\u306B\u306D\u3053\u304C\u3044\u307E\u3059\u3002", category: "existence" }),
+        makeGrammarEntry({ id: "grammar-033", pattern: "N\u304C\u3042\u308A\u307E\u3059", meanings: ["there is inanimate N"], example: "\u3064\u304F\u3048\u306E\u3046\u3048\u306B\u307B\u3093\u304C\u3042\u308A\u307E\u3059\u3002", category: "existence" }),
+        makeGrammarEntry({ id: "grammar-034", pattern: "N\u306E\u307B\u3046\u304CA", meanings: ["N is more A"], example: "\u3067\u3093\u3057\u3083\u306E\u307B\u3046\u304C\u306F\u3084\u3044\u3067\u3059\u3002", category: "comparison" }),
+        makeGrammarEntry({ id: "grammar-035", pattern: "N\u3088\u308AA", meanings: ["more A than N"], example: "\u304D\u306E\u3046\u3088\u308A\u3042\u3064\u3044\u3067\u3059\u3002", category: "comparison" }),
+        makeGrammarEntry({ id: "grammar-036", pattern: "\u3044\u3061\u3070\u3093A", meanings: ["most A"], example: "\u3053\u306E\u307F\u305B\u304C\u3044\u3061\u3070\u3093\u3059\u304D\u3067\u3059\u3002", category: "comparison" }),
+        makeGrammarEntry({ id: "grammar-037", pattern: "V\u305F\u308AV\u305F\u308A\u3057\u307E\u3059", meanings: ["do things like V and V"], example: "\u3057\u3085\u3046\u307E\u3064\u306F\u3048\u3044\u304C\u3092\u307F\u305F\u308A\u304A\u3093\u304C\u304F\u3092\u304D\u3044\u305F\u308A\u3057\u307E\u3059\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-038", pattern: "\u3082\u3046V\u307E\u3057\u305F", meanings: ["already did"], example: "\u3082\u3046\u3057\u3085\u304F\u3060\u3044\u3092\u3057\u307E\u3057\u305F\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-039", pattern: "\u307E\u3060V\u3066\u3044\u307E\u305B\u3093", meanings: ["have not yet done"], example: "\u307E\u3060\u3072\u308B\u3054\u306F\u3093\u3092\u305F\u3079\u3066\u3044\u307E\u305B\u3093\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-040", pattern: "\uFF5E\u306E\u3067", meanings: ["because"], example: "\u3042\u3081\u306A\u306E\u3067\u3001\u3067\u304B\u3051\u307E\u305B\u3093\u3002", category: "conjunctions" }),
+        makeGrammarEntry({ id: "grammar-041", pattern: "\uFF5E\u304B\u3089", meanings: ["because", "from"], example: "\u3044\u305D\u304C\u3057\u3044\u304B\u3089\u3001\u3044\u3051\u307E\u305B\u3093\u3002", category: "conjunctions" }),
+        makeGrammarEntry({ id: "grammar-042", pattern: "\uFF5E\u304C", meanings: ["but", "subject marker"], example: "\u3044\u304D\u305F\u3044\u3067\u3059\u304C\u3001\u3058\u304B\u3093\u304C\u3042\u308A\u307E\u305B\u3093\u3002", category: "conjunctions" }),
+        makeGrammarEntry({ id: "grammar-043", pattern: "\uFF5E\u3051\u3069", meanings: ["but", "though"], example: "\u305F\u304B\u3044\u3051\u3069\u3001\u304B\u3044\u307E\u3059\u3002", category: "conjunctions" }),
+        makeGrammarEntry({ id: "grammar-044", pattern: "\uFF5E\u3067\u3082", meanings: ["but", "even", "or something"], example: "\u304A\u3061\u3083\u3067\u3082\u306E\u307F\u307E\u305B\u3093\u304B\u3002", category: "conjunctions" }),
+        makeGrammarEntry({ id: "grammar-045", pattern: "\uFF5E\u3057\u304B\uFF5E\u306A\u3044", meanings: ["only", "nothing but"], example: "\u307F\u305A\u3057\u304B\u306E\u307F\u307E\u305B\u3093\u3002", category: "limits" }),
+        makeGrammarEntry({ id: "grammar-046", pattern: "\uFF5E\u3060\u3051", meanings: ["only", "just"], example: "\u304D\u3087\u3046\u306F\u3084\u3059\u307F\u3060\u3051\u3067\u3059\u3002", category: "limits" }),
+        makeGrammarEntry({ id: "grammar-047", pattern: "\uFF5E\u3050\u3089\u3044/\u304F\u3089\u3044", meanings: ["about", "approximately"], example: "\u306B\u3058\u304B\u3093\u3050\u3089\u3044\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3057\u305F\u3002", category: "quantities" }),
+        makeGrammarEntry({ id: "grammar-048", pattern: "\uFF5E\u307B\u3069", meanings: ["extent", "as much as"], example: "\u3053\u306E\u307B\u3093\u306F\u304A\u3082\u3063\u305F\u307B\u3069\u3080\u305A\u304B\u3057\u304F\u306A\u3044\u3067\u3059\u3002", category: "comparison" }),
+        makeGrammarEntry({ id: "grammar-049", pattern: "\uFF5E\u3084", meanings: ["and", "among others"], example: "\u307B\u3093\u3084\u30CE\u30FC\u30C8\u3092\u304B\u3044\u307E\u3057\u305F\u3002", category: "lists" }),
+        makeGrammarEntry({ id: "grammar-050", pattern: "\uFF5E\u3068\u304B", meanings: ["things like", "such as"], example: "\u306B\u3061\u3088\u3046\u3073\u306F\u305D\u3046\u3058\u3068\u304B\u305B\u3093\u305F\u304F\u3092\u3057\u307E\u3059\u3002", category: "lists" }),
+        makeGrammarEntry({ id: "grammar-051", pattern: "\uFF5E\u3066\u304B\u3089", meanings: ["after doing"], example: "\u3057\u3054\u3068\u304C\u304A\u308F\u3063\u3066\u304B\u3089\u304B\u3048\u308A\u307E\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-052", pattern: "\uFF5E\u307E\u3048\u306B", meanings: ["before"], example: "\u306D\u308B\u307E\u3048\u306B\u306B\u3063\u304D\u3092\u304B\u304D\u307E\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-053", pattern: "\uFF5E\u3042\u3044\u3060", meanings: ["while", "during"], example: "\u306B\u307B\u3093\u306B\u3044\u308B\u3042\u3044\u3060\u3001\u306B\u307B\u3093\u3054\u3092\u3064\u304B\u3044\u307E\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-054", pattern: "\uFF5E\u3042\u3044\u3060\u306B", meanings: ["while", "in the time"], example: "\u306B\u307B\u3093\u306B\u3044\u308B\u3042\u3044\u3060\u306B\u3001\u3068\u3082\u3060\u3061\u3092\u3064\u304F\u308A\u305F\u3044\u3067\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-055", pattern: "\uFF5E\u3068\u304D", meanings: ["when"], example: "\u3058\u304B\u3093\u304C\u3042\u308B\u3068\u304D\u3001\u307B\u3093\u3092\u3088\u307F\u307E\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-056", pattern: "\uFF5E\u307E\u3057\u3087\u3046", meanings: ["let's"], example: "\u3044\u3063\u3057\u3087\u306B\u3044\u304D\u307E\u3057\u3087\u3046\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-057", pattern: "\uFF5E\u307E\u3057\u3087\u3046\u304B", meanings: ["shall I"], example: "\u306B\u3082\u3064\u3092\u3082\u3061\u307E\u3057\u3087\u3046\u304B\u3002", category: "verbs" }),
+        makeGrammarEntry({ id: "grammar-058", pattern: "\uFF5E\u305F\u3044", meanings: ["want to"], example: "\u306B\u307B\u3093\u3078\u3044\u304D\u305F\u3044\u3067\u3059\u3002", category: "desire" }),
+        makeGrammarEntry({ id: "grammar-059", pattern: "\uFF5E\u305F\u304F\u306A\u3044", meanings: ["do not want to"], example: "\u304D\u3087\u3046\u306F\u3067\u304B\u3051\u305F\u304F\u306A\u3044\u3067\u3059\u3002", category: "desire" }),
+        makeGrammarEntry({ id: "grammar-060", pattern: "\uFF5E\u307B\u3057\u3044", meanings: ["want (thing)"], example: "\u3042\u305F\u3089\u3057\u3044\u304F\u3064\u304C\u307B\u3057\u3044\u3067\u3059\u3002", category: "desire" }),
+        makeGrammarEntry({ id: "grammar-061", pattern: "\uFF5E\u3053\u3068\u304C\u3067\u304D\u308B", meanings: ["can do"], example: "\u306B\u307B\u3093\u3054\u3092\u306F\u306A\u3059\u3053\u3068\u304C\u3067\u304D\u307E\u3059\u3002", category: "ability" }),
+        makeGrammarEntry({ id: "grammar-062", pattern: "\uFF5E\u3053\u3068", meanings: ["nominalized action"], example: "\u306F\u3084\u304F\u306D\u308B\u3053\u3068\u306F\u305F\u3044\u305B\u3064\u3067\u3059\u3002", category: "nominalization" }),
+        makeGrammarEntry({ id: "grammar-063", pattern: "\uFF5E\u3088\u3046\u306B", meanings: ["so that", "in order to"], example: "\u308F\u3059\u308C\u306A\u3044\u3088\u3046\u306B\u30E1\u30E2\u3057\u307E\u3059\u3002", category: "purpose" }),
+        makeGrammarEntry({ id: "grammar-064", pattern: "\uFF5E\u305F\u3081\u306B", meanings: ["for", "because of"], example: "\u3079\u3093\u304D\u3087\u3046\u306E\u305F\u3081\u306B\u3068\u3057\u3087\u304B\u3093\u3078\u3044\u304D\u307E\u3059\u3002", category: "purpose" }),
+        makeGrammarEntry({ id: "grammar-065", pattern: "\uFF5E\u306A\u3051\u308C\u3070\u306A\u3089\u306A\u3044", meanings: ["must"], example: "\u3042\u3057\u305F\u306F\u3084\u304F\u304A\u304D\u306A\u3051\u308C\u3070\u306A\u3089\u306A\u3044\u3067\u3059\u3002", category: "obligation" }),
+        makeGrammarEntry({ id: "grammar-066", pattern: "\uFF5E\u306A\u304F\u3066\u306F\u3044\u3051\u306A\u3044", meanings: ["must"], example: "\u3057\u3085\u304F\u3060\u3044\u3092\u3057\u306A\u304F\u3066\u306F\u3044\u3051\u307E\u305B\u3093\u3002", category: "obligation" }),
+        makeGrammarEntry({ id: "grammar-067", pattern: "\uFF5E\u306A\u304F\u3066\u3082\u3044\u3044", meanings: ["don't have to"], example: "\u3042\u3057\u305F\u3053\u306A\u304F\u3066\u3082\u3044\u3044\u3067\u3059\u3002", category: "obligation" }),
+        makeGrammarEntry({ id: "grammar-068", pattern: "\uFF5E\u3066\u306F\u3044\u3051\u306A\u3044", meanings: ["must not"], example: "\u3053\u3053\u3067\u3042\u305D\u3093\u3067\u306F\u3044\u3051\u307E\u305B\u3093\u3002", category: "rules" }),
+        makeGrammarEntry({ id: "grammar-069", pattern: "\uFF5E\u306A", meanings: ["don't (command)"], example: "\u3053\u3053\u3067\u306D\u308B\u306A\u3002", category: "commands" }),
+        makeGrammarEntry({ id: "grammar-070", pattern: "\uFF5E\u306A\u3055\u3044", meanings: ["do (instruction)"], example: "\u306F\u3084\u304F\u306D\u306A\u3055\u3044\u3002", category: "commands" }),
+        makeGrammarEntry({ id: "grammar-071", pattern: "\uFF5E\u305D\u3046\u3060", meanings: ["seems", "looks"], example: "\u3053\u306E\u308A\u3087\u3046\u308A\u306F\u304A\u3044\u3057\u305D\u3046\u3067\u3059\u3002", category: "appearance" }),
+        makeGrammarEntry({ id: "grammar-072", pattern: "\uFF5E\u3067\u3057\u3087\u3046", meanings: ["probably"], example: "\u3042\u3057\u305F\u306F\u306F\u308C\u308B\u3067\u3057\u3087\u3046\u3002", category: "probability" }),
+        makeGrammarEntry({ id: "grammar-073", pattern: "\uFF5E\u304B\u3082\u3057\u308C\u306A\u3044", meanings: ["might"], example: "\u304B\u308C\u306F\u3082\u3046\u304D\u305F\u304B\u3082\u3057\u308C\u307E\u305B\u3093\u3002", category: "probability" }),
+        makeGrammarEntry({ id: "grammar-074", pattern: "\uFF5E\u3064\u3082\u308A", meanings: ["intend to"], example: "\u3089\u3044\u306D\u3093\u308A\u3085\u3046\u304C\u304F\u3059\u308B\u3064\u3082\u308A\u3067\u3059\u3002", category: "intentions" }),
+        makeGrammarEntry({ id: "grammar-075", pattern: "\uFF5E\u306A\u304C\u3089", meanings: ["while doing"], example: "\u304A\u3093\u304C\u304F\u3092\u304D\u304D\u306A\u304C\u3089\u3057\u3054\u3068\u3057\u307E\u3059\u3002", category: "simultaneous" }),
+        makeGrammarEntry({ id: "grammar-076", pattern: "\uFF5E\u3057", meanings: ["and", "moreover"], example: "\u3053\u306E\u307E\u3061\u306F\u3057\u305A\u304B\u3060\u3057\u3001\u3079\u3093\u308A\u3067\u3059\u3002", category: "conjunctions" }),
+        makeGrammarEntry({ id: "grammar-077", pattern: "\uFF5E\u3070", meanings: ["if"], example: "\u306F\u3084\u304F\u3044\u3051\u3070\u3001\u307E\u306B\u3042\u3044\u307E\u3059\u3002", category: "conditions" }),
+        makeGrammarEntry({ id: "grammar-078", pattern: "\uFF5E\u306A\u3089", meanings: ["if", "as for"], example: "\u306B\u307B\u3093\u3078\u3044\u304F\u306A\u3089\u3001\u304D\u3087\u3046\u3068\u304C\u304A\u3059\u3059\u3081\u3067\u3059\u3002", category: "conditions" }),
+        makeGrammarEntry({ id: "grammar-079", pattern: "\uFF5E\u305F\u3089", meanings: ["if", "when"], example: "\u3058\u304B\u3093\u304C\u3042\u3063\u305F\u3089\u3001\u3042\u305D\u3073\u307E\u3057\u3087\u3046\u3002", category: "conditions" }),
+        makeGrammarEntry({ id: "grammar-080", pattern: "\uFF5E\u3068", meanings: ["if", "when"], example: "\u306F\u308B\u306B\u306A\u308B\u3068\u3001\u3055\u304F\u3089\u304C\u3055\u304D\u307E\u3059\u3002", category: "conditions" }),
+        makeGrammarEntry({ id: "grammar-081", pattern: "\uFF5E\u3066\u304F\u308C\u308B", meanings: ["someone does for me"], example: "\u3068\u3082\u3060\u3061\u304C\u304A\u3057\u3048\u3066\u304F\u308C\u307E\u3057\u305F\u3002", category: "giving" }),
+        makeGrammarEntry({ id: "grammar-082", pattern: "\uFF5E\u3066\u3082\u3089\u3046", meanings: ["receive favor"], example: "\u305B\u3093\u305B\u3044\u306B\u3057\u3085\u304F\u3060\u3044\u3092\u307F\u3066\u3082\u3089\u3044\u307E\u3057\u305F\u3002", category: "giving" }),
+        makeGrammarEntry({ id: "grammar-083", pattern: "\uFF5E\u3066\u3042\u3052\u308B", meanings: ["do for someone"], example: "\u3044\u3082\u3046\u3068\u306B\u307B\u3093\u3092\u3088\u3093\u3067\u3042\u3052\u307E\u3057\u305F\u3002", category: "giving" }),
+        makeGrammarEntry({ id: "grammar-084", pattern: "\uFF5E\u3066\u304A\u304F", meanings: ["do in advance"], example: "\u3042\u3057\u305F\u306E\u3088\u3066\u3044\u3092\u304B\u3044\u3066\u304A\u304D\u307E\u3059\u3002", category: "preparation" }),
+        makeGrammarEntry({ id: "grammar-085", pattern: "\uFF5E\u3066\u3057\u307E\u3046", meanings: ["finish", "do unintentionally"], example: "\u3055\u3044\u3075\u3092\u304A\u3068\u3057\u3066\u3057\u307E\u3044\u307E\u3057\u305F\u3002", category: "completion" }),
+        makeGrammarEntry({ id: "grammar-086", pattern: "\uFF5E\u3066\u307F\u308B", meanings: ["try doing"], example: "\u3053\u306E\u304F\u3064\u3092\u306F\u3044\u3066\u307F\u307E\u3059\u3002", category: "try" }),
+        makeGrammarEntry({ id: "grammar-087", pattern: "\uFF5E\u3066\u3044\u308B\u3068\u3053\u308D", meanings: ["in the middle of"], example: "\u3044\u307E\u3079\u3093\u304D\u3087\u3046\u3057\u3066\u3044\u308B\u3068\u3053\u308D\u3067\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-088", pattern: "\uFF5E\u305F\u3068\u3053\u308D", meanings: ["just did"], example: "\u3044\u307E\u3064\u3044\u305F\u3068\u3053\u308D\u3067\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-089", pattern: "\uFF5E\u308B\u3068\u3053\u308D", meanings: ["about to do"], example: "\u3053\u308C\u304B\u3089\u3067\u304B\u3051\u308B\u3068\u3053\u308D\u3067\u3059\u3002", category: "time" }),
+        makeGrammarEntry({ id: "grammar-090", pattern: "\uFF5E\u305A\u306B", meanings: ["without doing"], example: "\u3042\u3055\u3054\u306F\u3093\u3092\u305F\u3079\u305A\u306B\u304D\u307E\u3057\u305F\u3002", category: "negative" })
+      ];
+    }
+  });
+
+  // js/data/n5SentencesData.js
+  function makeSentenceEntry({ id, japanese, englishAnswers, category, clozePrompt, clozeAnswers }) {
+    return { id, japanese, englishAnswers, category, clozePrompt, clozeAnswers };
+  }
+  var n5SentencesData;
+  var init_n5SentencesData = __esm({
+    "js/data/n5SentencesData.js"() {
+      n5SentencesData = [
+        makeSentenceEntry({ id: "sentence-001", japanese: "\u308F\u305F\u3057\u306F\u304C\u304F\u305B\u3044\u3067\u3059\u3002", englishAnswers: ["I am a student."], category: "self", clozePrompt: "\u308F\u305F\u3057___\u304C\u304F\u305B\u3044\u3067\u3059\u3002", clozeAnswers: ["\u306F"] }),
+        makeSentenceEntry({ id: "sentence-002", japanese: "\u3042\u3057\u305F\u304C\u3063\u3053\u3046\u306B\u3044\u304D\u307E\u3059\u3002", englishAnswers: ["I will go to school tomorrow."], category: "daily", clozePrompt: "\u3042\u3057\u305F\u304C\u3063\u3053\u3046___\u3044\u304D\u307E\u3059\u3002", clozeAnswers: ["\u306B"] }),
+        makeSentenceEntry({ id: "sentence-003", japanese: "\u307E\u3044\u3042\u3055\u30B3\u30FC\u30D2\u30FC\u3092\u306E\u307F\u307E\u3059\u3002", englishAnswers: ["I drink coffee every morning."], category: "daily", clozePrompt: "\u307E\u3044\u3042\u3055\u30B3\u30FC\u30D2\u30FC___\u306E\u307F\u307E\u3059\u3002", clozeAnswers: ["\u3092"] }),
+        makeSentenceEntry({ id: "sentence-004", japanese: "\u3053\u308C\u306F\u308F\u305F\u3057\u306E\u307B\u3093\u3067\u3059\u3002", englishAnswers: ["This is my book."], category: "objects", clozePrompt: "\u3053\u308C\u306F\u308F\u305F\u3057___\u307B\u3093\u3067\u3059\u3002", clozeAnswers: ["\u306E"] }),
+        makeSentenceEntry({ id: "sentence-005", japanese: "\u3068\u3082\u3060\u3061\u3068\u3048\u3044\u304C\u3092\u307F\u307E\u3057\u305F\u3002", englishAnswers: ["I watched a movie with a friend."], category: "past", clozePrompt: "\u3068\u3082\u3060\u3061___\u3048\u3044\u304C\u3092\u307F\u307E\u3057\u305F\u3002", clozeAnswers: ["\u3068"] }),
+        makeSentenceEntry({ id: "sentence-006", japanese: "\u3078\u3084\u306B\u306D\u3053\u304C\u3044\u307E\u3059\u3002", englishAnswers: ["There is a cat in the room."], category: "existence", clozePrompt: "\u3078\u3084___\u306D\u3053\u304C\u3044\u307E\u3059\u3002", clozeAnswers: ["\u306B"] }),
+        makeSentenceEntry({ id: "sentence-007", japanese: "\u3064\u304F\u3048\u306E\u3046\u3048\u306B\u307B\u3093\u304C\u3042\u308A\u307E\u3059\u3002", englishAnswers: ["There is a book on the desk."], category: "existence", clozePrompt: "\u3064\u304F\u3048\u306E\u3046\u3048___\u307B\u3093\u304C\u3042\u308A\u307E\u3059\u3002", clozeAnswers: ["\u306B"] }),
+        makeSentenceEntry({ id: "sentence-008", japanese: "\u3057\u3085\u3046\u307E\u3064\u306B\u306B\u307B\u3093\u3054\u3092\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3059\u3002", englishAnswers: ["I study Japanese on weekends."], category: "study", clozePrompt: "\u3057\u3085\u3046\u307E\u3064\u306B\u306B\u307B\u3093\u3054___\u3079\u3093\u304D\u3087\u3046\u3057\u307E\u3059\u3002", clozeAnswers: ["\u3092"] }),
+        makeSentenceEntry({ id: "sentence-009", japanese: "\u3053\u306E\u307F\u305B\u306F\u3084\u3059\u3044\u3067\u3059\u3002", englishAnswers: ["This shop is cheap."], category: "adjectives", clozePrompt: "\u3053\u306E\u307F\u305B___\u3084\u3059\u3044\u3067\u3059\u3002", clozeAnswers: ["\u306F"] }),
+        makeSentenceEntry({ id: "sentence-010", japanese: "\u304D\u306E\u3046\u306F\u3042\u3081\u3067\u3057\u305F\u3002", englishAnswers: ["It was rainy yesterday."], category: "past", clozePrompt: "\u304D\u306E\u3046___\u3042\u3081\u3067\u3057\u305F\u3002", clozeAnswers: ["\u306F"] }),
+        makeSentenceEntry({ id: "sentence-011", japanese: "\u308F\u305F\u3057\u306E\u3061\u3061\u306F\u305B\u3093\u305B\u3044\u3067\u3059\u3002", englishAnswers: ["My father is a teacher."], category: "family", clozePrompt: "\u308F\u305F\u3057___\u3061\u3061\u306F\u305B\u3093\u305B\u3044\u3067\u3059\u3002", clozeAnswers: ["\u306E"] }),
+        makeSentenceEntry({ id: "sentence-012", japanese: "\u306B\u3061\u3088\u3046\u3073\u306F\u3046\u3061\u3067\u3084\u3059\u307F\u307E\u3059\u3002", englishAnswers: ["I rest at home on Sunday."], category: "daily", clozePrompt: "\u306B\u3061\u3088\u3046\u3073\u306F\u3046\u3061___\u3084\u3059\u307F\u307E\u3059\u3002", clozeAnswers: ["\u3067"] }),
+        makeSentenceEntry({ id: "sentence-013", japanese: "\u306B\u307B\u3093\u3054\u306F\u304A\u3082\u3057\u308D\u3044\u3067\u3059\u3002", englishAnswers: ["Japanese is interesting."], category: "study", clozePrompt: "\u306B\u307B\u3093\u3054___\u304A\u3082\u3057\u308D\u3044\u3067\u3059\u3002", clozeAnswers: ["\u306F"] }),
+        makeSentenceEntry({ id: "sentence-014", japanese: "\u3053\u306E\u307B\u3093\u3092\u3088\u3093\u3067\u304F\u3060\u3055\u3044\u3002", englishAnswers: ["Please read this book."], category: "requests", clozePrompt: "\u3053\u306E\u307B\u3093\u3092\u3088\u3093\u3067___\u3002", clozeAnswers: ["\u304F\u3060\u3055\u3044"] }),
+        makeSentenceEntry({ id: "sentence-015", japanese: "\u3053\u3053\u3067\u3057\u3083\u3057\u3093\u3092\u3068\u3063\u3066\u3082\u3044\u3044\u3067\u3059\u3002", englishAnswers: ["You may take pictures here."], category: "permission", clozePrompt: "\u3053\u3053\u3067\u3057\u3083\u3057\u3093\u3092\u3068\u3063\u3066___\u3067\u3059\u3002", clozeAnswers: ["\u3082\u3044\u3044"] }),
+        makeSentenceEntry({ id: "sentence-016", japanese: "\u3053\u3053\u3067\u305F\u3070\u3053\u3092\u3059\u3063\u3066\u306F\u3044\u3051\u307E\u305B\u3093\u3002", englishAnswers: ["You must not smoke here."], category: "rules", clozePrompt: "\u3053\u3053\u3067\u305F\u3070\u3053\u3092\u3059\u3063\u3066___\u3002", clozeAnswers: ["\u306F\u3044\u3051\u307E\u305B\u3093"] }),
+        makeSentenceEntry({ id: "sentence-017", japanese: "\u3044\u3063\u3057\u3087\u306B\u3072\u308B\u3054\u306F\u3093\u3092\u305F\u3079\u307E\u3057\u3087\u3046\u3002", englishAnswers: ["Let's eat lunch together."], category: "invitations", clozePrompt: "\u3044\u3063\u3057\u3087\u306B\u3072\u308B\u3054\u306F\u3093\u3092\u305F\u3079___\u3002", clozeAnswers: ["\u307E\u3057\u3087\u3046"] }),
+        makeSentenceEntry({ id: "sentence-018", japanese: "\u3082\u3046\u3057\u3085\u304F\u3060\u3044\u3092\u3057\u307E\u3057\u305F\u3002", englishAnswers: ["I already did my homework."], category: "time", clozePrompt: "___\u3057\u3085\u304F\u3060\u3044\u3092\u3057\u307E\u3057\u305F\u3002", clozeAnswers: ["\u3082\u3046"] }),
+        makeSentenceEntry({ id: "sentence-019", japanese: "\u307E\u3060\u3070\u3093\u3054\u306F\u3093\u3092\u305F\u3079\u3066\u3044\u307E\u305B\u3093\u3002", englishAnswers: ["I have not eaten dinner yet."], category: "time", clozePrompt: "___\u3070\u3093\u3054\u306F\u3093\u3092\u305F\u3079\u3066\u3044\u307E\u305B\u3093\u3002", clozeAnswers: ["\u307E\u3060"] }),
+        makeSentenceEntry({ id: "sentence-020", japanese: "\u304D\u3087\u3046\u306F\u307B\u3093\u3092\u3088\u3093\u3060\u308A\u304A\u3093\u304C\u304F\u3092\u304D\u3044\u305F\u308A\u3057\u307E\u3059\u3002", englishAnswers: ["Today I do things like read books and listen to music."], category: "habits", clozePrompt: "\u304D\u3087\u3046\u306F\u307B\u3093\u3092\u3088\u3093\u3060\u308A\u304A\u3093\u304C\u304F\u3092\u304D\u3044\u305F\u308A___\u3002", clozeAnswers: ["\u3057\u307E\u3059"] })
       ];
     }
   });
@@ -800,10 +1561,16 @@
     Object.defineProperties(state, aliasDescriptors);
   }
   function createState(kanaData2) {
-    const datasetsInput = Array.isArray(kanaData2) ? { kanaData: kanaData2, wordsData: [], kanjiData: [] } : kanaData2 || {};
+    const datasetsInput = Array.isArray(kanaData2) ? { kanaData: kanaData2, wordsData: [], kanjiData: [], n4KanjiData: [], n5VocabData: [], n5GrammarData: [], n5SentencesData: [], jlptN5TestData: [], jlptN4TestData: [] } : kanaData2 || {};
     const resolvedKanaData = Array.isArray(datasetsInput.kanaData) ? datasetsInput.kanaData : [];
     const resolvedWordsData = Array.isArray(datasetsInput.wordsData) ? datasetsInput.wordsData : [];
     const resolvedKanjiData = Array.isArray(datasetsInput.kanjiData) ? datasetsInput.kanjiData : [];
+    const resolvedN4KanjiData = Array.isArray(datasetsInput.n4KanjiData) ? datasetsInput.n4KanjiData : [];
+    const resolvedN5VocabData = Array.isArray(datasetsInput.n5VocabData) ? datasetsInput.n5VocabData : [];
+    const resolvedN5GrammarData = Array.isArray(datasetsInput.n5GrammarData) ? datasetsInput.n5GrammarData : [];
+    const resolvedN5SentencesData = Array.isArray(datasetsInput.n5SentencesData) ? datasetsInput.n5SentencesData : [];
+    const resolvedJlptN5TestData = Array.isArray(datasetsInput.jlptN5TestData) ? datasetsInput.jlptN5TestData : [];
+    const resolvedJlptN4TestData = Array.isArray(datasetsInput.jlptN4TestData) ? datasetsInput.jlptN4TestData : [];
     const state = {
       currentQuestion: null,
       nextQuestionTimer: null,
@@ -820,6 +1587,32 @@
         [DATASET_IDS.KANJI]: createDatasetStateFromItems(resolvedKanjiData, (item) => item.id, (item) => ({
           label: item.kanji,
           romaji: item.romaji || [],
+          meanings: item.meanings || []
+        })),
+        [DATASET_IDS.N4_KANJI]: createDatasetStateFromItems(resolvedN4KanjiData, (item) => item.id, (item) => ({
+          label: item.kanji,
+          romaji: item.romaji || [],
+          meanings: item.meanings || []
+        })),
+        [DATASET_IDS.N5_VOCAB]: createDatasetStateFromItems(resolvedN5VocabData, (item) => item.id, (item) => ({
+          label: item.word,
+          meanings: item.meanings || []
+        })),
+        [DATASET_IDS.N5_GRAMMAR]: createDatasetStateFromItems(resolvedN5GrammarData, (item) => item.id, (item) => ({
+          label: item.pattern,
+          example: item.example || "",
+          meanings: item.meanings || []
+        })),
+        [DATASET_IDS.N5_SENTENCES]: createDatasetStateFromItems(resolvedN5SentencesData, (item) => item.id, (item) => ({
+          label: item.japanese,
+          meanings: item.englishAnswers || []
+        })),
+        [DATASET_IDS.JLPT_N5_TEST]: createDatasetStateFromItems(resolvedJlptN5TestData, (item) => item.id, (item) => ({
+          label: item.promptText,
+          meanings: item.meanings || []
+        })),
+        [DATASET_IDS.JLPT_N4_TEST]: createDatasetStateFromItems(resolvedJlptN4TestData, (item) => item.id, (item) => ({
+          label: item.promptText,
           meanings: item.meanings || []
         }))
       },
@@ -838,7 +1631,13 @@
       backlogFiltersByDataset: {
         [DATASET_IDS.KANA]: createDefaultBacklogFilters(),
         [DATASET_IDS.WORDS]: createDefaultBacklogFilters(),
-        [DATASET_IDS.KANJI]: createDefaultBacklogFilters()
+        [DATASET_IDS.KANJI]: createDefaultBacklogFilters(),
+        [DATASET_IDS.N4_KANJI]: createDefaultBacklogFilters(),
+        [DATASET_IDS.N5_VOCAB]: createDefaultBacklogFilters(),
+        [DATASET_IDS.N5_GRAMMAR]: createDefaultBacklogFilters(),
+        [DATASET_IDS.N5_SENTENCES]: createDefaultBacklogFilters(),
+        [DATASET_IDS.JLPT_N5_TEST]: createDefaultBacklogFilters(),
+        [DATASET_IDS.JLPT_N4_TEST]: createDefaultBacklogFilters()
       },
       installPromptSeen: false,
       lastSavedAt: 0,
@@ -866,7 +1665,13 @@
       DATASET_IDS = {
         KANA: "kana",
         WORDS: "words",
-        KANJI: "kanji"
+        KANJI: "kanji",
+        N4_KANJI: "n4kanji",
+        N5_VOCAB: "n5vocab",
+        N5_GRAMMAR: "n5grammar",
+        N5_SENTENCES: "n5sentences",
+        JLPT_N5_TEST: "jlptn5test",
+        JLPT_N4_TEST: "jlptn4test"
       };
     }
   });
@@ -1241,10 +2046,12 @@
       }
       const status = getCardStatus(row);
       const attempts = getTotalAttempts(row);
-      const helper = datasetId === "words" ? `${escapeHtml2(item.romaji)} \u2022 ${escapeHtml2(item.meanings[0] || "")}` : `${escapeHtml2((item.romaji || []).join(", "))} \u2022 ${escapeHtml2(item.meanings[0] || "")}`;
-      const primary = datasetId === "words" ? item.japanese : item.kanji;
+      const meaningText = Array.isArray(item.meanings) ? item.meanings[0] || "" : "";
+      const helper = escapeHtml2(meaningText);
+      const primary = item.japanese || item.word || item.pattern || item.kanji || item.promptText || item.id;
       const category = String(item.category || "core");
-      const drawingsCount = datasetId === "kanji" ? (drawingsByItem[primary] || []).length : 0;
+      const supportsDrawing = datasetId === "kanji" || datasetId === "n4kanji";
+      const drawingsCount = supportsDrawing ? (drawingsByItem[primary] || []).length : 0;
       return `
       <div class="kana-card ${status}">
         <div class="kana-char">${escapeHtml2(primary)}</div>
@@ -1252,10 +2059,10 @@
         <div class="kana-romaji">Category: ${escapeHtml2(category)}</div>
         <div class="kana-stats">
           <div class="mode-row"><span class="mode-tag">T</span><span class="k-right">\u2713${row.typingRight}</span><span class="k-wrong">\u2717${row.typingWrong}</span></div>
-          ${datasetId === "words" ? "" : `<div class="mode-row"><span class="mode-tag">D</span><span class="k-right">\u2713${row.drawingRight}</span><span class="k-wrong">\u2717${row.drawingWrong}</span></div>`}
+          ${supportsDrawing ? `<div class="mode-row"><span class="mode-tag">D</span><span class="k-right">\u2713${row.drawingRight}</span><span class="k-wrong">\u2717${row.drawingWrong}</span></div>` : ""}
         </div>
         <div class="kana-romaji">Attempts: ${attempts}</div>
-        ${datasetId === "kanji" ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml2(primary)}">Drawings (${drawingsCount})</button>` : ""}
+        ${supportsDrawing ? `<button type="button" class="btn-secondary view-drawings-btn" data-kana="${escapeHtml2(primary)}">Drawings (${drawingsCount})</button>` : ""}
       </div>
     `;
     }).filter(Boolean);
@@ -1285,7 +2092,8 @@
         row.drawingWrong += 1;
       }
     }
-    if (scriptContext === "hiragana" || scriptContext === "both") {
+    const hasKanaSplitStats = "hiraganaTypingRight" in row && "katakanaTypingRight" in row;
+    if (hasKanaSplitStats && (scriptContext === "hiragana" || scriptContext === "both")) {
       if (answerMode === "typing") {
         if (wasCorrect) {
           row.hiraganaTypingRight += 1;
@@ -1305,7 +2113,7 @@
         row.hiraganaWrong += 1;
       }
     }
-    if (scriptContext === "katakana" || scriptContext === "both") {
+    if (hasKanaSplitStats && (scriptContext === "katakana" || scriptContext === "both")) {
       if (answerMode === "typing") {
         if (wasCorrect) {
           row.katakanaTypingRight += 1;
@@ -1327,7 +2135,8 @@
     }
   }
   function getQuestionWeight(backlog, item) {
-    const entry = backlog[item.romaji];
+    const key = item.romaji || item.id;
+    const entry = backlog[key];
     if (!entry || entry.right + entry.wrong === 0) {
       return 4;
     }
@@ -1557,8 +2366,7 @@
     mode,
     backlog,
     preferredIds,
-    avoidId,
-    showRomaji
+    avoidId
   }) {
     const resolvedMode = mode === "wordsMixed" ? Math.random() > 0.5 ? "japaneseToEnglish" : "englishToJapanese" : mode;
     const item = pickGenericQuestion({
@@ -1574,13 +2382,13 @@
         dataset: "words",
         trackingId: item.id,
         promptText: item.meanings[0],
-        helperText: showRomaji ? item.helperRomaji || item.romaji : "",
+        helperText: "",
         answerLabel: "Type Japanese",
-        placeholder: "e.g. daigaku",
-        acceptedAnswers: [item.japanese, item.romaji],
-        answerNormalizer: "forgiving-romaji",
+        placeholder: "e.g. \u3060\u3044\u304C\u304F",
+        acceptedAnswers: [item.japanese],
+        answerNormalizer: "exact",
         displayAnswer: item.japanese,
-        hintAnswer: item.romaji,
+        hintAnswer: item.japanese,
         quickAnswerEnabled: false
       };
     }
@@ -1589,13 +2397,168 @@
       dataset: "words",
       trackingId: item.id,
       promptText: item.japanese,
-      helperText: showRomaji && item.helperRomaji && item.helperRomaji !== item.japanese ? item.helperRomaji : "",
+      helperText: "",
       answerLabel: "Type English",
       placeholder: "e.g. college",
       acceptedAnswers: item.meanings,
       answerNormalizer: "english",
       displayAnswer: item.meanings[0],
       hintAnswer: item.meanings[0],
+      quickAnswerEnabled: false
+    };
+  }
+  function pickVocabQuestion({
+    vocabData,
+    mode,
+    backlog,
+    preferredIds,
+    avoidId
+  }) {
+    const resolvedMode = mode === "wordsMixed" ? Math.random() > 0.5 ? "japaneseToEnglish" : "englishToJapanese" : mode;
+    const item = pickGenericQuestion({
+      items: vocabData,
+      backlog,
+      preferredIds,
+      avoidId,
+      getItemId: (entry) => entry.id
+    });
+    if (resolvedMode === "englishToJapanese") {
+      return {
+        kind: "typing",
+        dataset: "n5vocab",
+        trackingId: item.id,
+        promptText: item.meanings[0],
+        helperText: "",
+        answerLabel: "Type Japanese",
+        placeholder: "e.g. \u304C\u304F\u305B\u3044",
+        acceptedAnswers: [item.word],
+        answerNormalizer: "exact",
+        displayAnswer: item.word,
+        hintAnswer: item.word,
+        quickAnswerEnabled: false
+      };
+    }
+    return {
+      kind: "typing",
+      dataset: "n5vocab",
+      trackingId: item.id,
+      promptText: item.word,
+      helperText: "",
+      answerLabel: "Type English",
+      placeholder: "e.g. student",
+      acceptedAnswers: item.meanings,
+      answerNormalizer: "english",
+      displayAnswer: item.meanings[0],
+      hintAnswer: item.meanings[0],
+      quickAnswerEnabled: false
+    };
+  }
+  function pickGrammarQuestion({
+    grammarData,
+    mode,
+    backlog,
+    preferredIds,
+    avoidId,
+    showHelper
+  }) {
+    const resolvedMode = mode === "grammarMixed" ? Math.random() > 0.5 ? "grammarPattern" : "grammarExample" : mode;
+    const item = pickGenericQuestion({
+      items: grammarData,
+      backlog,
+      preferredIds,
+      avoidId,
+      getItemId: (entry) => entry.id
+    });
+    if (resolvedMode === "grammarExample") {
+      return {
+        kind: "typing",
+        dataset: "n5grammar",
+        trackingId: item.id,
+        promptText: item.example,
+        helperText: "",
+        answerLabel: "Type Grammar Pattern",
+        placeholder: "e.g. \uFF5E\u3066\u304F\u3060\u3055\u3044",
+        acceptedAnswers: [item.pattern],
+        answerNormalizer: "exact",
+        displayAnswer: item.pattern,
+        hintAnswer: item.pattern,
+        quickAnswerEnabled: false
+      };
+    }
+    return {
+      kind: "typing",
+      dataset: "n5grammar",
+      trackingId: item.id,
+      promptText: item.pattern,
+      helperText: showHelper ? item.example || "" : "",
+      answerLabel: "Type Meaning (English)",
+      placeholder: "e.g. please do",
+      acceptedAnswers: item.meanings,
+      answerNormalizer: "english",
+      displayAnswer: item.meanings[0],
+      hintAnswer: item.meanings[0],
+      quickAnswerEnabled: false
+    };
+  }
+  function pickSentenceQuestion({
+    sentencesData,
+    mode,
+    backlog,
+    preferredIds,
+    avoidId
+  }) {
+    const resolvedMode = mode === "sentenceMixed" ? ["sentenceToEnglish", "englishToSentence", "sentenceCloze"][Math.floor(Math.random() * 3)] : mode;
+    const item = pickGenericQuestion({
+      items: sentencesData,
+      backlog,
+      preferredIds,
+      avoidId,
+      getItemId: (entry) => entry.id
+    });
+    if (resolvedMode === "englishToSentence") {
+      return {
+        kind: "typing",
+        dataset: "n5sentences",
+        trackingId: item.id,
+        promptText: item.englishAnswers[0],
+        helperText: "",
+        answerLabel: "Type Japanese Sentence",
+        placeholder: "e.g. \u308F\u305F\u3057\u306F\u304C\u304F\u305B\u3044\u3067\u3059\u3002",
+        acceptedAnswers: [item.japanese],
+        answerNormalizer: "exact",
+        displayAnswer: item.japanese,
+        hintAnswer: item.japanese,
+        quickAnswerEnabled: false
+      };
+    }
+    if (resolvedMode === "sentenceCloze") {
+      return {
+        kind: "typing",
+        dataset: "n5sentences",
+        trackingId: item.id,
+        promptText: item.clozePrompt || item.japanese,
+        helperText: "",
+        answerLabel: "Fill the Blank",
+        placeholder: "e.g. \u306F",
+        acceptedAnswers: Array.isArray(item.clozeAnswers) && item.clozeAnswers.length > 0 ? item.clozeAnswers : [item.japanese],
+        answerNormalizer: "exact",
+        displayAnswer: Array.isArray(item.clozeAnswers) && item.clozeAnswers.length > 0 ? item.clozeAnswers[0] : item.japanese,
+        hintAnswer: item.japanese,
+        quickAnswerEnabled: false
+      };
+    }
+    return {
+      kind: "typing",
+      dataset: "n5sentences",
+      trackingId: item.id,
+      promptText: item.japanese,
+      helperText: "",
+      answerLabel: "Type English Meaning",
+      placeholder: "e.g. I am a student.",
+      acceptedAnswers: item.englishAnswers,
+      answerNormalizer: "english",
+      displayAnswer: item.englishAnswers[0],
+      hintAnswer: item.englishAnswers[0],
       quickAnswerEnabled: false
     };
   }
@@ -1622,7 +2585,7 @@
         dataset: "kanji",
         trackingId: item.id,
         promptText: item.meanings[0],
-        helperText: showRomaji ? item.romaji.join(", ") : "",
+        helperText: "",
         answerLabel: "Type Kanji",
         placeholder: "e.g. \u4E00",
         acceptedAnswers: [item.kanji],
@@ -1633,14 +2596,13 @@
       };
     }
     if (resolvedMode === "promptToKanji") {
-      const useMeaningPrompt = Math.random() > 0.5;
-      const promptText = useMeaningPrompt ? item.meanings[0] : item.romaji && item.romaji[0] || item.onyomi && item.onyomi[0] || item.kunyomi && item.kunyomi[0] || item.meanings[0];
+      const promptText = item.meanings[Math.floor(Math.random() * item.meanings.length)] || item.meanings[0];
       return {
         kind: "typing",
         dataset: "kanji",
         trackingId: item.id,
         promptText,
-        helperText: useMeaningPrompt && showRomaji ? item.romaji.join(", ") : "",
+        helperText: "",
         answerLabel: "Type Kanji",
         placeholder: "e.g. \u4E00",
         acceptedAnswers: [item.kanji],
@@ -1659,7 +2621,7 @@
         kanji: item.kanji,
         canvasMode: "kanji",
         promptText: `Draw ${item.kanji}`,
-        revealText: `Answer: ${item.kanji} (${item.meanings[0]}${item.romaji.length ? ` | ${item.romaji.join(", ")}` : ""}). Mark yourself right or wrong.`
+        revealText: `Answer: ${item.kanji} (${item.meanings[0]}). Mark yourself right or wrong.`
       };
     }
     return {
@@ -1667,7 +2629,7 @@
       dataset: "kanji",
       trackingId: item.id,
       promptText: item.kanji,
-      helperText: showRomaji ? item.romaji.join(", ") : "",
+      helperText: "",
       answerLabel: "Type Meaning",
       placeholder: "e.g. one",
       acceptedAnswers: item.meanings,
@@ -1677,8 +2639,173 @@
       quickAnswerEnabled: false
     };
   }
+  function pickJlptTestQuestion({
+    dataset,
+    questions,
+    backlog,
+    preferredIds,
+    avoidId
+  }) {
+    const item = pickGenericQuestion({
+      items: questions,
+      backlog,
+      preferredIds,
+      avoidId,
+      getItemId: (entry) => entry.id
+    });
+    return {
+      kind: "typing",
+      dataset,
+      trackingId: item.id,
+      promptText: item.promptText,
+      helperText: `Section: ${item.category}`,
+      answerLabel: item.answerLabel,
+      placeholder: item.placeholder,
+      acceptedAnswers: item.acceptedAnswers,
+      answerNormalizer: item.answerNormalizer,
+      displayAnswer: item.displayAnswer,
+      hintAnswer: item.hintAnswer,
+      quickAnswerEnabled: false
+    };
+  }
   var init_quiz = __esm({
     "js/features/quiz.js"() {
+    }
+  });
+
+  // js/features/mockTests.js
+  function buildKanjiQuestions({ datasetId, levelLabel, kanjiItems }) {
+    const questions = [];
+    kanjiItems.forEach((item) => {
+      questions.push({
+        id: `${datasetId}-kanji-meaning-${item.id}`,
+        category: "kanji",
+        promptText: item.kanji,
+        answerLabel: `${levelLabel} Meaning`,
+        placeholder: "e.g. station",
+        acceptedAnswers: item.meanings,
+        answerNormalizer: "english",
+        displayAnswer: item.meanings[0] || "",
+        hintAnswer: item.meanings[0] || "",
+        meanings: item.meanings || []
+      });
+      questions.push({
+        id: `${datasetId}-kanji-char-${item.id}`,
+        category: "kanji",
+        promptText: item.meanings[0] || "",
+        answerLabel: `${levelLabel} Kanji`,
+        placeholder: "e.g. \u99C5",
+        acceptedAnswers: [item.kanji],
+        answerNormalizer: "exact",
+        displayAnswer: item.kanji,
+        hintAnswer: item.kanji,
+        meanings: [item.kanji]
+      });
+    });
+    return questions;
+  }
+  function buildVocabQuestions({ datasetId, vocabItems }) {
+    return vocabItems.flatMap((item) => [
+      {
+        id: `${datasetId}-vocab-eng-${item.id}`,
+        category: "vocab",
+        promptText: item.word,
+        answerLabel: "English Meaning",
+        placeholder: "e.g. friend",
+        acceptedAnswers: item.meanings,
+        answerNormalizer: "english",
+        displayAnswer: item.meanings[0] || "",
+        hintAnswer: item.meanings[0] || "",
+        meanings: item.meanings || []
+      },
+      {
+        id: `${datasetId}-vocab-jp-${item.id}`,
+        category: "vocab",
+        promptText: item.meanings[0] || "",
+        answerLabel: "Japanese Word",
+        placeholder: "e.g. \u3068\u3082\u3060\u3061",
+        acceptedAnswers: [item.word],
+        answerNormalizer: "exact",
+        displayAnswer: item.word,
+        hintAnswer: item.word,
+        meanings: [item.word]
+      }
+    ]);
+  }
+  function buildGrammarQuestions({ datasetId, grammarItems }) {
+    return grammarItems.flatMap((item) => [
+      {
+        id: `${datasetId}-grammar-meaning-${item.id}`,
+        category: "grammar",
+        promptText: item.pattern,
+        answerLabel: "Grammar Meaning",
+        placeholder: "e.g. must not do",
+        acceptedAnswers: item.meanings,
+        answerNormalizer: "english",
+        displayAnswer: item.meanings[0] || "",
+        hintAnswer: item.meanings[0] || "",
+        meanings: item.meanings || []
+      },
+      {
+        id: `${datasetId}-grammar-pattern-${item.id}`,
+        category: "grammar",
+        promptText: item.example,
+        answerLabel: "Grammar Pattern",
+        placeholder: "e.g. V\u3066\u304F\u3060\u3055\u3044",
+        acceptedAnswers: [item.pattern],
+        answerNormalizer: "exact",
+        displayAnswer: item.pattern,
+        hintAnswer: item.pattern,
+        meanings: [item.pattern]
+      }
+    ]);
+  }
+  function buildSentenceQuestions({ datasetId, sentenceItems }) {
+    return sentenceItems.flatMap((item) => [
+      {
+        id: `${datasetId}-sentence-eng-${item.id}`,
+        category: "reading",
+        promptText: item.japanese,
+        answerLabel: "English Meaning",
+        placeholder: "e.g. I am a student.",
+        acceptedAnswers: item.englishAnswers,
+        answerNormalizer: "english",
+        displayAnswer: item.englishAnswers[0] || "",
+        hintAnswer: item.englishAnswers[0] || "",
+        meanings: item.englishAnswers || []
+      },
+      {
+        id: `${datasetId}-sentence-cloze-${item.id}`,
+        category: "reading",
+        promptText: item.clozePrompt || item.japanese,
+        answerLabel: "Fill in the Blank",
+        placeholder: "e.g. \u306F",
+        acceptedAnswers: Array.isArray(item.clozeAnswers) && item.clozeAnswers.length > 0 ? item.clozeAnswers : [item.japanese],
+        answerNormalizer: "exact",
+        displayAnswer: Array.isArray(item.clozeAnswers) && item.clozeAnswers.length > 0 ? item.clozeAnswers[0] : item.japanese,
+        hintAnswer: item.japanese,
+        meanings: [item.japanese]
+      }
+    ]);
+  }
+  function buildJlptN5MockQuestions({ kanjiData: kanjiData2, vocabData, grammarData, sentencesData }) {
+    return [
+      ...buildKanjiQuestions({ datasetId: "jlptn5test", levelLabel: "N5", kanjiItems: kanjiData2 }),
+      ...buildVocabQuestions({ datasetId: "jlptn5test", vocabItems: vocabData }),
+      ...buildGrammarQuestions({ datasetId: "jlptn5test", grammarItems: grammarData }),
+      ...buildSentenceQuestions({ datasetId: "jlptn5test", sentenceItems: sentencesData })
+    ];
+  }
+  function buildJlptN4MockQuestions({ n4KanjiData: n4KanjiData2, n4VocabData: n4VocabData2, n4GrammarData: n4GrammarData2, sentencesData }) {
+    return [
+      ...buildKanjiQuestions({ datasetId: "jlptn4test", levelLabel: "N4", kanjiItems: n4KanjiData2 }),
+      ...buildVocabQuestions({ datasetId: "jlptn4test", vocabItems: n4VocabData2 }),
+      ...buildGrammarQuestions({ datasetId: "jlptn4test", grammarItems: n4GrammarData2 }),
+      ...buildSentenceQuestions({ datasetId: "jlptn4test", sentenceItems: sentencesData })
+    ];
+  }
+  var init_mockTests = __esm({
+    "js/features/mockTests.js"() {
     }
   });
 
@@ -1809,9 +2936,9 @@
     return { status, script, weakness, minAttempts, compact };
   }
   function normalizeBacklogFiltersByDataset(payload, activeDataset) {
-    const datasetIds = ["kana", "words", "kanji"];
+    const datasetIds = Object.values(DATASET_IDS);
     const source = payload && payload.backlogFiltersByDataset && typeof payload.backlogFiltersByDataset === "object" ? payload.backlogFiltersByDataset : null;
-    const activeId = datasetIds.includes(activeDataset) ? activeDataset : "kana";
+    const activeId = datasetIds.includes(activeDataset) ? activeDataset : DATASET_IDS.KANA;
     const legacy = normalizeBacklogFilters(payload);
     const out = {};
     datasetIds.forEach((datasetId) => {
@@ -1845,23 +2972,23 @@
     });
     const savedAt = Date.now();
     state.lastSavedAt = savedAt;
-    const kanaDataset = state.datasets && state.datasets.kana ? state.datasets.kana : {};
+    const kanaDataset = state.datasets && state.datasets[DATASET_IDS.KANA] ? state.datasets[DATASET_IDS.KANA] : {};
+    const datasetPayload = {};
+    Object.values(DATASET_IDS).forEach((datasetId) => {
+      datasetPayload[datasetId] = buildDatasetPayload(state.datasets && state.datasets[datasetId] || {});
+    });
     return {
       schemaVersion: 2,
       savedAt,
-      activeDataset: state.activeDataset || "kana",
+      activeDataset: state.activeDataset || DATASET_IDS.KANA,
       showWordHelper: Boolean(state.showWordHelper),
       showKanjiHelper: Boolean(state.showKanjiHelper),
-      datasets: {
-        kana: buildDatasetPayload(kanaDataset),
-        words: buildDatasetPayload(state.datasets && state.datasets.words || {}),
-        kanji: buildDatasetPayload(state.datasets && state.datasets.kanji || {})
-      },
-      practiceStrategy: state.practiceStrategy,
-      recentMistakes: state.recentMistakes,
-      recentTypingMistakes: state.recentTypingMistakes,
-      recentDrawingMistakes: state.recentDrawingMistakes,
-      srsByRomaji: state.srsByRomaji,
+      datasets: datasetPayload,
+      practiceStrategy: kanaDataset.practiceStrategy,
+      recentMistakes: kanaDataset.recentMistakes,
+      recentTypingMistakes: kanaDataset.recentTypingMistakes,
+      recentDrawingMistakes: kanaDataset.recentDrawingMistakes,
+      srsByRomaji: kanaDataset.srsByItem,
       audioMuted: state.audioMuted,
       drawGuideEnabled: state.drawGuideEnabled,
       dailyGoal: state.dailyGoal,
@@ -1890,19 +3017,23 @@
       return;
     }
     state.lastSavedAt = Number(payload.savedAt || 0);
-    state.activeDataset = ["kana", "words", "kanji"].includes(payload.activeDataset) ? payload.activeDataset : "kana";
+    const validDatasetIds = Object.values(DATASET_IDS);
+    state.activeDataset = validDatasetIds.includes(payload.activeDataset) ? payload.activeDataset : DATASET_IDS.KANA;
     state.showWordHelper = Boolean(payload.showWordHelper);
     state.showKanjiHelper = Boolean(payload.showKanjiHelper);
-    const kanaPayload = getDatasetBucket(payload, "kana") || buildLegacyKanaDatasetPayload(payload);
-    const wordsPayload = getDatasetBucket(payload, "words") || {};
-    const kanjiPayload = getDatasetBucket(payload, "kanji") || {};
-    normalizeDatasetRuntimeState(state.datasets.kana, kanaPayload);
-    normalizeDatasetRuntimeState(state.datasets.words, wordsPayload);
-    normalizeDatasetRuntimeState(state.datasets.kanji, kanjiPayload);
-    if (state.recentTypingMistakes.length === 0 && Array.isArray(payload.recentMistakes)) {
-      state.recentTypingMistakes = payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120);
-      state.recentDrawingMistakes = [...state.recentTypingMistakes];
-      state.recentMistakes = [...new Set(state.recentTypingMistakes)].slice(0, 120);
+    const kanaPayload = getDatasetBucket(payload, DATASET_IDS.KANA) || buildLegacyKanaDatasetPayload(payload);
+    normalizeDatasetRuntimeState(state.datasets[DATASET_IDS.KANA], kanaPayload);
+    validDatasetIds.filter((datasetId) => datasetId !== DATASET_IDS.KANA).forEach((datasetId) => {
+      const datasetPayload = getDatasetBucket(payload, datasetId) || {};
+      if (state.datasets[datasetId]) {
+        normalizeDatasetRuntimeState(state.datasets[datasetId], datasetPayload);
+      }
+    });
+    const kanaDatasetState = state.datasets[DATASET_IDS.KANA];
+    if (kanaDatasetState.recentTypingMistakes.length === 0 && Array.isArray(payload.recentMistakes)) {
+      kanaDatasetState.recentTypingMistakes = payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120);
+      kanaDatasetState.recentDrawingMistakes = [...kanaDatasetState.recentTypingMistakes];
+      kanaDatasetState.recentMistakes = [...new Set(kanaDatasetState.recentTypingMistakes)].slice(0, 120);
     }
     state.audioMuted = Boolean(payload.audioMuted);
     state.drawGuideEnabled = payload.drawGuideEnabled !== false;
@@ -1915,21 +3046,21 @@
     state.lastCloudSyncAt = Number(payload.lastCloudSyncAt || 0);
     state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
     kanaData2.forEach((item) => {
-      const savedSrs = state.srsByRomaji && state.srsByRomaji[item.romaji];
-      state.srsByRomaji[item.romaji] = {
+      const savedSrs = kanaDatasetState.srsByItem && kanaDatasetState.srsByItem[item.romaji];
+      kanaDatasetState.srsByItem[item.romaji] = {
         dueAt: Number(savedSrs && savedSrs.dueAt || 0),
         intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
         lastSeenAt: Number(savedSrs && savedSrs.lastSeenAt || 0),
         lastCorrect: Boolean(savedSrs && savedSrs.lastCorrect)
       };
     });
-    if (state.backlog && typeof state.backlog === "object") {
+    if (kanaDatasetState.backlog && typeof kanaDatasetState.backlog === "object") {
       kanaData2.forEach((item) => {
-        const saved = state.backlog[item.romaji];
+        const saved = kanaDatasetState.backlog[item.romaji];
         if (!saved || typeof saved !== "object") {
           return;
         }
-        const target = state.backlog[item.romaji];
+        const target = kanaDatasetState.backlog[item.romaji];
         target.right = Number(saved.right || 0);
         target.wrong = Number(saved.wrong || 0);
         target.typingRight = Number(saved.typingRight || 0);
@@ -2022,6 +3153,7 @@
   }
   var init_storage = __esm({
     "js/features/storage.js"() {
+      init_state();
     }
   });
 
@@ -18210,7 +19342,7 @@
     renderBacklogView,
     showResult: showResult2
   }) {
-    const DATASET_IDS2 = ["kana", "words", "kanji"];
+    const DATASET_KEYS = Object.values(DATASET_IDS);
     function createDefaultBacklogFilters2() {
       return {
         status: "all",
@@ -18234,14 +19366,14 @@
       };
     }
     function getActiveDatasetId() {
-      return DATASET_IDS2.includes(state.activeDataset) ? state.activeDataset : "kana";
+      return DATASET_KEYS.includes(state.activeDataset) ? state.activeDataset : DATASET_IDS.KANA;
     }
     function ensureBacklogFiltersByDataset() {
       const activeDatasetId = getActiveDatasetId();
       const sourceMap = state.backlogFiltersByDataset && typeof state.backlogFiltersByDataset === "object" ? state.backlogFiltersByDataset : {};
       const legacyActiveFilters = normalizeBacklogFiltersShape(state.backlogFilters);
       const nextMap = {};
-      DATASET_IDS2.forEach((datasetId) => {
+      DATASET_KEYS.forEach((datasetId) => {
         if (sourceMap[datasetId] && typeof sourceMap[datasetId] === "object") {
           nextMap[datasetId] = normalizeBacklogFiltersShape(sourceMap[datasetId]);
           return;
@@ -18347,6 +19479,7 @@
   }
   var init_progressPreferences = __esm({
     "js/features/progressPreferences.js"() {
+      init_state();
     }
   });
 
@@ -19072,6 +20205,12 @@
       init_kanaData();
       init_wordsData();
       init_kanjiData();
+      init_n4KanjiData();
+      init_n4VocabData();
+      init_n4GrammarData();
+      init_n5VocabData();
+      init_n5GrammarData();
+      init_n5SentencesData();
       init_elements();
       init_state();
       init_utils();
@@ -19079,6 +20218,7 @@
       init_ui();
       init_backlog();
       init_quiz();
+      init_mockTests();
       init_storage();
       init_progress();
       init_drawing();
@@ -19096,7 +20236,52 @@
       init_confirm();
       init_eventBinder();
       var elements = getElements();
-      var state = createState({ kanaData, wordsData, kanjiData });
+      var jlptN5TestData = buildJlptN5MockQuestions({
+        kanjiData,
+        vocabData: n5VocabData,
+        grammarData: n5GrammarData,
+        sentencesData: n5SentencesData
+      });
+      var jlptN4TestData = buildJlptN4MockQuestions({
+        n4KanjiData,
+        n4VocabData,
+        n4GrammarData,
+        sentencesData: n5SentencesData
+      });
+      var state = createState({
+        kanaData,
+        wordsData,
+        kanjiData,
+        n4KanjiData,
+        n5VocabData,
+        n5GrammarData,
+        n5SentencesData,
+        jlptN5TestData,
+        jlptN4TestData
+      });
+      var DATASET_ITEMS_BY_ID = {
+        [DATASET_IDS.WORDS]: wordsData,
+        [DATASET_IDS.KANJI]: kanjiData,
+        [DATASET_IDS.N4_KANJI]: n4KanjiData,
+        [DATASET_IDS.N5_VOCAB]: n5VocabData,
+        [DATASET_IDS.N5_GRAMMAR]: n5GrammarData,
+        [DATASET_IDS.N5_SENTENCES]: n5SentencesData,
+        [DATASET_IDS.JLPT_N5_TEST]: jlptN5TestData,
+        [DATASET_IDS.JLPT_N4_TEST]: jlptN4TestData
+      };
+      var DRAWING_DATASETS = /* @__PURE__ */ new Set([DATASET_IDS.KANJI, DATASET_IDS.N4_KANJI]);
+      var HELPER_DATASETS = /* @__PURE__ */ new Set([DATASET_IDS.N5_GRAMMAR]);
+      function getDatasetItems(datasetId) {
+        return Array.isArray(DATASET_ITEMS_BY_ID[datasetId]) ? DATASET_ITEMS_BY_ID[datasetId] : [];
+      }
+      function getDatasetCategories(datasetId) {
+        const items = getDatasetItems(datasetId);
+        const fallback = datasetId === DATASET_IDS.KANJI || datasetId === DATASET_IDS.N4_KANJI ? "numbers" : "core";
+        return [...new Set(items.map((item) => String(item.category || fallback)))].sort();
+      }
+      function datasetSupportsDrawing(datasetId) {
+        return DRAWING_DATASETS.has(datasetId);
+      }
       var DATASET_MODE_OPTIONS = {
         [DATASET_IDS.KANA]: [
           { value: "kanaToRomaji", label: "Kana \u2192 Romaji (type)" },
@@ -19114,6 +20299,35 @@
           { value: "promptToKanji", label: "Reading/Meaning \u2192 Kanji" },
           { value: "kanjiDrawing", label: "Kanji \u2192 Drawing" },
           { value: "kanjiMixed", label: "Mixed (Type + Draw)" }
+        ],
+        [DATASET_IDS.N4_KANJI]: [
+          { value: "kanjiToMeaning", label: "Kanji \u2192 Meaning" },
+          { value: "meaningToKanji", label: "Meaning \u2192 Kanji" },
+          { value: "promptToKanji", label: "Reading/Meaning \u2192 Kanji" },
+          { value: "kanjiDrawing", label: "Kanji \u2192 Drawing" },
+          { value: "kanjiMixed", label: "Mixed (Type + Draw)" }
+        ],
+        [DATASET_IDS.N5_VOCAB]: [
+          { value: "japaneseToEnglish", label: "Japanese \u2192 English" },
+          { value: "englishToJapanese", label: "English \u2192 Japanese" },
+          { value: "wordsMixed", label: "Mixed (J\u2194E)" }
+        ],
+        [DATASET_IDS.N5_GRAMMAR]: [
+          { value: "grammarPattern", label: "Grammar Pattern \u2192 Meaning" },
+          { value: "grammarExample", label: "Example \u2192 Pattern" },
+          { value: "grammarMixed", label: "Mixed (Pattern \u2194 Example)" }
+        ],
+        [DATASET_IDS.N5_SENTENCES]: [
+          { value: "sentenceToEnglish", label: "Sentence \u2192 English" },
+          { value: "englishToSentence", label: "English \u2192 Sentence" },
+          { value: "sentenceCloze", label: "Fill in the Blank" },
+          { value: "sentenceMixed", label: "Mixed (Translate + Cloze)" }
+        ],
+        [DATASET_IDS.JLPT_N5_TEST]: [
+          { value: "jlptMock", label: "Mock Test (Mixed)" }
+        ],
+        [DATASET_IDS.JLPT_N4_TEST]: [
+          { value: "jlptMock", label: "Mock Test (Mixed)" }
         ]
       };
       var drawingFeature = createDrawingFeature({
@@ -19221,7 +20435,7 @@
           elements.datasetBacklogFallback.dataset.minAttempts = String(state.backlogFilters.minAttempts || 0);
           renderDatasetBacklog({
             datasetId: state.activeDataset,
-            items: state.activeDataset === DATASET_IDS.WORDS ? wordsData : kanjiData,
+            items: getDatasetItems(state.activeDataset),
             backlog: state.backlog,
             drawingsByItem: state.drawingsByKana,
             container: elements.datasetBacklogFallback
@@ -19277,11 +20491,8 @@
         }
       }
       function isHelperToggleEnabled() {
-        if (state.activeDataset === DATASET_IDS.WORDS) {
+        if (state.activeDataset === DATASET_IDS.N5_GRAMMAR) {
           return state.showWordHelper;
-        }
-        if (state.activeDataset === DATASET_IDS.KANJI) {
-          return state.showKanjiHelper;
         }
         return false;
       }
@@ -19302,8 +20513,8 @@
       <option value="typing">Typing weak</option>
       <option value="drawing">Drawing weak</option>
     `;
-        } else if (state.activeDataset === DATASET_IDS.WORDS) {
-          const categories = [...new Set(wordsData.map((item) => String(item.category || "core")))].sort();
+        } else if (state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.N5_VOCAB || state.activeDataset === DATASET_IDS.N5_GRAMMAR || state.activeDataset === DATASET_IDS.N5_SENTENCES || state.activeDataset === DATASET_IDS.JLPT_N5_TEST || state.activeDataset === DATASET_IDS.JLPT_N4_TEST) {
+          const categories = getDatasetCategories(state.activeDataset);
           elements.backlogScriptFilterLabel.textContent = "Category";
           elements.backlogScriptFilter.innerHTML = `
       <option value="all">All</option>
@@ -19315,7 +20526,7 @@
       <option value="typing">Typing weak</option>
     `;
         } else {
-          const categories = [...new Set(kanjiData.map((item) => String(item.category || "numbers")))].sort();
+          const categories = getDatasetCategories(state.activeDataset);
           elements.backlogScriptFilterLabel.textContent = "Category";
           elements.backlogScriptFilter.innerHTML = `
       <option value="all">All</option>
@@ -19329,7 +20540,7 @@
     `;
         }
         renderBacklogFilterInputs();
-        const showHelperToggle = state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.KANJI;
+        const showHelperToggle = HELPER_DATASETS.has(state.activeDataset);
         elements.helperToggleGroup.classList.toggle("hidden", !showHelperToggle);
         elements.helperToggle.checked = isHelperToggleEnabled();
       }
@@ -19351,7 +20562,8 @@
         const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
         const mode = elements.modeSelect.value;
         const isMixedMode = isKanaDataset && mode === "mixedPractice";
-        const isKanjiMixedMode = state.activeDataset === DATASET_IDS.KANJI && mode === "kanjiMixed";
+        const isKanjiLikeDataset = datasetSupportsDrawing(state.activeDataset);
+        const isKanjiMixedMode = isKanjiLikeDataset && mode === "kanjiMixed";
         const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
         const isTypingQuestion = isKanaDataset ? mode === "kanaToRomaji" || isMixedMode && activeQuestionKind === "typing" : mode !== "kanjiDrawing" && (!isKanjiMixedMode || activeQuestionKind === "typing");
         const isDrawingQuestion = isKanaDataset ? mode === "romajiToKana" || isMixedMode && activeQuestionKind === "drawing" : mode === "kanjiDrawing" || isKanjiMixedMode && activeQuestionKind === "drawing";
@@ -19384,7 +20596,8 @@
         hintsManager.reset();
         try {
           const mode = elements.modeSelect.value;
-          const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA ? mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing" : state.activeDataset === DATASET_IDS.KANJI ? mode === "kanjiDrawing" ? "drawing" : mode === "kanjiMixed" ? Math.random() < 0.3 ? "drawing" : "typing" : "typing" : "typing";
+          const isKanjiLikeDataset = datasetSupportsDrawing(state.activeDataset);
+          const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA ? mode === "kanaToRomaji" ? "typing" : mode === "romajiToKana" ? "drawing" : Math.random() > 0.5 ? "typing" : "drawing" : isKanjiLikeDataset ? mode === "kanjiDrawing" ? "drawing" : mode === "kanjiMixed" ? Math.random() < 0.3 ? "drawing" : "typing" : "typing" : "typing";
           const previousRomaji = state.currentQuestion ? state.currentQuestion.trackingId || state.currentQuestion.trackingRomaji || state.currentQuestion.romaji || null : null;
           const preferredRomajiList = queueManager.getPreferredRomajiList(nextQuestionKind);
           if (state.activeDataset === DATASET_IDS.KANA && nextQuestionKind === "typing") {
@@ -19415,8 +20628,57 @@
               mode,
               backlog: state.backlog,
               preferredIds: preferredRomajiList,
+              avoidId: previousRomaji
+            });
+          } else if (state.activeDataset === DATASET_IDS.N5_VOCAB) {
+            state.currentQuestion = pickVocabQuestion({
+              vocabData: n5VocabData,
+              mode,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji
+            });
+          } else if (state.activeDataset === DATASET_IDS.N5_GRAMMAR) {
+            state.currentQuestion = pickGrammarQuestion({
+              grammarData: n5GrammarData,
+              mode,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
               avoidId: previousRomaji,
-              showRomaji: state.showWordHelper
+              showHelper: state.showWordHelper
+            });
+          } else if (state.activeDataset === DATASET_IDS.N5_SENTENCES) {
+            state.currentQuestion = pickSentenceQuestion({
+              sentencesData: n5SentencesData,
+              mode,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji
+            });
+          } else if (state.activeDataset === DATASET_IDS.JLPT_N5_TEST) {
+            state.currentQuestion = pickJlptTestQuestion({
+              dataset: DATASET_IDS.JLPT_N5_TEST,
+              questions: jlptN5TestData,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji
+            });
+          } else if (state.activeDataset === DATASET_IDS.JLPT_N4_TEST) {
+            state.currentQuestion = pickJlptTestQuestion({
+              dataset: DATASET_IDS.JLPT_N4_TEST,
+              questions: jlptN4TestData,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji
+            });
+          } else if (state.activeDataset === DATASET_IDS.N4_KANJI) {
+            state.currentQuestion = pickKanjiQuestion({
+              kanjiData: n4KanjiData,
+              mode,
+              backlog: state.backlog,
+              preferredIds: preferredRomajiList,
+              avoidId: previousRomaji,
+              showRomaji: state.showKanjiHelper
             });
           } else {
             state.currentQuestion = pickKanjiQuestion({
@@ -19763,10 +21025,8 @@
           persistState();
         });
         eventBus.on(EVENT_NAMES.SETTINGS_HELPER_TOGGLE_CHANGED, () => {
-          if (state.activeDataset === DATASET_IDS.WORDS) {
+          if (state.activeDataset === DATASET_IDS.N5_GRAMMAR) {
             state.showWordHelper = elements.helperToggle.checked;
-          } else if (state.activeDataset === DATASET_IDS.KANJI) {
-            state.showKanjiHelper = elements.helperToggle.checked;
           }
           persistState();
           newQuestion();

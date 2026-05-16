@@ -21,15 +21,19 @@ import {
 import { wordsData } from "../data/wordsData.js";
 import { kanjiData } from "../data/kanjiData.js";
 import { n4KanjiData } from "../data/n4KanjiData.js";
+import { n4VocabData } from "../data/n4VocabData.js";
+import { n4GrammarData } from "../data/n4GrammarData.js";
 import { n5VocabData } from "../data/n5VocabData.js";
 import { n5GrammarData } from "../data/n5GrammarData.js";
+import { n5SentencesData } from "../data/n5SentencesData.js";
 import { getElements } from "../dom/elements.js";
 import { createState, DATASET_IDS } from "../core/state.js";
 import { sanitizeRomaji, getTodayKey } from "../core/utils.js";
 import { eventBus, EVENT_NAMES } from "../core/eventBus.js";
 import { updateStats, resetResult, showResult, showTypingMistake, setActiveProgressTab } from "../core/ui.js";
 import { getKanaCategory, renderBacklog, renderDatasetBacklog, updateBacklog, getQuestionWeight } from "../features/backlog.js";
-import { pickTypingQuestion, pickWritingQuestion, pickWordQuestion, pickKanjiQuestion } from "../features/quiz.js";
+import { pickTypingQuestion, pickWritingQuestion, pickWordQuestion, pickKanjiQuestion, pickVocabQuestion, pickGrammarQuestion, pickSentenceQuestion, pickJlptTestQuestion } from "../features/quiz.js";
+import { buildJlptN5MockQuestions, buildJlptN4MockQuestions } from "../features/mockTests.js";
 import { saveProgress, loadProgress, buildProgressPayload, applyProgressPayload } from "../features/storage.js";
 import {
   addDailyAttempt,
@@ -56,14 +60,57 @@ import { bindEvents } from "./eventBinder.js";
 // ─── Module-level singletons ─────────────────────────────────────────────────
 
 const elements = getElements();
+const jlptN5TestData = buildJlptN5MockQuestions({
+  kanjiData,
+  vocabData: n5VocabData,
+  grammarData: n5GrammarData,
+  sentencesData: n5SentencesData
+});
+const jlptN4TestData = buildJlptN4MockQuestions({
+  n4KanjiData,
+  n4VocabData,
+  n4GrammarData,
+  sentencesData: n5SentencesData
+});
 const state = createState({ 
   kanaData, 
   wordsData, 
   kanjiData,
   n4KanjiData,
   n5VocabData,
-  n5GrammarData
+  n5GrammarData,
+  n5SentencesData,
+  jlptN5TestData,
+  jlptN4TestData
 });
+
+const DATASET_ITEMS_BY_ID = {
+  [DATASET_IDS.WORDS]: wordsData,
+  [DATASET_IDS.KANJI]: kanjiData,
+  [DATASET_IDS.N4_KANJI]: n4KanjiData,
+  [DATASET_IDS.N5_VOCAB]: n5VocabData,
+  [DATASET_IDS.N5_GRAMMAR]: n5GrammarData,
+  [DATASET_IDS.N5_SENTENCES]: n5SentencesData,
+  [DATASET_IDS.JLPT_N5_TEST]: jlptN5TestData,
+  [DATASET_IDS.JLPT_N4_TEST]: jlptN4TestData
+};
+
+const DRAWING_DATASETS = new Set([DATASET_IDS.KANJI, DATASET_IDS.N4_KANJI]);
+const HELPER_DATASETS = new Set([DATASET_IDS.N5_GRAMMAR]);
+
+function getDatasetItems(datasetId) {
+  return Array.isArray(DATASET_ITEMS_BY_ID[datasetId]) ? DATASET_ITEMS_BY_ID[datasetId] : [];
+}
+
+function getDatasetCategories(datasetId) {
+  const items = getDatasetItems(datasetId);
+  const fallback = datasetId === DATASET_IDS.KANJI || datasetId === DATASET_IDS.N4_KANJI ? "numbers" : "core";
+  return [...new Set(items.map((item) => String(item.category || fallback)))].sort();
+}
+
+function datasetSupportsDrawing(datasetId) {
+  return DRAWING_DATASETS.has(datasetId);
+}
 
 const DATASET_MODE_OPTIONS = {
   [DATASET_IDS.KANA]: [
@@ -96,9 +143,21 @@ const DATASET_MODE_OPTIONS = {
     { value: "wordsMixed", label: "Mixed (J↔E)" }
   ],
   [DATASET_IDS.N5_GRAMMAR]: [
-    { value: "grammarPattern", label: "Grammar Pattern → Example" },
+    { value: "grammarPattern", label: "Grammar Pattern → Meaning" },
     { value: "grammarExample", label: "Example → Pattern" },
     { value: "grammarMixed", label: "Mixed (Pattern ↔ Example)" }
+  ],
+  [DATASET_IDS.N5_SENTENCES]: [
+    { value: "sentenceToEnglish", label: "Sentence → English" },
+    { value: "englishToSentence", label: "English → Sentence" },
+    { value: "sentenceCloze", label: "Fill in the Blank" },
+    { value: "sentenceMixed", label: "Mixed (Translate + Cloze)" }
+  ],
+  [DATASET_IDS.JLPT_N5_TEST]: [
+    { value: "jlptMock", label: "Mock Test (Mixed)" }
+  ],
+  [DATASET_IDS.JLPT_N4_TEST]: [
+    { value: "jlptMock", label: "Mock Test (Mixed)" }
   ]
 };
 
@@ -234,7 +293,7 @@ function renderBacklogView() {
 
     renderDatasetBacklog({
       datasetId: state.activeDataset,
-      items: state.activeDataset === DATASET_IDS.WORDS ? wordsData : kanjiData,
+      items: getDatasetItems(state.activeDataset),
       backlog: state.backlog,
       drawingsByItem: state.drawingsByKana,
       container: elements.datasetBacklogFallback
@@ -300,11 +359,8 @@ function populateModeOptions(datasetId) {
 }
 
 function isHelperToggleEnabled() {
-  if (state.activeDataset === DATASET_IDS.WORDS) {
+  if (state.activeDataset === DATASET_IDS.N5_GRAMMAR) {
     return state.showWordHelper;
-  }
-  if (state.activeDataset === DATASET_IDS.KANJI) {
-    return state.showKanjiHelper;
   }
   return false;
 }
@@ -327,8 +383,8 @@ function syncDatasetControls() {
       <option value="typing">Typing weak</option>
       <option value="drawing">Drawing weak</option>
     `;
-  } else if (state.activeDataset === DATASET_IDS.WORDS) {
-    const categories = [...new Set(wordsData.map((item) => String(item.category || "core")))].sort();
+  } else if (state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.N5_VOCAB || state.activeDataset === DATASET_IDS.N5_GRAMMAR || state.activeDataset === DATASET_IDS.N5_SENTENCES || state.activeDataset === DATASET_IDS.JLPT_N5_TEST || state.activeDataset === DATASET_IDS.JLPT_N4_TEST) {
+    const categories = getDatasetCategories(state.activeDataset);
     elements.backlogScriptFilterLabel.textContent = "Category";
     elements.backlogScriptFilter.innerHTML = `
       <option value="all">All</option>
@@ -340,7 +396,7 @@ function syncDatasetControls() {
       <option value="typing">Typing weak</option>
     `;
   } else {
-    const categories = [...new Set(kanjiData.map((item) => String(item.category || "numbers")))].sort();
+    const categories = getDatasetCategories(state.activeDataset);
     elements.backlogScriptFilterLabel.textContent = "Category";
     elements.backlogScriptFilter.innerHTML = `
       <option value="all">All</option>
@@ -356,7 +412,7 @@ function syncDatasetControls() {
 
   renderBacklogFilterInputs();
 
-  const showHelperToggle = state.activeDataset === DATASET_IDS.WORDS || state.activeDataset === DATASET_IDS.KANJI;
+  const showHelperToggle = HELPER_DATASETS.has(state.activeDataset);
   elements.helperToggleGroup.classList.toggle("hidden", !showHelperToggle);
   elements.helperToggle.checked = isHelperToggleEnabled();
 }
@@ -385,7 +441,8 @@ function switchModeUI() {
   const isKanaDataset = state.activeDataset === DATASET_IDS.KANA;
   const mode = elements.modeSelect.value;
   const isMixedMode = isKanaDataset && mode === "mixedPractice";
-  const isKanjiMixedMode = state.activeDataset === DATASET_IDS.KANJI && mode === "kanjiMixed";
+  const isKanjiLikeDataset = datasetSupportsDrawing(state.activeDataset);
+  const isKanjiMixedMode = isKanjiLikeDataset && mode === "kanjiMixed";
   const activeQuestionKind = state.currentQuestion ? state.currentQuestion.kind : "typing";
   const isTypingQuestion = isKanaDataset
     ? (mode === "kanaToRomaji" || (isMixedMode && activeQuestionKind === "typing"))
@@ -433,13 +490,14 @@ function newQuestion() {
 
   try {
     const mode = elements.modeSelect.value;
+    const isKanjiLikeDataset = datasetSupportsDrawing(state.activeDataset);
     const nextQuestionKind = state.activeDataset === DATASET_IDS.KANA
       ? (mode === "kanaToRomaji"
         ? "typing"
         : mode === "romajiToKana"
           ? "drawing"
           : (Math.random() > 0.5 ? "typing" : "drawing"))
-      : state.activeDataset === DATASET_IDS.KANJI
+      : isKanjiLikeDataset
         ? (mode === "kanjiDrawing"
           ? "drawing"
           : mode === "kanjiMixed"
@@ -479,8 +537,57 @@ function newQuestion() {
         mode,
         backlog: state.backlog,
         preferredIds: preferredRomajiList,
+        avoidId: previousRomaji
+      });
+    } else if (state.activeDataset === DATASET_IDS.N5_VOCAB) {
+      state.currentQuestion = pickVocabQuestion({
+        vocabData: n5VocabData,
+        mode,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji
+      });
+    } else if (state.activeDataset === DATASET_IDS.N5_GRAMMAR) {
+      state.currentQuestion = pickGrammarQuestion({
+        grammarData: n5GrammarData,
+        mode,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
         avoidId: previousRomaji,
-        showRomaji: state.showWordHelper
+        showHelper: state.showWordHelper
+      });
+    } else if (state.activeDataset === DATASET_IDS.N5_SENTENCES) {
+      state.currentQuestion = pickSentenceQuestion({
+        sentencesData: n5SentencesData,
+        mode,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji
+      });
+    } else if (state.activeDataset === DATASET_IDS.JLPT_N5_TEST) {
+      state.currentQuestion = pickJlptTestQuestion({
+        dataset: DATASET_IDS.JLPT_N5_TEST,
+        questions: jlptN5TestData,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji
+      });
+    } else if (state.activeDataset === DATASET_IDS.JLPT_N4_TEST) {
+      state.currentQuestion = pickJlptTestQuestion({
+        dataset: DATASET_IDS.JLPT_N4_TEST,
+        questions: jlptN4TestData,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji
+      });
+    } else if (state.activeDataset === DATASET_IDS.N4_KANJI) {
+      state.currentQuestion = pickKanjiQuestion({
+        kanjiData: n4KanjiData,
+        mode,
+        backlog: state.backlog,
+        preferredIds: preferredRomajiList,
+        avoidId: previousRomaji,
+        showRomaji: state.showKanjiHelper
       });
     } else {
       state.currentQuestion = pickKanjiQuestion({
@@ -890,10 +997,8 @@ function subscribeToEvents() {
   });
 
   eventBus.on(EVENT_NAMES.SETTINGS_HELPER_TOGGLE_CHANGED, () => {
-    if (state.activeDataset === DATASET_IDS.WORDS) {
+    if (state.activeDataset === DATASET_IDS.N5_GRAMMAR) {
       state.showWordHelper = elements.helperToggle.checked;
-    } else if (state.activeDataset === DATASET_IDS.KANJI) {
-      state.showKanjiHelper = elements.helperToggle.checked;
     }
     persistState();
     newQuestion();

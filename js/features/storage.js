@@ -1,3 +1,5 @@
+import { DATASET_IDS } from "../core/state.js";
+
 export function trimDailyStatsToLimit(dailyStats, limit) {
   const sorted = Object.keys(dailyStats).sort((a, b) => b.localeCompare(a));
   if (sorted.length <= limit) {
@@ -151,11 +153,11 @@ function normalizeBacklogFilters(payload) {
 }
 
 function normalizeBacklogFiltersByDataset(payload, activeDataset) {
-  const datasetIds = ["kana", "words", "kanji"];
+  const datasetIds = Object.values(DATASET_IDS);
   const source = payload && payload.backlogFiltersByDataset && typeof payload.backlogFiltersByDataset === "object"
     ? payload.backlogFiltersByDataset
     : null;
-  const activeId = datasetIds.includes(activeDataset) ? activeDataset : "kana";
+  const activeId = datasetIds.includes(activeDataset) ? activeDataset : DATASET_IDS.KANA;
   const legacy = normalizeBacklogFilters(payload);
   const out = {};
 
@@ -201,24 +203,24 @@ export function buildProgressPayload({ state, dailyHistoryLimit }) {
   const savedAt = Date.now();
   state.lastSavedAt = savedAt;
 
-  const kanaDataset = state.datasets && state.datasets.kana ? state.datasets.kana : {};
+  const kanaDataset = state.datasets && state.datasets[DATASET_IDS.KANA] ? state.datasets[DATASET_IDS.KANA] : {};
+  const datasetPayload = {};
+  Object.values(DATASET_IDS).forEach((datasetId) => {
+    datasetPayload[datasetId] = buildDatasetPayload((state.datasets && state.datasets[datasetId]) || {});
+  });
 
   return {
     schemaVersion: 2,
     savedAt,
-    activeDataset: state.activeDataset || "kana",
+    activeDataset: state.activeDataset || DATASET_IDS.KANA,
     showWordHelper: Boolean(state.showWordHelper),
     showKanjiHelper: Boolean(state.showKanjiHelper),
-    datasets: {
-      kana: buildDatasetPayload(kanaDataset),
-      words: buildDatasetPayload((state.datasets && state.datasets.words) || {}),
-      kanji: buildDatasetPayload((state.datasets && state.datasets.kanji) || {})
-    },
-    practiceStrategy: state.practiceStrategy,
-    recentMistakes: state.recentMistakes,
-    recentTypingMistakes: state.recentTypingMistakes,
-    recentDrawingMistakes: state.recentDrawingMistakes,
-    srsByRomaji: state.srsByRomaji,
+    datasets: datasetPayload,
+    practiceStrategy: kanaDataset.practiceStrategy,
+    recentMistakes: kanaDataset.recentMistakes,
+    recentTypingMistakes: kanaDataset.recentTypingMistakes,
+    recentDrawingMistakes: kanaDataset.recentDrawingMistakes,
+    srsByRomaji: kanaDataset.srsByItem,
     audioMuted: state.audioMuted,
     drawGuideEnabled: state.drawGuideEnabled,
     dailyGoal: state.dailyGoal,
@@ -249,24 +251,30 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   }
 
   state.lastSavedAt = Number(payload.savedAt || 0);
-  state.activeDataset = ["kana", "words", "kanji"].includes(payload.activeDataset)
+  const validDatasetIds = Object.values(DATASET_IDS);
+  state.activeDataset = validDatasetIds.includes(payload.activeDataset)
     ? payload.activeDataset
-    : "kana";
+    : DATASET_IDS.KANA;
   state.showWordHelper = Boolean(payload.showWordHelper);
   state.showKanjiHelper = Boolean(payload.showKanjiHelper);
 
-  const kanaPayload = getDatasetBucket(payload, "kana") || buildLegacyKanaDatasetPayload(payload);
-  const wordsPayload = getDatasetBucket(payload, "words") || {};
-  const kanjiPayload = getDatasetBucket(payload, "kanji") || {};
+  const kanaPayload = getDatasetBucket(payload, DATASET_IDS.KANA) || buildLegacyKanaDatasetPayload(payload);
+  normalizeDatasetRuntimeState(state.datasets[DATASET_IDS.KANA], kanaPayload);
+  validDatasetIds
+    .filter((datasetId) => datasetId !== DATASET_IDS.KANA)
+    .forEach((datasetId) => {
+      const datasetPayload = getDatasetBucket(payload, datasetId) || {};
+      if (state.datasets[datasetId]) {
+        normalizeDatasetRuntimeState(state.datasets[datasetId], datasetPayload);
+      }
+    });
 
-  normalizeDatasetRuntimeState(state.datasets.kana, kanaPayload);
-  normalizeDatasetRuntimeState(state.datasets.words, wordsPayload);
-  normalizeDatasetRuntimeState(state.datasets.kanji, kanjiPayload);
+  const kanaDatasetState = state.datasets[DATASET_IDS.KANA];
 
-  if (state.recentTypingMistakes.length === 0 && Array.isArray(payload.recentMistakes)) {
-    state.recentTypingMistakes = payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120);
-    state.recentDrawingMistakes = [...state.recentTypingMistakes];
-    state.recentMistakes = [...new Set(state.recentTypingMistakes)].slice(0, 120);
+  if (kanaDatasetState.recentTypingMistakes.length === 0 && Array.isArray(payload.recentMistakes)) {
+    kanaDatasetState.recentTypingMistakes = payload.recentMistakes.filter((romaji) => typeof romaji === "string").slice(0, 120);
+    kanaDatasetState.recentDrawingMistakes = [...kanaDatasetState.recentTypingMistakes];
+    kanaDatasetState.recentMistakes = [...new Set(kanaDatasetState.recentTypingMistakes)].slice(0, 120);
   }
 
   state.audioMuted = Boolean(payload.audioMuted);
@@ -281,8 +289,8 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
   state.syncUserEmail = typeof payload.syncUserEmail === "string" ? payload.syncUserEmail : "";
 
   kanaData.forEach((item) => {
-    const savedSrs = state.srsByRomaji && state.srsByRomaji[item.romaji];
-    state.srsByRomaji[item.romaji] = {
+    const savedSrs = kanaDatasetState.srsByItem && kanaDatasetState.srsByItem[item.romaji];
+    kanaDatasetState.srsByItem[item.romaji] = {
       dueAt: Number(savedSrs && savedSrs.dueAt || 0),
       intervalHours: Number(savedSrs && savedSrs.intervalHours || 0),
       lastSeenAt: Number(savedSrs && savedSrs.lastSeenAt || 0),
@@ -290,14 +298,14 @@ export function applyProgressPayload({ payload, state, kanaData, maxDrawingsPerK
     };
   });
 
-  if (state.backlog && typeof state.backlog === "object") {
+  if (kanaDatasetState.backlog && typeof kanaDatasetState.backlog === "object") {
     kanaData.forEach((item) => {
-      const saved = state.backlog[item.romaji];
+      const saved = kanaDatasetState.backlog[item.romaji];
       if (!saved || typeof saved !== "object") {
         return;
       }
 
-      const target = state.backlog[item.romaji];
+      const target = kanaDatasetState.backlog[item.romaji];
       target.right = Number(saved.right || 0);
       target.wrong = Number(saved.wrong || 0);
       target.typingRight = Number(saved.typingRight || 0);

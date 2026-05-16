@@ -6,7 +6,10 @@ export const DATASET_IDS = {
   KANJI: "kanji",
   N4_KANJI: "n4kanji",
   N5_VOCAB: "n5vocab",
-  N5_GRAMMAR: "n5grammar"
+  N5_GRAMMAR: "n5grammar",
+  N5_SENTENCES: "n5sentences",
+  JLPT_N5_TEST: "jlptn5test",
+  JLPT_N4_TEST: "jlptn4test"
 };
 
 function createDefaultBacklogFilters() {
@@ -202,7 +205,7 @@ function defineKanaCompatibilityAliases(state) {
 
 export function createState(kanaData) {
   const datasetsInput = Array.isArray(kanaData)
-    ? { kanaData, wordsData: [], kanjiData: [], n4KanjiData: [], n5VocabData: [], n5GrammarData: [] }
+    ? { kanaData, wordsData: [], kanjiData: [], n4KanjiData: [], n5VocabData: [], n5GrammarData: [], n5SentencesData: [], jlptN5TestData: [], jlptN4TestData: [] }
     : (kanaData || {});
   const resolvedKanaData = Array.isArray(datasetsInput.kanaData) ? datasetsInput.kanaData : [];
   const resolvedWordsData = Array.isArray(datasetsInput.wordsData) ? datasetsInput.wordsData : [];
@@ -210,6 +213,9 @@ export function createState(kanaData) {
   const resolvedN4KanjiData = Array.isArray(datasetsInput.n4KanjiData) ? datasetsInput.n4KanjiData : [];
   const resolvedN5VocabData = Array.isArray(datasetsInput.n5VocabData) ? datasetsInput.n5VocabData : [];
   const resolvedN5GrammarData = Array.isArray(datasetsInput.n5GrammarData) ? datasetsInput.n5GrammarData : [];
+  const resolvedN5SentencesData = Array.isArray(datasetsInput.n5SentencesData) ? datasetsInput.n5SentencesData : [];
+  const resolvedJlptN5TestData = Array.isArray(datasetsInput.jlptN5TestData) ? datasetsInput.jlptN5TestData : [];
+  const resolvedJlptN4TestData = Array.isArray(datasetsInput.jlptN4TestData) ? datasetsInput.jlptN4TestData : [];
 
   const state = {
     currentQuestion: null,
@@ -236,12 +242,23 @@ export function createState(kanaData) {
       })),
       [DATASET_IDS.N5_VOCAB]: createDatasetStateFromItems(resolvedN5VocabData, (item) => item.id, (item) => ({
         label: item.word,
-        romaji: item.romaji || "",
         meanings: item.meanings || []
       })),
       [DATASET_IDS.N5_GRAMMAR]: createDatasetStateFromItems(resolvedN5GrammarData, (item) => item.id, (item) => ({
         label: item.pattern,
         example: item.example || "",
+        meanings: item.meanings || []
+      })),
+      [DATASET_IDS.N5_SENTENCES]: createDatasetStateFromItems(resolvedN5SentencesData, (item) => item.id, (item) => ({
+        label: item.japanese,
+        meanings: item.englishAnswers || []
+      })),
+      [DATASET_IDS.JLPT_N5_TEST]: createDatasetStateFromItems(resolvedJlptN5TestData, (item) => item.id, (item) => ({
+        label: item.promptText,
+        meanings: item.meanings || []
+      })),
+      [DATASET_IDS.JLPT_N4_TEST]: createDatasetStateFromItems(resolvedJlptN4TestData, (item) => item.id, (item) => ({
+        label: item.promptText,
         meanings: item.meanings || []
       }))
     },
@@ -263,7 +280,10 @@ export function createState(kanaData) {
       [DATASET_IDS.KANJI]: createDefaultBacklogFilters(),
       [DATASET_IDS.N4_KANJI]: createDefaultBacklogFilters(),
       [DATASET_IDS.N5_VOCAB]: createDefaultBacklogFilters(),
-      [DATASET_IDS.N5_GRAMMAR]: createDefaultBacklogFilters()
+      [DATASET_IDS.N5_GRAMMAR]: createDefaultBacklogFilters(),
+      [DATASET_IDS.N5_SENTENCES]: createDefaultBacklogFilters(),
+      [DATASET_IDS.JLPT_N5_TEST]: createDefaultBacklogFilters(),
+      [DATASET_IDS.JLPT_N4_TEST]: createDefaultBacklogFilters()
     },
     installPromptSeen: false,
     lastSavedAt: 0,

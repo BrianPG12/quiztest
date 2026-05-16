@@ -33,6 +33,9 @@
           <option value="n4kanji">Kanji (N4)</option>
           <option value="n5vocab">N5 Vocab</option>
           <option value="n5grammar">N5 Grammar</option>
+          <option value="n5sentences">N5 Sentences</option>
+          <option value="jlptn5test">JLPT N5 Mock Test</option>
+          <option value="jlptn4test">JLPT N4 Mock Test</option>
         </select>
       </div>
 
@@ -86,7 +89,7 @@
 
       <div id="helperToggleGroup" class="control-group hidden">
         <label for="helperToggle">Show Helper</label>
-        <label class="compact-toggle-label"><input id="helperToggle" type="checkbox" /> Show romaji helper</label>
+        <label class="compact-toggle-label"><input id="helperToggle" type="checkbox" /> Show helper</label>
       </div>
 
       <button id="newQuestionBtn" class="btn-primary">New Question</button>
@@ -368,7 +371,7 @@
       // Load only the pre-built bundle in every environment.
       // This avoids browser differences with module graphs and cache behavior.
       var bundle = document.createElement("script");
-      bundle.src = "script.js?v=43";
+      bundle.src = "script.js?v=45";
       document.body.appendChild(bundle);
     })();
   </script>

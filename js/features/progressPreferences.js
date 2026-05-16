@@ -1,3 +1,5 @@
+import { DATASET_IDS } from "../core/state.js";
+
 export function clampDailyGoal(value, min = 0, max = 200, fallback = 0) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -14,7 +16,7 @@ export function createProgressPreferencesManager({
   renderBacklogView,
   showResult
 }) {
-  const DATASET_IDS = ["kana", "words", "kanji"];
+  const DATASET_KEYS = Object.values(DATASET_IDS);
 
   function createDefaultBacklogFilters() {
     return {
@@ -43,7 +45,7 @@ export function createProgressPreferencesManager({
   }
 
   function getActiveDatasetId() {
-    return DATASET_IDS.includes(state.activeDataset) ? state.activeDataset : "kana";
+    return DATASET_KEYS.includes(state.activeDataset) ? state.activeDataset : DATASET_IDS.KANA;
   }
 
   function ensureBacklogFiltersByDataset() {
@@ -54,7 +56,7 @@ export function createProgressPreferencesManager({
     const legacyActiveFilters = normalizeBacklogFiltersShape(state.backlogFilters);
     const nextMap = {};
 
-    DATASET_IDS.forEach((datasetId) => {
+    DATASET_KEYS.forEach((datasetId) => {
       if (sourceMap[datasetId] && typeof sourceMap[datasetId] === "object") {
         nextMap[datasetId] = normalizeBacklogFiltersShape(sourceMap[datasetId]);
         return;
