@@ -20,6 +20,9 @@ import {
 } from "../data/kanaData.js";
 import { wordsData } from "../data/wordsData.js";
 import { kanjiData } from "../data/kanjiData.js";
+import { n4KanjiData } from "../data/n4KanjiData.js";
+import { n5VocabData } from "../data/n5VocabData.js";
+import { n5GrammarData } from "../data/n5GrammarData.js";
 import { getElements } from "../dom/elements.js";
 import { createState, DATASET_IDS } from "../core/state.js";
 import { sanitizeRomaji, getTodayKey } from "../core/utils.js";
@@ -53,7 +56,14 @@ import { bindEvents } from "./eventBinder.js";
 // ─── Module-level singletons ─────────────────────────────────────────────────
 
 const elements = getElements();
-const state = createState({ kanaData, wordsData, kanjiData });
+const state = createState({ 
+  kanaData, 
+  wordsData, 
+  kanjiData,
+  n4KanjiData,
+  n5VocabData,
+  n5GrammarData
+});
 
 const DATASET_MODE_OPTIONS = {
   [DATASET_IDS.KANA]: [
@@ -72,6 +82,23 @@ const DATASET_MODE_OPTIONS = {
     { value: "promptToKanji", label: "Reading/Meaning → Kanji" },
     { value: "kanjiDrawing", label: "Kanji → Drawing" },
     { value: "kanjiMixed", label: "Mixed (Type + Draw)" }
+  ],
+  [DATASET_IDS.N4_KANJI]: [
+    { value: "kanjiToMeaning", label: "Kanji → Meaning" },
+    { value: "meaningToKanji", label: "Meaning → Kanji" },
+    { value: "promptToKanji", label: "Reading/Meaning → Kanji" },
+    { value: "kanjiDrawing", label: "Kanji → Drawing" },
+    { value: "kanjiMixed", label: "Mixed (Type + Draw)" }
+  ],
+  [DATASET_IDS.N5_VOCAB]: [
+    { value: "japaneseToEnglish", label: "Japanese → English" },
+    { value: "englishToJapanese", label: "English → Japanese" },
+    { value: "wordsMixed", label: "Mixed (J↔E)" }
+  ],
+  [DATASET_IDS.N5_GRAMMAR]: [
+    { value: "grammarPattern", label: "Grammar Pattern → Example" },
+    { value: "grammarExample", label: "Example → Pattern" },
+    { value: "grammarMixed", label: "Mixed (Pattern ↔ Example)" }
   ]
 };
 

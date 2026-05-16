@@ -3,7 +3,10 @@ import { getTodayKey } from "./utils.js";
 export const DATASET_IDS = {
   KANA: "kana",
   WORDS: "words",
-  KANJI: "kanji"
+  KANJI: "kanji",
+  N4_KANJI: "n4kanji",
+  N5_VOCAB: "n5vocab",
+  N5_GRAMMAR: "n5grammar"
 };
 
 function createDefaultBacklogFilters() {
@@ -199,11 +202,14 @@ function defineKanaCompatibilityAliases(state) {
 
 export function createState(kanaData) {
   const datasetsInput = Array.isArray(kanaData)
-    ? { kanaData, wordsData: [], kanjiData: [] }
+    ? { kanaData, wordsData: [], kanjiData: [], n4KanjiData: [], n5VocabData: [], n5GrammarData: [] }
     : (kanaData || {});
   const resolvedKanaData = Array.isArray(datasetsInput.kanaData) ? datasetsInput.kanaData : [];
   const resolvedWordsData = Array.isArray(datasetsInput.wordsData) ? datasetsInput.wordsData : [];
   const resolvedKanjiData = Array.isArray(datasetsInput.kanjiData) ? datasetsInput.kanjiData : [];
+  const resolvedN4KanjiData = Array.isArray(datasetsInput.n4KanjiData) ? datasetsInput.n4KanjiData : [];
+  const resolvedN5VocabData = Array.isArray(datasetsInput.n5VocabData) ? datasetsInput.n5VocabData : [];
+  const resolvedN5GrammarData = Array.isArray(datasetsInput.n5GrammarData) ? datasetsInput.n5GrammarData : [];
 
   const state = {
     currentQuestion: null,
@@ -222,6 +228,21 @@ export function createState(kanaData) {
         label: item.kanji,
         romaji: item.romaji || [],
         meanings: item.meanings || []
+      })),
+      [DATASET_IDS.N4_KANJI]: createDatasetStateFromItems(resolvedN4KanjiData, (item) => item.id, (item) => ({
+        label: item.kanji,
+        romaji: item.romaji || [],
+        meanings: item.meanings || []
+      })),
+      [DATASET_IDS.N5_VOCAB]: createDatasetStateFromItems(resolvedN5VocabData, (item) => item.id, (item) => ({
+        label: item.word,
+        romaji: item.romaji || "",
+        meanings: item.meanings || []
+      })),
+      [DATASET_IDS.N5_GRAMMAR]: createDatasetStateFromItems(resolvedN5GrammarData, (item) => item.id, (item) => ({
+        label: item.pattern,
+        example: item.example || "",
+        meanings: item.meanings || []
       }))
     },
     audioMuted: false,
@@ -239,7 +260,10 @@ export function createState(kanaData) {
     backlogFiltersByDataset: {
       [DATASET_IDS.KANA]: createDefaultBacklogFilters(),
       [DATASET_IDS.WORDS]: createDefaultBacklogFilters(),
-      [DATASET_IDS.KANJI]: createDefaultBacklogFilters()
+      [DATASET_IDS.KANJI]: createDefaultBacklogFilters(),
+      [DATASET_IDS.N4_KANJI]: createDefaultBacklogFilters(),
+      [DATASET_IDS.N5_VOCAB]: createDefaultBacklogFilters(),
+      [DATASET_IDS.N5_GRAMMAR]: createDefaultBacklogFilters()
     },
     installPromptSeen: false,
     lastSavedAt: 0,
