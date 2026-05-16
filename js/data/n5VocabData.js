@@ -12,10 +12,10 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-005", word: "あの人", meanings: ["that person"], category: "pronouns" }),
   makeVocabEntry({ id: "vocab-006", word: "この人", meanings: ["this person"], category: "pronouns" }),
 
-  // Family
+  // People & Family
   makeVocabEntry({ id: "vocab-007", word: "かぞく", meanings: ["family"], category: "family" }),
-  makeVocabEntry({ id: "vocab-008", word: "せんせい", meanings: ["teacher"], category: "family" }),
-  makeVocabEntry({ id: "vocab-009", word: "がくせい", meanings: ["student"], category: "family" }),
+  makeVocabEntry({ id: "vocab-008", word: "せんせい", meanings: ["teacher"], category: "people" }),
+  makeVocabEntry({ id: "vocab-009", word: "がくせい", meanings: ["student"], category: "people" }),
   makeVocabEntry({ id: "vocab-010", word: "ご主人", meanings: ["husband (polite)"], category: "family" }),
   makeVocabEntry({ id: "vocab-011", word: "奥さん", meanings: ["wife (polite)"], category: "family" }),
   makeVocabEntry({ id: "vocab-012", word: "お子さん", meanings: ["child (polite)"], category: "family" }),
@@ -23,8 +23,8 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-014", word: "お父さん", meanings: ["father"], category: "family" }),
   makeVocabEntry({ id: "vocab-015", word: "お兄さん", meanings: ["older brother"], category: "family" }),
   makeVocabEntry({ id: "vocab-016", word: "お姉さん", meanings: ["older sister"], category: "family" }),
-  makeVocabEntry({ id: "vocab-017", word: "弟", meanings: ["younger brother"], category: "family" }),
-  makeVocabEntry({ id: "vocab-018", word: "妹", meanings: ["younger sister"], category: "family" }),
+  makeVocabEntry({ id: "vocab-017", word: "おとうと", meanings: ["younger brother"], category: "family" }),
+  makeVocabEntry({ id: "vocab-018", word: "いもうと", meanings: ["younger sister"], category: "family" }),
   makeVocabEntry({ id: "vocab-019", word: "おばあさん", meanings: ["grandmother"], category: "family" }),
   makeVocabEntry({ id: "vocab-020", word: "おじいさん", meanings: ["grandfather"], category: "family" }),
 
@@ -32,13 +32,13 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-021", word: "いしゃ", meanings: ["doctor"], category: "jobs" }),
   makeVocabEntry({ id: "vocab-022", word: "かんごし", meanings: ["nurse"], category: "jobs" }),
   makeVocabEntry({ id: "vocab-023", word: "べんごし", meanings: ["lawyer"], category: "jobs" }),
-  makeVocabEntry({ id: "vocab-024", word: "けいさんし", meanings: ["accountant"], category: "jobs" }),
+  makeVocabEntry({ id: "vocab-024", word: "かいけいし", meanings: ["accountant"], category: "jobs" }),
   makeVocabEntry({ id: "vocab-025", word: "エンジニア", meanings: ["engineer"], category: "jobs" }),
-  makeVocabEntry({ id: "vocab-026", word: "ぎょうむいん", meanings: ["office worker"], category: "jobs" }),
-  makeVocabEntry({ id: "vocab-027", word: "だいがくいん", meanings: ["graduate student"], category: "jobs" }),
+  makeVocabEntry({ id: "vocab-026", word: "かいしゃいん", meanings: ["office worker"], category: "jobs" }),
+  makeVocabEntry({ id: "vocab-027", word: "だいがくいんせい", meanings: ["graduate student"], category: "jobs" }),
   makeVocabEntry({ id: "vocab-028", word: "コック", meanings: ["cook"], category: "jobs" }),
   makeVocabEntry({ id: "vocab-029", word: "うんてんしゅ", meanings: ["driver"], category: "jobs" }),
-  makeVocabEntry({ id: "vocab-030", word: "せきにん", meanings: ["responsibility"], category: "jobs" }),
+  makeVocabEntry({ id: "vocab-030", word: "てんいん", meanings: ["shop clerk"], category: "jobs" }),
 
   // Places
   makeVocabEntry({ id: "vocab-031", word: "がっこう", meanings: ["school"], category: "places" }),
@@ -50,7 +50,7 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-037", word: "ぎんこう", meanings: ["bank"], category: "places" }),
   makeVocabEntry({ id: "vocab-038", word: "ゆうびんきょく", meanings: ["post office"], category: "places" }),
   makeVocabEntry({ id: "vocab-039", word: "びょういん", meanings: ["hospital"], category: "places" }),
-  makeVocabEntry({ id: "vocab-040", word: "けいさつ", meanings: ["police"], category: "places" }),
+  makeVocabEntry({ id: "vocab-040", word: "けいさつしょ", meanings: ["police station"], category: "places" }),
   makeVocabEntry({ id: "vocab-041", word: "しんかんせん", meanings: ["bullet train"], category: "places" }),
   makeVocabEntry({ id: "vocab-042", word: "くうこう", meanings: ["airport"], category: "places" }),
   makeVocabEntry({ id: "vocab-043", word: "みせ", meanings: ["shop"], category: "places" }),
@@ -60,7 +60,7 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-047", word: "えいがかん", meanings: ["movie theater"], category: "places" }),
   makeVocabEntry({ id: "vocab-048", word: "こうえん", meanings: ["park"], category: "places" }),
   makeVocabEntry({ id: "vocab-049", word: "いえ", meanings: ["house"], category: "places" }),
-  makeVocabEntry({ id: "vocab-050", word: "あぱーと", meanings: ["apartment"], category: "places" }),
+  makeVocabEntry({ id: "vocab-050", word: "アパート", meanings: ["apartment"], category: "places" }),
 
   // Time Expressions
   makeVocabEntry({ id: "vocab-051", word: "きょう", meanings: ["today"], category: "time" }),
@@ -93,7 +93,7 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-076", word: "やさい", meanings: ["vegetable"], category: "food" }),
   makeVocabEntry({ id: "vocab-077", word: "スープ", meanings: ["soup"], category: "food" }),
   makeVocabEntry({ id: "vocab-078", word: "すし", meanings: ["sushi"], category: "food" }),
-  makeVocabEntry({ id: "vocab-079", word: "テンプラ", meanings: ["tempura"], category: "food" }),
+  makeVocabEntry({ id: "vocab-079", word: "てんぷら", meanings: ["tempura"], category: "food" }),
   makeVocabEntry({ id: "vocab-080", word: "ハンバーガー", meanings: ["hamburger"], category: "food" }),
   makeVocabEntry({ id: "vocab-081", word: "さら", meanings: ["plate", "dish"], category: "food" }),
   makeVocabEntry({ id: "vocab-082", word: "コップ", meanings: ["cup"], category: "food" }),
@@ -109,7 +109,7 @@ export const n5VocabData = [
   // Nouns & Objects
   makeVocabEntry({ id: "vocab-091", word: "ほん", meanings: ["book"], category: "things" }),
   makeVocabEntry({ id: "vocab-092", word: "ノート", meanings: ["notebook"], category: "things" }),
-  makeVocabEntry({ id: "vocab-093", word: "えん", meanings: ["yen"], category: "things" }),
+  makeVocabEntry({ id: "vocab-093", word: "えん", meanings: ["yen", "circle"], category: "things" }),
   makeVocabEntry({ id: "vocab-094", word: "しんぶん", meanings: ["newspaper"], category: "things" }),
   makeVocabEntry({ id: "vocab-095", word: "ざっし", meanings: ["magazine"], category: "things" }),
   makeVocabEntry({ id: "vocab-096", word: "テレビ", meanings: ["television"], category: "things" }),
@@ -153,11 +153,11 @@ export const n5VocabData = [
   makeVocabEntry({ id: "vocab-132", word: "おきる", meanings: ["wake up"], category: "verbs" }),
   makeVocabEntry({ id: "vocab-133", word: "あらう", meanings: ["wash"], category: "verbs" }),
   makeVocabEntry({ id: "vocab-134", word: "そうじする", meanings: ["clean"], category: "verbs" }),
-  makeVocabEntry({ id: "vocab-135", word: "あたえる", meanings: ["give"], category: "verbs" }),
+  makeVocabEntry({ id: "vocab-135", word: "あげる", meanings: ["give"], category: "verbs" }),
   makeVocabEntry({ id: "vocab-136", word: "もらう", meanings: ["receive"], category: "verbs" }),
   makeVocabEntry({ id: "vocab-137", word: "ならう", meanings: ["learn"], category: "verbs" }),
   makeVocabEntry({ id: "vocab-138", word: "おしえる", meanings: ["teach"], category: "verbs" }),
-  makeVocabEntry({ id: "vocab-139", word: "しごと", meanings: ["work"], category: "verbs" }),
+  makeVocabEntry({ id: "vocab-139", word: "はたらく", meanings: ["work"], category: "verbs" }),
   makeVocabEntry({ id: "vocab-140", word: "べんきょうする", meanings: ["study"], category: "verbs" }),
 
   // Adjectives

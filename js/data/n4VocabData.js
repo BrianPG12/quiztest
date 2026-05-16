@@ -2,17 +2,116 @@ function makeN4VocabEntry({ id, word, meanings, category = "core" }) {
   return { id, word, meanings, category };
 }
 
+// Genki II (3rd edition) - Standard N4 Vocabulary
 export const n4VocabData = [
-  makeN4VocabEntry({ id: "n4vocab-001", word: "あんしん", meanings: ["relief", "peace of mind"], category: "feelings" }),
-  makeN4VocabEntry({ id: "n4vocab-002", word: "あんない", meanings: ["guidance", "information"], category: "daily" }),
-  makeN4VocabEntry({ id: "n4vocab-003", word: "いちど", meanings: ["once"], category: "time" }),
-  makeN4VocabEntry({ id: "n4vocab-004", word: "いっぱい", meanings: ["full", "a lot"], category: "daily" }),
-  makeN4VocabEntry({ id: "n4vocab-005", word: "うけつけ", meanings: ["reception desk"], category: "places" }),
-  makeN4VocabEntry({ id: "n4vocab-006", word: "うりば", meanings: ["sales floor", "department"], category: "places" }),
-  makeN4VocabEntry({ id: "n4vocab-007", word: "おいわい", meanings: ["celebration"], category: "people" }),
-  makeN4VocabEntry({ id: "n4vocab-008", word: "おさきに", meanings: ["before you", "excuse me for leaving first"], category: "polite" }),
-  makeN4VocabEntry({ id: "n4vocab-009", word: "おみまい", meanings: ["visiting someone who is sick"], category: "daily" }),
-  makeN4VocabEntry({ id: "n4vocab-010", word: "かならず", meanings: ["without fail", "certainly"], category: "adverbs" }),
+  // Travel & Transportation
+  makeN4VocabEntry({ id: "n4vocab-001", word: "くうこう", meanings: ["airport"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-002", word: "しんかんせん", meanings: ["bullet train"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-003", word: "ターミナル", meanings: ["terminal"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-004", word: "パスポート", meanings: ["passport"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-005", word: "ビザ", meanings: ["visa"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-006", word: "ホテル", meanings: ["hotel"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-007", word: "よやく", meanings: ["reservation"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-008", word: "りょこう", meanings: ["trip"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-009", word: "りょうりん", meanings: ["lodge", "inn"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-010", word: "ガイド", meanings: ["guide"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-011", word: "ツアー", meanings: ["tour"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-012", word: "けしき", meanings: ["scenery"], category: "travel" }),
+  makeN4VocabEntry({ id: "n4vocab-013", word: "いじめ", meanings: ["bullying"], category: "social" }),
+  makeN4VocabEntry({ id: "n4vocab-014", word: "じこ", meanings: ["accident"], category: "safety" }),
+  makeN4VocabEntry({ id: "n4vocab-015", word: "いきもの", meanings: ["living things"], category: "nature" }),
+
+  // Health & Medical
+  makeN4VocabEntry({ id: "n4vocab-016", word: "びょうき", meanings: ["illness"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-017", word: "ぐあい", meanings: ["condition"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-018", word: "きぶん", meanings: ["feeling"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-019", word: "ねつ", meanings: ["fever"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-020", word: "さらさら", meanings: ["refreshing", "smooth"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-021", word: "あたた", meanings: ["warm"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-022", word: "からだ", meanings: ["body"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-023", word: "けが", meanings: ["injury"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-024", word: "くすり", meanings: ["medicine"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-025", word: "いたい", meanings: ["painful"], category: "health" }),
+
+  // Work & Business
+  makeN4VocabEntry({ id: "n4vocab-026", word: "しごと", meanings: ["work"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-027", word: "かいしゃ", meanings: ["company"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-028", word: "かいぎ", meanings: ["meeting"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-029", word: "ほうこく", meanings: ["report"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-030", word: "けいやく", meanings: ["contract"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-031", word: "けいけん", meanings: ["experience"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-032", word: "ぎゅうがく", meanings: ["business trip"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-033", word: "うしなう", meanings: ["lose"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-034", word: "いだしながら", meanings: ["while holding"], category: "work" }),
+  makeN4VocabEntry({ id: "n4vocab-035", word: "きおく", meanings: ["memory", "remember"], category: "work" }),
+
+  // Emotions & Feelings
+  makeN4VocabEntry({ id: "n4vocab-036", word: "あんしん", meanings: ["relief"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-037", word: "つらい", meanings: ["painful"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-038", word: "うれしい", meanings: ["happy"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-039", word: "かなしい", meanings: ["sad"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-040", word: "こわい", meanings: ["scary"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-041", word: "はずかしい", meanings: ["embarrassing"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-042", word: "さびしい", meanings: ["lonely"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-043", word: "ねたむ", meanings: ["envy"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-044", word: "きがする", meanings: ["feel like"], category: "feelings" }),
+  makeN4VocabEntry({ id: "n4vocab-045", word: "こころ", meanings: ["heart", "mind"], category: "feelings" }),
+
+  // Verbs - More Complex Actions
+  makeN4VocabEntry({ id: "n4vocab-046", word: "はこぶ", meanings: ["transport"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-047", word: "くりかえす", meanings: ["repeat"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-048", word: "たすける", meanings: ["help", "rescue"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-049", word: "きめる", meanings: ["decide"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-050", word: "なおす", meanings: ["fix", "repair"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-051", word: "そこなう", meanings: ["spoil"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-052", word: "ちぢむ", meanings: ["shrink"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-053", word: "ほぐす", meanings: ["loosen"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-054", word: "かさねる", meanings: ["pile up"], category: "verbs" }),
+  makeN4VocabEntry({ id: "n4vocab-055", word: "うばう", meanings: ["take away", "rob"], category: "verbs" }),
+
+  // Adjectives & Descriptions
+  makeN4VocabEntry({ id: "n4vocab-056", word: "あたり", meanings: ["vicinity"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-057", word: "うっすり", meanings: ["thinly"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-058", word: "かすか", meanings: ["faint"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-059", word: "とうめい", meanings: ["transparent"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-060", word: "さかん", meanings: ["flourishing"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-061", word: "ねん", meanings: ["persistence"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-062", word: "ほぼ", meanings: ["almost"], category: "adverbs" }),
+  makeN4VocabEntry({ id: "n4vocab-063", word: "かなり", meanings: ["considerably"], category: "adverbs" }),
+  makeN4VocabEntry({ id: "n4vocab-064", word: "ぐんぐん", meanings: ["rapidly"], category: "adverbs" }),
+  makeN4VocabEntry({ id: "n4vocab-065", word: "ゆっくり", meanings: ["slowly"], category: "adverbs" }),
+
+  // Food & Dining
+  makeN4VocabEntry({ id: "n4vocab-066", word: "ざっこく", meanings: ["grains"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-067", word: "しおから", meanings: ["salted fish"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-068", word: "こうじ", meanings: ["koji"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-069", word: "さけ", meanings: ["sake"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-070", word: "あぶら", meanings: ["oil"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-071", word: "しお", meanings: ["salt"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-072", word: "さとう", meanings: ["sugar"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-073", word: "こしょう", meanings: ["pepper"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-074", word: "ぶた", meanings: ["pork"], category: "food" }),
+  makeN4VocabEntry({ id: "n4vocab-075", word: "とり", meanings: ["chicken"], category: "food" }),
+
+  // Objects & Things
+  makeN4VocabEntry({ id: "n4vocab-076", word: "けいせん", meanings: ["string"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-077", word: "はり", meanings: ["needle"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-078", word: "ふうせん", meanings: ["balloon"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-079", word: "こうもり", meanings: ["umbrella"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-080", word: "くしゃみ", meanings: ["sneeze"], category: "health" }),
+  makeN4VocabEntry({ id: "n4vocab-081", word: "はんかち", meanings: ["handkerchief"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-082", word: "ぞうきん", meanings: ["cloth"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-083", word: "ぼたん", meanings: ["button"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-084", word: "ジッパー", meanings: ["zipper"], category: "things" }),
+  makeN4VocabEntry({ id: "n4vocab-085", word: "きかい", meanings: ["machine"], category: "things" }),
+
+  // Society & Social
+  makeN4VocabEntry({ id: "n4vocab-086", word: "ほうしゃ", meanings: ["radiation"], category: "science" }),
+  makeN4VocabEntry({ id: "n4vocab-087", word: "えいきょう", meanings: ["influence"], category: "social" }),
+  makeN4VocabEntry({ id: "n4vocab-088", word: "べつの", meanings: ["different"], category: "descriptive" }),
+  makeN4VocabEntry({ id: "n4vocab-089", word: "ぜんぶ", meanings: ["all", "everything"], category: "quantities" }),
+  makeN4VocabEntry({ id: "n4vocab-090", word: "ほうほう", meanings: ["method"], category: "abstract" })
+];
   makeN4VocabEntry({ id: "n4vocab-011", word: "かわり", meanings: ["substitute", "replacement"], category: "daily" }),
   makeN4VocabEntry({ id: "n4vocab-012", word: "きこく", meanings: ["return to one's country"], category: "travel" }),
   makeN4VocabEntry({ id: "n4vocab-013", word: "きゅうに", meanings: ["suddenly"], category: "adverbs" }),
