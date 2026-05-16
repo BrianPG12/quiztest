@@ -2228,6 +2228,172 @@
     }
     return pool[pool.length - 1];
   }
+  function toHiraganaFromKatakana(value) {
+    return value.replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 96));
+  }
+  function romanToHiragana(input) {
+    const source = String(input || "").toLowerCase().trim();
+    if (!source) {
+      return "";
+    }
+    const compact = source.replace(/[^a-z]/g, "");
+    if (!compact) {
+      return "";
+    }
+    const map = {
+      kya: "\u304D\u3083",
+      kyu: "\u304D\u3085",
+      kyo: "\u304D\u3087",
+      gya: "\u304E\u3083",
+      gyu: "\u304E\u3085",
+      gyo: "\u304E\u3087",
+      sha: "\u3057\u3083",
+      shu: "\u3057\u3085",
+      sho: "\u3057\u3087",
+      ja: "\u3058\u3083",
+      ju: "\u3058\u3085",
+      jo: "\u3058\u3087",
+      cha: "\u3061\u3083",
+      chu: "\u3061\u3085",
+      cho: "\u3061\u3087",
+      nya: "\u306B\u3083",
+      nyu: "\u306B\u3085",
+      nyo: "\u306B\u3087",
+      hya: "\u3072\u3083",
+      hyu: "\u3072\u3085",
+      hyo: "\u3072\u3087",
+      bya: "\u3073\u3083",
+      byu: "\u3073\u3085",
+      byo: "\u3073\u3087",
+      pya: "\u3074\u3083",
+      pyu: "\u3074\u3085",
+      pyo: "\u3074\u3087",
+      mya: "\u307F\u3083",
+      myu: "\u307F\u3085",
+      myo: "\u307F\u3087",
+      rya: "\u308A\u3083",
+      ryu: "\u308A\u3085",
+      ryo: "\u308A\u3087",
+      fa: "\u3075\u3041",
+      fi: "\u3075\u3043",
+      fe: "\u3075\u3047",
+      fo: "\u3075\u3049",
+      tsu: "\u3064",
+      shi: "\u3057",
+      chi: "\u3061",
+      fu: "\u3075",
+      ka: "\u304B",
+      ki: "\u304D",
+      ku: "\u304F",
+      ke: "\u3051",
+      ko: "\u3053",
+      ga: "\u304C",
+      gi: "\u304E",
+      gu: "\u3050",
+      ge: "\u3052",
+      go: "\u3054",
+      sa: "\u3055",
+      su: "\u3059",
+      se: "\u305B",
+      so: "\u305D",
+      za: "\u3056",
+      ji: "\u3058",
+      zu: "\u305A",
+      ze: "\u305C",
+      zo: "\u305E",
+      ta: "\u305F",
+      te: "\u3066",
+      to: "\u3068",
+      da: "\u3060",
+      de: "\u3067",
+      do: "\u3069",
+      na: "\u306A",
+      ni: "\u306B",
+      nu: "\u306C",
+      ne: "\u306D",
+      no: "\u306E",
+      ha: "\u306F",
+      hi: "\u3072",
+      he: "\u3078",
+      ho: "\u307B",
+      ba: "\u3070",
+      bi: "\u3073",
+      bu: "\u3076",
+      be: "\u3079",
+      bo: "\u307C",
+      pa: "\u3071",
+      pi: "\u3074",
+      pu: "\u3077",
+      pe: "\u307A",
+      po: "\u307D",
+      ma: "\u307E",
+      mi: "\u307F",
+      mu: "\u3080",
+      me: "\u3081",
+      mo: "\u3082",
+      ya: "\u3084",
+      yu: "\u3086",
+      yo: "\u3088",
+      ra: "\u3089",
+      ri: "\u308A",
+      ru: "\u308B",
+      re: "\u308C",
+      ro: "\u308D",
+      wa: "\u308F",
+      wo: "\u3092",
+      a: "\u3042",
+      i: "\u3044",
+      u: "\u3046",
+      e: "\u3048",
+      o: "\u304A",
+      n: "\u3093"
+    };
+    let out = "";
+    let i = 0;
+    while (i < compact.length) {
+      const next = compact[i + 1];
+      if (i + 1 < compact.length && compact[i] === next && compact[i] !== "n" && "bcdfghjklmpqrstvwxyz".includes(compact[i])) {
+        out += "\u3063";
+        i += 1;
+        continue;
+      }
+      const tri = compact.slice(i, i + 3);
+      const bi = compact.slice(i, i + 2);
+      if (map[tri]) {
+        out += map[tri];
+        i += 3;
+        continue;
+      }
+      if (map[bi]) {
+        out += map[bi];
+        i += 2;
+        continue;
+      }
+      if (map[compact[i]]) {
+        out += map[compact[i]];
+        i += 1;
+        continue;
+      }
+      i += 1;
+    }
+    return out;
+  }
+  function resolveKanjiReadingForDrawing(item) {
+    const firstReading = Array.isArray(item.kunyomi) && item.kunyomi[0] || Array.isArray(item.onyomi) && item.onyomi[0] || "";
+    if (/[\u3040-\u309f]/.test(firstReading)) {
+      return firstReading;
+    }
+    if (/[\u30a0-\u30ff]/.test(firstReading)) {
+      return toHiraganaFromKatakana(firstReading);
+    }
+    const fromReading = romanToHiragana(firstReading);
+    if (fromReading) {
+      return fromReading;
+    }
+    const idSuffix = String(item.id || "").split("-").pop();
+    const fromId = romanToHiragana(idSuffix);
+    return fromId || "\u3088\u307F\u304B\u305F";
+  }
   function resolveTypingRomaji(item, scriptName) {
     if (scriptName === "Hiragana" && item.hiragana === "\u3092") {
       return "o";
@@ -2613,6 +2779,7 @@
       };
     }
     if (resolvedMode === "kanjiDrawing") {
+      const reading = resolveKanjiReadingForDrawing(item);
       return {
         kind: "drawing",
         dataset: "kanji",
@@ -2620,7 +2787,7 @@
         romaji: item.id,
         kanji: item.kanji,
         canvasMode: "kanji",
-        promptText: `Draw ${item.kanji}`,
+        promptText: `Draw the kanji for: ${reading}`,
         revealText: `Answer: ${item.kanji} (${item.meanings[0]}). Mark yourself right or wrong.`
       };
     }

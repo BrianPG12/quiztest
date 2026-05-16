@@ -98,6 +98,113 @@ function pickGenericQuestion({
   return pool[pool.length - 1];
 }
 
+function toHiraganaFromKatakana(value) {
+  return value.replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
+}
+
+function romanToHiragana(input) {
+  const source = String(input || "").toLowerCase().trim();
+  if (!source) {
+    return "";
+  }
+
+  const compact = source.replace(/[^a-z]/g, "");
+  if (!compact) {
+    return "";
+  }
+
+  const map = {
+    kya: "きゃ", kyu: "きゅ", kyo: "きょ",
+    gya: "ぎゃ", gyu: "ぎゅ", gyo: "ぎょ",
+    sha: "しゃ", shu: "しゅ", sho: "しょ",
+    ja: "じゃ", ju: "じゅ", jo: "じょ",
+    cha: "ちゃ", chu: "ちゅ", cho: "ちょ",
+    nya: "にゃ", nyu: "にゅ", nyo: "にょ",
+    hya: "ひゃ", hyu: "ひゅ", hyo: "ひょ",
+    bya: "びゃ", byu: "びゅ", byo: "びょ",
+    pya: "ぴゃ", pyu: "ぴゅ", pyo: "ぴょ",
+    mya: "みゃ", myu: "みゅ", myo: "みょ",
+    rya: "りゃ", ryu: "りゅ", ryo: "りょ",
+    fa: "ふぁ", fi: "ふぃ", fe: "ふぇ", fo: "ふぉ",
+    tsu: "つ", shi: "し", chi: "ち", fu: "ふ",
+    ka: "か", ki: "き", ku: "く", ke: "け", ko: "こ",
+    ga: "が", gi: "ぎ", gu: "ぐ", ge: "げ", go: "ご",
+    sa: "さ", su: "す", se: "せ", so: "そ",
+    za: "ざ", ji: "じ", zu: "ず", ze: "ぜ", zo: "ぞ",
+    ta: "た", te: "て", to: "と",
+    da: "だ", de: "で", do: "ど",
+    na: "な", ni: "に", nu: "ぬ", ne: "ね", no: "の",
+    ha: "は", hi: "ひ", he: "へ", ho: "ほ",
+    ba: "ば", bi: "び", bu: "ぶ", be: "べ", bo: "ぼ",
+    pa: "ぱ", pi: "ぴ", pu: "ぷ", pe: "ぺ", po: "ぽ",
+    ma: "ま", mi: "み", mu: "む", me: "め", mo: "も",
+    ya: "や", yu: "ゆ", yo: "よ",
+    ra: "ら", ri: "り", ru: "る", re: "れ", ro: "ろ",
+    wa: "わ", wo: "を",
+    a: "あ", i: "い", u: "う", e: "え", o: "お",
+    n: "ん"
+  };
+
+  let out = "";
+  let i = 0;
+  while (i < compact.length) {
+    const next = compact[i + 1];
+    if (
+      i + 1 < compact.length
+      && compact[i] === next
+      && compact[i] !== "n"
+      && "bcdfghjklmpqrstvwxyz".includes(compact[i])
+    ) {
+      out += "っ";
+      i += 1;
+      continue;
+    }
+
+    const tri = compact.slice(i, i + 3);
+    const bi = compact.slice(i, i + 2);
+    if (map[tri]) {
+      out += map[tri];
+      i += 3;
+      continue;
+    }
+    if (map[bi]) {
+      out += map[bi];
+      i += 2;
+      continue;
+    }
+    if (map[compact[i]]) {
+      out += map[compact[i]];
+      i += 1;
+      continue;
+    }
+
+    i += 1;
+  }
+
+  return out;
+}
+
+function resolveKanjiReadingForDrawing(item) {
+  const firstReading = (Array.isArray(item.kunyomi) && item.kunyomi[0])
+    || (Array.isArray(item.onyomi) && item.onyomi[0])
+    || "";
+  if (/[\u3040-\u309f]/.test(firstReading)) {
+    return firstReading;
+  }
+  if (/[\u30a0-\u30ff]/.test(firstReading)) {
+    return toHiraganaFromKatakana(firstReading);
+  }
+
+  const fromReading = romanToHiragana(firstReading);
+  if (fromReading) {
+    return fromReading;
+  }
+
+  const idSuffix = String(item.id || "").split("-").pop();
+  const fromId = romanToHiragana(idSuffix);
+  return fromId || "よみかた";
+}
+
 function resolveTypingRomaji(item, scriptName) {
   if (scriptName === "Hiragana" && item.hiragana === "を") {
     return "o";
@@ -529,6 +636,7 @@ export function pickKanjiQuestion({
   }
 
   if (resolvedMode === "kanjiDrawing") {
+    const reading = resolveKanjiReadingForDrawing(item);
     return {
       kind: "drawing",
       dataset: "kanji",
@@ -536,7 +644,7 @@ export function pickKanjiQuestion({
       romaji: item.id,
       kanji: item.kanji,
       canvasMode: "kanji",
-      promptText: `Draw ${item.kanji}`,
+      promptText: `Draw the kanji for: ${reading}`,
       revealText: `Answer: ${item.kanji} (${item.meanings[0]}). Mark yourself right or wrong.`
     };
   }
